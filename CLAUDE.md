@@ -20,4 +20,4 @@ The app idea is still being decided; right now this is the starter project.
 
 ## Git, GitHub, and deploys
 - The repo is **public** on GitHub, so never commit secrets. API keys go in `.env.local` (gitignored); add them on Vercel under Project → Settings → Environment Variables.
-- Hosted on Vercel: every push to `main` deploys automatically.
+- Hosted on Vercel at https://vibe-delta-orpin.vercel.app (GitHub: https://github.com/jbposton/vibe). Every push to `main` deploys automatically.
