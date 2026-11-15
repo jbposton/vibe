@@ -15,7 +15,7 @@ import {
   tradeForEdge,
   volumeOz,
 } from "@/lib/stack";
-import { GLASS_STYLE, GRAIN_STYLE } from "./surfaceEffects";
+import { GLASS_GLOW_STYLE, GLASS_LENS_STYLE, GLASS_RIM_STYLE, GRAIN_STYLE } from "./surfaceEffects";
 import { useLayerDrag } from "./useLayerDrag";
 
 // OPEN: which drink a visitor sees first (brief §1 flow). Placeholder: Negroni.
@@ -230,9 +230,9 @@ export function DrinkPanel() {
             })}
 
             {/* Surface effects over the whole drink, under the labels and lines:
-                film grain, then the glass edge. */}
+                film grain, then the liquid-glass lens at the edges. */}
             <div aria-hidden className="pointer-events-none absolute inset-0" style={GRAIN_STYLE} />
-            <div aria-hidden className="pointer-events-none absolute inset-0" style={GLASS_STYLE} />
+            <div aria-hidden className="pointer-events-none absolute inset-0" style={GLASS_LENS_STYLE} />
 
             {/* One region per layer: label (name left, amount right) and keyboard control. */}
             {ordered.map((line, i) => {
@@ -318,6 +318,10 @@ export function DrinkPanel() {
                 </div>
               );
             })}
+
+            {/* Liquid-glass rim and inner glow, on top of everything. */}
+            <div aria-hidden className="pointer-events-none absolute inset-0" style={GLASS_GLOW_STYLE} />
+            <div aria-hidden className="pointer-events-none absolute inset-0" style={GLASS_RIM_STYLE} />
           </>
         )}
       </section>

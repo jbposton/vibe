@@ -2,6 +2,15 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-14: Liquid glass overlay
+- **Before:** a subtle glass edge, made of a thin rim and soft inner shading.
+- **After:** a liquid-glass treatment that keeps the middle of the drink clear and puts the effect at the edges:
+  - **Lens:** within about 22px of the edge, the drink behind is softened (5px blur), more saturated and slightly brighter, like light bending through a curved glass rim.
+  - **Specular rim:** a 1.5px gradient outline, brightest at the top left and catching light again at the bottom right.
+  - **Inner glow:** light caught along the inside of the edges, with a faint darker band for thickness.
+- **Fixed during the build:** the rim's mask was being ignored, so its gradient washed across the whole drink. It now uses the `mask` shorthand so only the outline shows.
+- **To watch:** the lens uses a backdrop blur, which the browser recomputes while you drag. Check smoothness on a phone.
+
 ## 2026-11-14: Rounded glass panel
 - **Before:** the drink panel was a sharp-cornered rectangle with no edge treatment.
 - **After:**
