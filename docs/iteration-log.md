@@ -2,6 +2,19 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-14: Swipe carousel on phones (NOT yet tested for swiping)
+- **Before:** ‹ › buttons switched drinks.
+- **After (phones):**
+  - The drink panel is slightly narrower. The previous and next drinks peek in from the left and right at 86% size.
+  - Swiping sideways slides the row: the next card grows into the middle while the old one shrinks and moves aside. Tapping a peeking card also brings it in.
+  - A sideways move on a layer is a swipe; a vertical move still changes the amount.
+  - Only the middle card mixes; the others sit still and idle.
+  - Each drink now keeps its edits when you swipe away and back.
+  - The arrow buttons stay on wide screens (and for screen readers on phones).
+- **Checked:** type-check and lint pass, and the layout renders correctly at phone width (middle card 307px, neighbors 264px).
+- **Not checked:** the swipe gesture itself, settle animation, tap-to-switch, vertical drags inside the carousel, and the wide-screen layout.
+- **Brief note:** CLAUDE.md §6 says a swipe should start on the tray or handle, never on the drink. JP chose swiping the card instead, with direction deciding the gesture.
+
 ## 2026-11-14: Mixing starts right away
 - **Before:** a new drink held unmixed for 1 second.
 - **After:** there's no hold. A new drink still appears unmixed, but the mixing starts easing in immediately and reaches full strength over 4 seconds.

@@ -1,221 +1,329 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { DRINKS, type RecipeLine } from "@/data/drinks";
 import { INGREDIENTS } from "@/data/ingredients";
-import {
-  formatAmount,
-  layerBottoms,
-  layerGeometry,
-  layerHeights,
-  orderLines,
-  snapTrade,
-  type StackLine,
-  stepAmount,
-  tradeForEdge,
-  volumeOz,
-} from "@/lib/stack";
-import { LiquidCanvas, type LiquidLayer } from "./LiquidCanvas";
-import { GRAIN_STYLE } from "./surfaceEffects";
-import { useLayerDrag } from "./useLayerDrag";
+import { orderLines } from "@/lib/stack";
+import { DrinkCard } from "./DrinkCard";
+
+const N = DRINKS.length;
 
 // OPEN: which drink a visitor sees first (brief §1 flow). Placeholder: Negroni.
 const START_DRINK = Math.max(0, DRINKS.findIndex((d) => d.id === "negroni"));
 
-/** The two layers a section drag trades between. */
-type Pair = { lowerKey: number; upperKey: number };
+const mod = (a: number, n: number) => ((a % n) + n) % n;
+const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
-/**
- * Which neighbor a section trades with when dragged: the layer below if it
- * holds volume (so the section's bottom line follows the finger), otherwise
- * the layer above (the base layer has nothing below it). Garnishes (no volume)
- * can't trade.
- */
-function tradePartner(ordered: StackLine[], key: number): Pair | null {
-  const i = ordered.findIndex((l) => l.key === key);
-  const liquid = (l: StackLine | undefined) => !!l && l.amount.kind !== "garnish";
-  if (i < 0 || !liquid(ordered[i])) return null;
-  if (liquid(ordered[i - 1])) return { lowerKey: ordered[i - 1].key, upperKey: key };
-  if (liquid(ordered[i + 1])) return { lowerKey: key, upperKey: ordered[i + 1].key };
-  return null;
+/** Phone layout: the middle card with its neighbors peeking in at the sides. */
+const SIDE_SCALE = 0.86; // size of the cards beside the middle one
+const PEEK = 24; // px of each side card showing at the screen edge
+const GAP = 10; // px between the middle card and a side card
+/** How far a finger moves (px) before it counts as a swipe rather than a tap. */
+const SLOP = 6;
+/** A swipe this fast (px/ms) flips to the next drink even if it was short. */
+const FLICK = 0.4;
+
+const DESKTOP = "(min-width: 768px)";
+const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
+
+function subscribeDesktop(onChange: () => void) {
+  const query = window.matchMedia(DESKTOP);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
 }
+const getDesktop = () => window.matchMedia(DESKTOP).matches;
 
-/** The page's warm black, also shown by the shader above and below the drink. */
-const PAGE_BACKGROUND = "#1A1612";
-
-/** How dark a layer gets while you drag it (opacity of a solid black veil). */
-const SELECTED_DARKEN = 0.05;
-
-/** How far each color band runs past the panel's sides (the panel clips it). */
-const BAND_BLEED = 128;
-
-/** Dark text on light colors, white text on dark ones, so labels stay readable. */
-function labelColor(hex: string): string {
-  const n = parseInt(hex.slice(1), 16);
-  const [r, g, b] = [n >> 16, (n >> 8) & 255, n & 255].map((c) => {
-    const s = c / 255;
-    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
-  });
-  const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-  return luminance < 0.18 ? "rgba(255,255,255,0.9)" : "rgba(20,20,20,0.75)";
-}
+type Pointer = { id: number; x: number; y: number; owned: boolean; moved: boolean };
 
 export function DrinkPanel() {
-  // `baseLines` is the recipe the blurred bands were last drawn at. While the
-  // amounts change, the bands are only stretched and moved (cheap for the
-  // graphics chip) instead of being re-blurred every frame. Shortly after
-  // things settle, the bands are redrawn at their true size (`baseVersion`).
-  const [state, setState] = useState(() => ({
-    index: START_DRINK,
-    lines: DRINKS[START_DRINK].lines,
-    baseLines: DRINKS[START_DRINK].lines,
-    baseVersion: 0,
-  }));
-  const drink = DRINKS[state.index];
-  const modified = state.lines !== drink.lines;
+  // On a wide screen there's one big card and ‹ › buttons, as before. On a
+  // phone the cards sit in a row and you swipe through them.
+  const isDesktop = useSyncExternalStore(subscribeDesktop, getDesktop, () => false);
 
-  // Measure the panel: the stack fills its full inner height.
-  const panelEl = useRef<HTMLElement | null>(null);
-  const [panelHeight, setPanelHeight] = useState(0);
-  const panelRef = useCallback((el: HTMLElement | null) => {
-    panelEl.current = el;
+  const [index, setIndex] = useState(START_DRINK); // the drink in the middle
+  const [infoIndex, setInfoIndex] = useState(START_DRINK); // the drink nearest the middle (while swiping)
+  const [busy, setBusy] = useState(false); // swiping, or settling after a swipe
+  // Edited recipes, by drink. A drink you haven't touched isn't in here. Each
+  // card keeps its edits when you swipe away and back.
+  const [edits, setEdits] = useState<Record<number, RecipeLine[]>>({});
+  const [trackWidth, setTrackWidth] = useState(0);
+
+  const trackRef = useCallback((el: HTMLDivElement | null) => {
     if (!el) return;
-    setPanelHeight(el.clientHeight); // measure now; the observer keeps it current
-    const observer = new ResizeObserver(([entry]) => setPanelHeight(entry.contentRect.height));
+    setTrackWidth(el.clientWidth); // measure now; the observer keeps it current
+    const observer = new ResizeObserver(([entry]) => setTrackWidth(entry.contentRect.width));
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
 
-  const ordered = orderLines(state.lines);
-  const heights = layerHeights(ordered, panelHeight);
-  const bottoms = layerBottoms(heights);
+  // Card sizes: the middle card leaves room for a sliver of its neighbors.
+  const cardWidth = isDesktop ? trackWidth : Math.max(0, trackWidth - 2 * (PEEK + GAP));
+  const step = isDesktop ? 0 : cardWidth / 2 + (cardWidth * SIDE_SCALE) / 2 + GAP;
 
-  // The drink for the liquid shader: each layer's band (with the v4 overlap)
-  // and blur, in px above the stack bottom.
-  const liquidLayers: LiquidLayer[] = ordered.map((line, i) => {
-    const g = layerGeometry(heights[i]);
-    return {
-      lo: bottoms[i] - g.overlap,
-      hi: bottoms[i] + heights[i] + g.overlap,
-      blur: g.blur,
-      color: INGREDIENTS[line.ingredient].color,
-      still: line.amount.kind === "garnish", // garnishes keep a still gradient
-    };
+  // ── Carousel motion ─────────────────────────────────────────────────────
+  // Positions are written straight to the card elements (no React render per
+  // frame). `p` is how far the row has moved, in cards: +1 means the previous
+  // drink has come all the way to the middle, -1 the next one.
+  const ctl = useRef({
+    index: START_DRINK,
+    info: START_DRINK,
+    p: 0,
+    raf: 0,
+    swiping: false,
+    animating: false,
+    startX: 0,
+    baseP: 0,
+    moves: [] as { t: number; x: number }[],
+    desktop: false,
+    cardWidth: 0,
+    step: 0,
+    pointer: null as Pointer | null,
   });
-  // null until the shader has drawn (true) or failed (false). Until it's
-  // drawing, the CSS bands below show the drink.
-  const [shaderReady, setShaderReady] = useState<boolean | null>(null);
+  const cardEls = useRef(new Map<number, HTMLElement>());
 
-  // Geometry the bands were drawn at (same layers, same order).
-  const baseHeights = layerHeights(orderLines(state.baseLines), panelHeight);
-  const baseBottoms = layerBottoms(baseHeights);
-
-  const setLine = (key: number, update: (line: RecipeLine) => RecipeLine) =>
-    setState((s) => ({
-      ...s,
-      lines: s.lines.map((l, i) => (i === key ? update(l) : l)),
-    }));
-
-  const goTo = (delta: number) =>
-    setState((s) => {
-      const index = (s.index + delta + DRINKS.length) % DRINKS.length;
-      const lines = DRINKS[index].lines;
-      return { index, lines, baseLines: lines, baseVersion: s.baseVersion + 1 };
+  const applyTransforms = useCallback(() => {
+    const c = ctl.current;
+    cardEls.current.forEach((el, j) => {
+      const r = mod(j - c.index + N / 2, N) - N / 2; // card's place relative to the middle one
+      const t = r + c.p; // 0 = in the middle, ±1 = one card over
+      const scale = c.desktop ? 1 : 1 - (1 - SIDE_SCALE) * Math.min(Math.abs(t), 1);
+      const x = c.desktop ? 0 : t * c.step;
+      el.style.transform = `translate3d(${(x - c.cardWidth / 2).toFixed(2)}px,0,0) scale(${scale.toFixed(4)})`;
+      el.style.zIndex = String(10 - Math.round(Math.abs(t) * 3));
+      el.style.visibility = Math.abs(t) > 2.2 ? "hidden" : "visible";
     });
+  }, []);
 
-  const reset = () => setState((s) => ({ ...s, lines: DRINKS[s.index].lines }));
-
-  // Dragging a section trades volume with a neighbor: down expands it (more
-  // of this ingredient), up shrinks it (less). The line shared with that neighbor follows the
-  // finger and the rest of the drink stays put. Amounts follow the finger
-  // smoothly and snap to ¼ oz (or whole dashes) on release.
-  const drag = useRef<{ pair: Pair; startY: number; startEdge: number } | null>(null);
-
-  const { handlers, draggingKey } = useLayerDrag({
-    onStart: (key, clientY) => {
-      const pair = tradePartner(ordered, key);
-      if (!pair) return;
-      // Where the shared line is now, in px above the stack bottom.
-      const idx = ordered.findIndex((l) => l.key === pair.lowerKey);
-      drag.current = { pair, startY: clientY, startEdge: bottoms[idx] + heights[idx] };
-    },
-    onMove: (_key, clientY) => {
-      const d = drag.current;
-      if (!d) return;
-      const down = clientY - d.startY; // px moved down
-      // The shared line always follows the finger. Usually it's the section's
-      // bottom line, so down expands the section. For the base layer it's the
-      // top line (JP's choice), so down shrinks the base instead.
-      const edge = Math.min(panelHeight, Math.max(0, d.startEdge - down));
-      const { lowerKey, upperKey } = d.pair;
-      setState((s) => {
-        const [a, b] = tradeForEdge(s.lines, lowerKey, upperKey, edge, panelHeight);
-        return {
-          ...s,
-          lines: s.lines.map((l, i) =>
-            i === lowerKey ? { ...l, amount: a } : i === upperKey ? { ...l, amount: b } : l,
-          ),
-        };
-      });
-    },
-    onEnd: () => {
-      const d = drag.current;
-      drag.current = null;
-      if (!d) return;
-      const { lowerKey, upperKey } = d.pair;
-      setState((s) => {
-        const [a, b] = snapTrade(s.lines[lowerKey].amount, s.lines[upperKey].amount);
-        return {
-          ...s,
-          lines: s.lines.map((l, i) =>
-            i === lowerKey ? { ...l, amount: a } : i === upperKey ? { ...l, amount: b } : l,
-          ),
-        };
-      });
-    },
+  // Keep every card's position in step with the latest layout and drink order.
+  useLayoutEffect(() => {
+    const c = ctl.current;
+    c.desktop = isDesktop;
+    c.cardWidth = cardWidth;
+    c.step = step;
+    applyTransforms();
   });
 
-  // Once nothing has moved for a moment, redraw the bands at their true size.
-  useEffect(() => {
-    if (draggingKey !== null || state.baseLines === state.lines) return;
-    const timer = setTimeout(
-      () =>
-        setState((s) =>
-          s.baseLines === s.lines ? s : { ...s, baseLines: s.lines, baseVersion: s.baseVersion + 1 },
-        ),
-      400,
-    );
-    return () => clearTimeout(timer);
-  }, [draggingKey, state.lines, state.baseLines]);
+  const setP = useCallback(
+    (p: number) => {
+      const c = ctl.current;
+      c.p = p;
+      applyTransforms();
+      // The info (name, counter) follows whichever drink is nearest the middle.
+      const near = mod(c.index - Math.round(p), N);
+      if (near !== c.info) {
+        c.info = near;
+        setInfoIndex(near);
+      }
+    },
+    [applyTransforms],
+  );
 
-  // ← / → switch drinks (placeholder until the Finder exists).
+  /** Glide the row to `target` (-1 next, 0 stay, +1 previous), then commit. */
+  const settleTo = useCallback(
+    (target: number) => {
+      const c = ctl.current;
+      cancelAnimationFrame(c.raf);
+      c.animating = true;
+      setBusy(true);
+      const from = c.p;
+      const distance = Math.abs(target - from);
+      const duration = window.matchMedia(REDUCED_MOTION).matches || distance === 0 ? 0 : 240 + 160 * distance;
+      const t0 = performance.now();
+
+      const finish = () => {
+        if (target !== 0) {
+          c.index = mod(c.index - target, N);
+          setIndex(c.index);
+        }
+        // The cards stay exactly where they are: positions are now measured
+        // from the new middle card, so nothing visibly jumps.
+        c.p = 0;
+        applyTransforms();
+        if (c.info !== c.index) {
+          c.info = c.index;
+          setInfoIndex(c.index);
+        }
+        c.animating = false;
+        setBusy(false);
+      };
+      const tick = (now: number) => {
+        const k = duration === 0 ? 1 : Math.min(1, (now - t0) / duration);
+        setP(from + (target - from) * (1 - Math.pow(1 - k, 3))); // ease out
+        if (k < 1) c.raf = requestAnimationFrame(tick);
+        else finish();
+      };
+      c.raf = requestAnimationFrame(tick);
+    },
+    [applyTransforms, setP],
+  );
+
+  /** Swiping: the row follows the finger, then settles on a drink when it lifts. */
+  const swipe = useMemo(
+    () => ({
+      begin(x: number) {
+        const c = ctl.current;
+        if (c.desktop) return;
+        cancelAnimationFrame(c.raf); // catch a row that's still settling
+        c.animating = false;
+        c.swiping = true;
+        c.baseP = c.p;
+        c.startX = x;
+        c.moves = [{ t: performance.now(), x }];
+        setBusy(true);
+      },
+      move(x: number) {
+        const c = ctl.current;
+        if (!c.swiping || c.step <= 0) return;
+        const t = performance.now();
+        c.moves.push({ t, x });
+        while (c.moves.length > 2 && t - c.moves[0].t > 100) c.moves.shift();
+        setP(clamp(c.baseP + (x - c.startX) / c.step, -1, 1));
+      },
+      end() {
+        const c = ctl.current;
+        if (!c.swiping) return;
+        c.swiping = false;
+        // Speed of the last ~100ms, in px per ms (0 if the finger rested before lifting).
+        const first = c.moves[0];
+        const last = c.moves[c.moves.length - 1];
+        const span = last.t - first.t;
+        const v = span > 10 && performance.now() - last.t < 80 ? (last.x - first.x) / span : 0;
+        let target = 0;
+        if (Math.abs(v) > FLICK) {
+          const dir = v > 0 ? 1 : -1;
+          target = c.p !== 0 && Math.sign(c.p) !== dir ? 0 : dir; // a flick against the drag cancels it
+        } else if (Math.abs(c.p) > 0.3) {
+          target = c.p > 0 ? 1 : -1;
+        }
+        settleTo(target);
+      },
+    }),
+    [setP, settleTo],
+  );
+
+  /** Go to the next (+1) or previous (-1) drink. */
+  const goBy = useCallback(
+    (delta: number) => {
+      const c = ctl.current;
+      if (c.desktop) {
+        c.index = mod(c.index + delta, N);
+        c.info = c.index;
+        setIndex(c.index);
+        setInfoIndex(c.index);
+        return;
+      }
+      if (c.swiping || c.animating) return;
+      settleTo(delta > 0 ? -1 : 1);
+    },
+    [settleTo],
+  );
+
+  // ← / → switch drinks.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
       if (target?.getAttribute("role") === "slider") return;
-      if (e.key === "ArrowLeft") goTo(-1);
-      if (e.key === "ArrowRight") goTo(1);
+      if (e.key === "ArrowLeft") goBy(-1);
+      if (e.key === "ArrowRight") goBy(1);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [goBy]);
 
-  const caption = ordered
+  // ── Pointer handling on the row ──────────────────────────────────────────
+  // A drag that starts on a layer is decided by the layer itself (vertical =
+  // change the amount, sideways = hand over to us via `swipe.begin`). A touch
+  // anywhere else on the row, such as a peeking card, is ours from the start.
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    const c = ctl.current;
+    if (c.desktop || (e.pointerType === "mouse" && e.button !== 0)) return;
+    if (c.pointer && c.pointer.id !== e.pointerId) return; // one finger at a time
+    const owned = !!(e.target as Element).closest("[data-layer-drag]");
+    c.pointer = { id: e.pointerId, x: e.clientX, y: e.clientY, owned, moved: false };
+    if (!owned) e.currentTarget.setPointerCapture(e.pointerId);
+    if (c.animating) swipe.begin(e.clientX); // grab the row while it's still settling
+  };
+
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const c = ctl.current;
+    const ptr = c.pointer;
+    if (!ptr || ptr.id !== e.pointerId) return;
+    if (c.swiping) {
+      swipe.move(e.clientX);
+      return;
+    }
+    if (ptr.owned || ptr.moved) return;
+    const dx = e.clientX - ptr.x;
+    const dy = e.clientY - ptr.y;
+    if (dx * dx + dy * dy < SLOP * SLOP) return;
+    ptr.moved = true;
+    if (Math.abs(dx) > Math.abs(dy)) swipe.begin(e.clientX);
+  };
+
+  const onPointerEnd = (e: React.PointerEvent<HTMLDivElement>) => {
+    const c = ctl.current;
+    const ptr = c.pointer;
+    if (!ptr || ptr.id !== e.pointerId) return;
+    c.pointer = null;
+    if (c.swiping) {
+      swipe.end();
+      return;
+    }
+    if (e.type === "pointerup" && !ptr.owned && !ptr.moved) {
+      // A tap on a card peeking at the side brings it to the middle.
+      const rect = e.currentTarget.getBoundingClientRect();
+      const mid = rect.left + rect.width / 2;
+      if (e.clientX < mid - c.cardWidth / 2) goBy(-1);
+      else if (e.clientX > mid + c.cardWidth / 2) goBy(1);
+    }
+  };
+
+  // A layer drag on a card became a sideways swipe.
+  const onHorizontal = useCallback((x: number) => swipe.begin(x), [swipe]);
+
+  const onEdit = useCallback(
+    (drinkIndex: number, update: (prev: RecipeLine[]) => RecipeLine[]) =>
+      setEdits((all) => ({ ...all, [drinkIndex]: update(all[drinkIndex] ?? DRINKS[drinkIndex].lines) })),
+    [],
+  );
+
+  // ── Info for the drink nearest the middle ────────────────────────────────
+  const infoDrink = DRINKS[infoIndex];
+  const infoLines = edits[infoIndex] ?? infoDrink.lines;
+  const modified = infoIndex in edits;
+  const reset = () =>
+    setEdits((all) => {
+      const next = { ...all };
+      delete next[infoIndex];
+      return next;
+    });
+
+  const caption = orderLines(infoLines)
     .slice()
     .reverse()
     .map((l) => INGREDIENTS[l.ingredient].name)
     .join(" · ");
 
-  const animate = draggingKey === null ? undefined : "none";
   const navButton =
-    "grid size-11 place-items-center rounded-full text-lg text-[#F7F7F7]/60 hover:text-[#F7F7F7] focus-visible:outline-2 focus-visible:outline-[#F7F7F7]";
+    "grid size-11 place-items-center rounded-full text-lg text-[#F7F7F7]/60 hover:text-[#F7F7F7] focus-visible:outline-2 focus-visible:outline-[#F7F7F7] max-md:sr-only";
+
+  // The cards in the row: two either side of the middle one, so the next
+  // card is already in place while you swipe.
+  const offsets = isDesktop ? [0] : [-2, -1, 0, 1, 2];
 
   return (
     <main className="fixed inset-0 flex flex-col gap-4 bg-[#1A1612] p-4 text-[#F7F7F7] md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] md:gap-8">
       {/* ── Information ───────────────────────────────────────────── */}
       <section aria-label="Drink information" className="flex flex-col">
-        {/* Drink switcher (placeholder until the Finder exists) */}
-        <div className="-mr-3 flex items-center gap-1">
+        <div className="flex items-center gap-1 md:-mr-3">
           {/* Reset is always shown (phone and web); it's dimmed until something has changed. */}
           <button
             type="button"
@@ -226,18 +334,19 @@ export function DrinkPanel() {
             Reset
           </button>
           <span className="ml-auto text-xs tabular-nums text-[#F7F7F7]/45" aria-live="polite">
-            {state.index + 1} / {DRINKS.length}
+            {infoIndex + 1} / {N}
           </span>
-          <button type="button" onClick={() => goTo(-1)} aria-label="Previous drink" className={navButton}>
+          {/* On a phone you swipe; these stay for screen readers and wide screens. */}
+          <button type="button" onClick={() => goBy(-1)} aria-label="Previous drink" className={navButton}>
             ‹
           </button>
-          <button type="button" onClick={() => goTo(1)} aria-label="Next drink" className={navButton}>
+          <button type="button" onClick={() => goBy(1)} aria-label="Next drink" className={navButton}>
             ›
           </button>
         </div>
 
-        <h1 className="mt-2 text-[22px] font-semibold leading-7">{drink.name}</h1>
-        <p className="mt-1 text-xs opacity-55">{drink.family}</p>
+        <h1 className="mt-2 text-[22px] font-semibold leading-7">{infoDrink.name}</h1>
+        <p className="mt-1 text-xs opacity-55">{infoDrink.family}</p>
         <p className="mt-3 text-[11px] leading-4 text-[#F7F7F7]/45">{caption}</p>
 
         {/* OPEN: gesture hints (brief §6). Placeholder: one line of text until the first change. */}
@@ -246,147 +355,48 @@ export function DrinkPanel() {
           aria-hidden={modified}
         >
           Drag a layer down to expand it, up to shrink it.
+          <span className="md:hidden"> Swipe sideways for other drinks.</span>
         </p>
       </section>
 
-      {/* ── Drink panel ───────────────────────────────────────────── */}
-      <section
-        ref={panelRef}
-        aria-label={`${drink.name} layers`}
-        className="relative isolate min-h-0 flex-1 touch-manipulation overflow-hidden rounded-[28px] [clip-path:inset(0_round_28px)] select-none [-webkit-touch-callout:none] md:h-full"
+      {/* ── The row of drinks ─────────────────────────────────────── */}
+      <div
+        ref={trackRef}
+        role="group"
+        aria-roledescription="carousel"
+        aria-label="Drinks"
+        className="relative -mx-4 min-h-0 flex-1 touch-none overflow-hidden select-none md:mx-0 md:h-full"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerEnd}
+        onPointerCancel={onPointerEnd}
       >
-        {panelHeight > 0 && (
-          <>
-            {/* The drink, drawn by the liquid shader: v4 blurred bands whose
-                boundaries drift slowly, like liquids mixing. */}
-            <LiquidCanvas
-              layers={liquidLayers}
-              resetKey={`${drink.id}-${ordered.length}`}
-              dragging={draggingKey !== null}
-              background={PAGE_BACKGROUND}
-              onReady={setShaderReady}
-            />
-
-            {/* Fallback (and first paint): the blurred color bands as CSS
-                (Figma v4 recipe). Later layers paint on top. Bands run past
-                the sides; the panel clips the extra blur. */}
-            {shaderReady !== true && ordered.map((line, i) => {
-              // Drawn (and blurred) once at the base size, then stretched and
-              // moved to the current size with a transform.
-              const base = layerGeometry(baseHeights[i]);
-              const now = layerGeometry(heights[i]);
-              const baseBottom = baseBottoms[i] - base.overlap;
-              const nowBottom = bottoms[i] - now.overlap;
-              const stretch = now.totalHeight / base.totalHeight;
-              return (
-                <div
-                  key={`band-${drink.id}-${state.baseVersion}-${line.key}`}
-                  aria-hidden
-                  className="band absolute"
-                  style={{
-                    left: -BAND_BLEED,
-                    right: -BAND_BLEED,
-                    bottom: baseBottom,
-                    height: base.totalHeight,
-                    background: INGREDIENTS[line.ingredient].color,
-                    filter: `blur(${base.blur}px)`,
-                    transformOrigin: "bottom",
-                    transform: `translateY(${baseBottom - nowBottom}px) scaleY(${stretch})`,
-                    transition: draggingKey === null ? "transform 180ms ease-out" : "none",
-                    willChange: "transform",
-                  }}
-                />
-              );
-            })}
-
-            {/* Film grain over the whole drink, under the labels and lines. */}
-            <div aria-hidden className="pointer-events-none absolute inset-0" style={GRAIN_STYLE} />
-
-            {/* While you drag a layer it eases slightly darker, then eases back
-                to its own color when you let go. A solid black veil at 5% over
-                the layer: only its opacity animates, which is cheap. */}
-            {ordered.map((line, i) => {
-              if (line.amount.kind === "garnish") return null;
-              const selected = draggingKey === line.key;
-              return (
-                <div
-                  key={`shade-${drink.id}-${line.key}`}
-                  aria-hidden
-                  className="layer-anim pointer-events-none absolute inset-x-0 bg-black"
-                  style={{
-                    bottom: bottoms[i],
-                    height: heights[i],
-                    opacity: selected ? SELECTED_DARKEN : 0,
-                    transition: selected
-                      ? "opacity 220ms ease-in"
-                      : "opacity 380ms ease-out, bottom 180ms ease-out, height 180ms ease-out",
-                  }}
-                />
-              );
-            })}
-
-            {/* One region per layer: label (name left, amount right) and keyboard control. */}
-            {ordered.map((line, i) => {
-              const ingredient = INGREDIENTS[line.ingredient];
-              const amountText = formatAmount(line.amount);
-              const isGarnish = line.amount.kind === "garnish";
-              const box = { bottom: bottoms[i], height: heights[i], transition: animate };
-              // Ingredient name on the left edge, amount on the right edge.
-              const label = (
-                <span
-                  className="pointer-events-none absolute inset-x-4 top-1/2 flex -translate-y-1/2 items-baseline justify-between gap-3 text-[11px] leading-4"
-                  style={{ color: labelColor(ingredient.color) }}
-                >
-                  <span>{ingredient.name}</span>
-                  <span className="text-right opacity-70 tabular-nums">{amountText}</span>
-                </span>
-              );
-
-              // OPEN: garnishes as non-volume marks (brief §7). Placeholder: a
-              // fixed-size layer that can't be resized.
-              if (isGarnish) {
-                return (
-                  <div key={`layer-${drink.id}-${line.key}`} className="layer-anim absolute inset-x-0" style={box}>
-                    {label}
-                  </div>
-                );
-              }
-
-              // The whole section is the touch target: drag down to expand it,
-              // up to shrink it.
-              const canDrag = tradePartner(ordered, line.key) !== null;
-
-              return (
-                <div
-                  key={`layer-${drink.id}-${line.key}`}
-                  role="slider"
-                  tabIndex={0}
-                  aria-label={`${ingredient.name}, ${line.role}`}
-                  aria-valuemin={0}
-                  aria-valuemax={12}
-                  aria-valuenow={Math.round(volumeOz(line.amount) * 100) / 100}
-                  aria-valuetext={amountText}
-                  aria-orientation="vertical"
-                  className={`layer-anim absolute inset-x-0 touch-none outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white ${
-                    canDrag ? (draggingKey === line.key ? "cursor-grabbing" : "cursor-grab") : ""
-                  }`}
-                  style={box}
-                  {...(canDrag ? handlers(line.key) : {})}
-                  onKeyDown={(e) => {
-                    const steps =
-                      e.key === "ArrowUp" ? 1 : e.key === "ArrowDown" ? -1 : e.key === "PageUp" ? 4 : e.key === "PageDown" ? -4 : 0;
-                    if (!steps) return;
-                    e.preventDefault();
-                    setLine(line.key, (l) => ({ ...l, amount: stepAmount(l.amount, steps) }));
-                  }}
-                >
-                  {label}
-                </div>
-              );
-            })}
-          </>
-        )}
-      </section>
+        {offsets.map((r) => {
+          const j = mod(index + r, N);
+          return (
+            <div
+              key={j}
+              ref={(el) => {
+                if (el) cardEls.current.set(j, el);
+                else cardEls.current.delete(j);
+              }}
+              inert={r !== 0}
+              className="absolute inset-y-0 left-1/2 will-change-transform"
+              style={{ width: cardWidth }}
+            >
+              <DrinkCard
+                drink={DRINKS[j]}
+                drinkIndex={j}
+                lines={edits[j] ?? DRINKS[j].lines}
+                onEdit={onEdit}
+                interactive={r === 0 && !busy}
+                active={j === infoIndex}
+                onHorizontal={onHorizontal}
+              />
+            </div>
+          );
+        })}
+      </div>
     </main>
   );
 }

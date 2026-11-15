@@ -29,6 +29,8 @@ type Props = {
   resetKey: string;
   /** True while a finger is dragging: bands follow it with no easing. */
   dragging: boolean;
+  /** True for the drink in view: its colors mix. Others sit still and idle. */
+  active: boolean;
   /** Page color shown above and below the drink. */
   background: string;
   onReady: (ok: boolean) => void;
@@ -41,12 +43,12 @@ const WAVE_AMPLITUDE = 28;
 /** Animation speed (1 = default). Lower is slower. */
 const WAVE_SPEED = 1.6;
 /**
- * A newly shown drink starts unmixed (still, straight boundaries). After it
- * has been on screen for MIX_DELAY seconds, the mixing eases in over MIX_RAMP
- * seconds. Time only counts while the page is visible.
+ * The drink in view starts unmixed (still, straight boundaries) and the mixing
+ * eases in over MIX_RAMP seconds. When it's no longer the drink in view, the
+ * mixing eases back out over MIX_FADE seconds.
  */
-const MIX_DELAY = 0;
 const MIX_RAMP = 4;
+const MIX_FADE = 0.8;
 
 const VERTEX = `
 attribute vec2 aPos;
@@ -145,12 +147,12 @@ function compile(gl: WebGLRenderingContext, type: number, src: string) {
   return shader;
 }
 
-export function LiquidCanvas({ layers, resetKey, dragging, background, onReady }: Props) {
+export function LiquidCanvas({ layers, resetKey, dragging, background, active, onReady }: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   // Latest props, read by the animation loop without restarting it.
-  const latest = useRef({ layers, resetKey, dragging, background });
+  const latest = useRef({ layers, resetKey, dragging, background, active });
   useEffect(() => {
-    latest.current = { layers, resetKey, dragging, background };
+    latest.current = { layers, resetKey, dragging, background, active };
   });
 
   const onReadyRef = useRef(onReady);
@@ -214,40 +216,62 @@ export function LiquidCanvas({ layers, resetKey, dragging, background, onReady }
     let frame = 0;
     let last = performance.now();
     let clock = 0;
-    let mixClock = 0; // seconds the current drink has been on screen
+    let level = 0; // 0 = unmixed, 1 = fully mixing
+    let lastAmp = -1;
+    let drawn: number[] = [];
     let ready = false;
 
     const draw = (now: number) => {
       frame = requestAnimationFrame(draw);
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
-      if (!reducedMotion.matches) clock += dt * WAVE_SPEED;
+      const reduce = reducedMotion.matches;
+      if (!reduce) clock += dt * WAVE_SPEED;
 
       // Match the canvas to its on-screen size (capped for performance).
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const w = Math.round(canvas.clientWidth * dpr);
       const h = Math.round(canvas.clientHeight * dpr);
       if (w === 0 || h === 0) return;
+      let resized = false;
       if (canvas.width !== w || canvas.height !== h) {
         canvas.width = w;
         canvas.height = h;
         gl.viewport(0, 0, w, h);
+        resized = true;
       }
 
-      const { layers: target, resetKey: key, dragging: drag, background: bg } = latest.current;
+      const { layers: target, resetKey: key, dragging: drag, background: bg, active } = latest.current;
+
+      // Mixing eases in while this is the drink in view and eases out when
+      // it isn't, so a card waiting at the side of the carousel stays still.
+      level = Math.min(1, Math.max(0, level + (active && !reduce ? dt / MIX_RAMP : -dt / MIX_FADE)));
+      const mix = level * level * (3 - 2 * level);
+      const amp = WAVE_AMPLITUDE * mix;
+
       const count = Math.min(target.length, MAX_LAYERS);
       const flat = target.slice(0, count).flatMap((l) => [l.lo, l.hi, l.blur]);
-      if (key !== shownKey) mixClock = 0; // a new drink starts unmixed
-      mixClock += dt;
-      if (key !== shownKey || count !== shownCount || drag || reducedMotion.matches) {
+      if (key !== shownKey || count !== shownCount || drag || reduce) {
         shown = flat;
         shownKey = key;
         shownCount = count;
       } else {
         // Ease toward the target (about 90% of the way in 0.2s).
         const k = 1 - Math.exp(-dt / 0.08);
-        shown = shown.map((v, i) => v + (flat[i] - v) * k);
+        shown = shown.map((v, i) => (Math.abs(flat[i] - v) < 0.01 ? flat[i] : v + (flat[i] - v) * k));
       }
+
+      // A card at rest and unmixed has nothing new to draw: skip the frame.
+      const changed =
+        !ready ||
+        resized ||
+        amp > 0 ||
+        lastAmp > 0 ||
+        drawn.length !== shown.length ||
+        shown.some((v, i) => v !== drawn[i]);
+      if (!changed) return;
+      drawn = shown.slice();
+      lastAmp = amp;
 
       for (let i = 0; i < count; i++) {
         bands.set([shown[i * 3], shown[i * 3 + 1], shown[i * 3 + 2], target[i].still ? 0 : 1], i * 4);
@@ -256,10 +280,7 @@ export function LiquidCanvas({ layers, resetKey, dragging, background, onReady }
 
       gl.uniform1f(u.dpr, dpr);
       gl.uniform1f(u.time, clock);
-      // 0 while unmixed, easing smoothly up to 1 once the delay has passed.
-      const m = Math.min(1, Math.max(0, (mixClock - MIX_DELAY) / MIX_RAMP));
-      const mix = m * m * (3 - 2 * m);
-      gl.uniform1f(u.amp, WAVE_AMPLITUDE * mix);
+      gl.uniform1f(u.amp, amp);
       gl.uniform1i(u.count, count);
       gl.uniform4fv(u.band, bands);
       gl.uniform3fv(u.color, colors);
