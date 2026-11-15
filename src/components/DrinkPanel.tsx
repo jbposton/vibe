@@ -338,12 +338,10 @@ export function DrinkPanel() {
                   {/* The line is a shallow curve, lower in the middle, like the
                       level of a liquid seen slightly from above in a round glass. */}
                   <svg
-                    className={`absolute inset-x-0 w-full overflow-visible transition-opacity ${
-                      active
-                        ? "opacity-80"
-                        : draggable
-                          ? "opacity-40 group-hover:opacity-70"
-                          : "opacity-15"
+                    // Hidden until you hover over a line or drag it. Lines that
+                    // can't be dragged (next to a garnish) never show.
+                    className={`absolute inset-x-0 w-full overflow-visible transition-opacity duration-150 ${
+                      active ? "opacity-80" : draggable ? "opacity-0 group-hover:opacity-70" : "opacity-0"
                     }`}
                     style={{ top: HANDLE_HALF - LEVEL_SAG / 2 - 1, height: LEVEL_SAG + 2 }}
                     viewBox={`0 0 100 ${LEVEL_SAG + 2}`}

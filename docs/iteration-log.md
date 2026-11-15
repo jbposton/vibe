@@ -2,6 +2,14 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-14: Lines hidden until hover or drag
+- **Before:** the divider lines were always visible (40% white, or 15% when locked next to a garnish).
+- **After:**
+  - The lines are hidden by default.
+  - A line fades in (70%) when you hover over its drag area, and shows at 80% while you drag it.
+  - Locked lines next to a garnish never show.
+- **Note:** on touch screens there's no hover, so a line only appears once you start dragging. The hint text is the only cue for where to drag.
+
 ## 2026-11-14: Inner shadow and edge lens removed
 - **Before:** a soft inner glow ran along the edges, and the edge lens (a backdrop blur and saturation) brightened the drink near the sides.
 - **After:** both are removed, which leaves only gradients:
