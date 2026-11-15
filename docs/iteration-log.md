@@ -2,6 +2,12 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-15: Dimmed side cards
+- **Before:** the previous and next drinks peeked in at full color.
+- **After:** the cards at the sides are covered by a black overlay at **60%**. The overlay follows the card's distance from the middle: it's 0% when the card is in the middle and fades up to 60% as it moves aside, so a card brightens smoothly as it swipes in and dims as it leaves.
+- **Why 60%:** 80% (the first suggestion) would leave the peeking slivers nearly black, so you couldn't tell what's next. 60% still shows each drink's colors, and the middle card clearly leads.
+- Wide screens show one card, so they have no dimming. It's one number (`SIDE_DIM` in `DrinkPanel.tsx`) if you want it darker or lighter.
+
 ## 2026-11-15: Auto-scroll with a pause on each drink (phones)
 - **Before:** the carousel only moved when you swiped.
 - **After:**

@@ -26,6 +26,7 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
 const SIDE_SCALE = 0.86; // size of the cards beside the middle one
 const PEEK = 24; // px of each side card showing at the screen edge
 const GAP = 10; // px between the middle card and a side card
+const SIDE_DIM = 0.6; // how dark a card at the side gets (black overlay opacity)
 /** How far a finger moves (px) before it counts as a swipe rather than a tap. */
 const SLOP = 6;
 /** A swipe this fast (px/ms) flips to the next drink even if it was short. */
@@ -111,6 +112,9 @@ export function DrinkPanel() {
       const scale = c.desktop ? 1 : 1 - (1 - SIDE_SCALE) * Math.min(Math.abs(t), 1);
       const x = c.desktop ? 0 : t * c.step;
       el.style.transform = `translate3d(${(x - c.cardWidth / 2).toFixed(2)}px,0,0) scale(${scale.toFixed(4)})`;
+      // Cards fade to dark the further they are from the middle, and back up as they arrive.
+      const dim = el.querySelector<HTMLElement>("[data-dim]");
+      if (dim) dim.style.opacity = c.desktop ? "0" : String((SIDE_DIM * Math.min(Math.abs(t), 1)).toFixed(3));
       el.style.zIndex = String(10 - Math.round(Math.abs(t) * 3));
       el.style.visibility = Math.abs(t) > 2.2 ? "hidden" : "visible";
     });
@@ -445,6 +449,8 @@ export function DrinkPanel() {
                 active={j === infoIndex}
                 onHorizontal={onHorizontal}
               />
+              {/* Dims the card when it's at the side; its opacity is set as the row moves. */}
+              <div aria-hidden data-dim className="pointer-events-none absolute inset-0 rounded-[28px] bg-black opacity-0" />
             </div>
           );
         })}
