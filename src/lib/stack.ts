@@ -108,44 +108,82 @@ function withValue(amount: Amount, value: number): Amount {
   }
 }
 
-/** Top edge (px above the stack bottom) of line `key`'s layer if it held `amount`. */
-function topEdge(lines: RecipeLine[], key: number, amount: Amount, total: number): number {
-  const trial = lines.map((l, i) => (i === key ? { ...l, amount } : l));
-  const ordered = orderLines(trial);
-  const heights = layerHeights(ordered, total);
-  const idx = ordered.findIndex((l) => l.key === key);
-  return heights.slice(0, idx + 1).reduce((s, h) => s + h, 0);
+/** An amount of the same kind as `amount` holding `oz` of volume. Not snapped. */
+function withVolume(amount: Amount, oz: number): Amount {
+  return amount.kind === "dash" ? withValue(amount, oz / DASH_OZ) : withValue(amount, oz);
 }
 
 /**
- * The amount for line `key` that puts the TOP edge of its layer at `edge` px
- * above the bottom of the stack, so the divider follows the finger exactly.
- * The result is continuous (not snapped); call `snapAmount` when the drag ends.
- * Dragging well below the layer's minimum height takes it to 0.
+ * Trade volume between two neighboring layers so the line between them sits
+ * at `edge` px above the bottom of the stack, following the finger.
+ *
+ * The two layers' combined volume stays the same: whatever the lower layer
+ * gains, the upper one loses, so the rest of the drink doesn't move. Results
+ * are continuous (not snapped); call `snapTrade` when the drag ends.
+ * Pushing well past the point where a layer hits its minimum height empties it.
  */
-export function amountForEdge(
+export function tradeForEdge(
   lines: RecipeLine[],
-  key: number,
+  lowerKey: number,
+  upperKey: number,
   edge: number,
   total: number,
-): Amount {
-  const current = lines[key].amount;
-  if (current.kind === "garnish") return current;
-  const max = current.kind === "dash" ? MAX_DASHES : MAX_STEPS_OZ / 4;
-  const top = (v: number) => topEdge(lines, key, withValue(current, v), total);
+): [Amount, Amount] {
+  const lower = lines[lowerKey].amount;
+  const upper = lines[upperKey].amount;
+  if (lower.kind === "garnish" || upper.kind === "garnish") return [lower, upper];
+  const pair = volumeOz(lower) + volumeOz(upper);
 
-  if (edge < top(0) - 12) return withValue(current, 0);
-  if (top(max) <= edge) return withValue(current, max);
+  // Line position when the lower layer holds `x` oz and the upper `pair - x`.
+  const amounts = (x: number): [Amount, Amount] => [withVolume(lower, x), withVolume(upper, pair - x)];
+  const lineAt = (x: number) => {
+    const [a, b] = amounts(x);
+    const trial = lines.map((l, i) =>
+      i === lowerKey ? { ...l, amount: a } : i === upperKey ? { ...l, amount: b } : l,
+    );
+    const ordered = orderLines(trial);
+    const heights = layerHeights(ordered, total);
+    const idx = ordered.findIndex((l) => l.key === lowerKey);
+    return heights.slice(0, idx + 1).reduce((s, h) => s + h, 0);
+  };
 
-  // The edge only moves up as the amount grows, so bisect for it.
-  let lo = 0;
-  let hi = max;
-  for (let i = 0; i < 24; i++) {
-    const mid = (lo + hi) / 2;
-    if (top(mid) <= edge) lo = mid;
-    else hi = mid;
+  // The line only moves up as x grows. Find the largest x whose line is at or
+  // below `target` (minimum heights make flat stretches at both ends).
+  const largestAtOrBelow = (target: number) => {
+    let lo = 0;
+    let hi = pair;
+    for (let i = 0; i < 24; i++) {
+      const mid = (lo + hi) / 2;
+      if (lineAt(mid) <= target) lo = mid;
+      else hi = mid;
+    }
+    return lo;
+  };
+
+  const lowest = lineAt(0);
+  const highest = lineAt(pair);
+  const DEAD_ZONE = 12; // px of overshoot before a layer is emptied
+
+  if (edge <= lowest) {
+    // Lower layer is at its minimum height: empty it only on a clear overshoot.
+    return amounts(edge < lowest - DEAD_ZONE ? 0 : largestAtOrBelow(lowest + 0.5));
   }
-  return withValue(current, lo);
+  if (edge >= highest) {
+    // Upper layer is at its minimum height: empty it only on a clear overshoot.
+    return amounts(edge > highest + DEAD_ZONE ? pair : largestAtOrBelow(highest - 0.5));
+  }
+  return amounts(largestAtOrBelow(edge));
+}
+
+/**
+ * Snap both sides of a trade to their notches (¼ oz, or whole dashes) while
+ * keeping the pair's combined volume as close to unchanged as possible.
+ */
+export function snapTrade(lower: Amount, upper: Amount): [Amount, Amount] {
+  const pair = volumeOz(lower) + volumeOz(upper);
+  const a = snapAmount(lower);
+  const b = snapAmount(withVolume(upper, Math.max(0, pair - volumeOz(a))));
+  return [a, b];
 }
 
 /** Round an amount to its notch: ¼ oz, or a whole dash. */

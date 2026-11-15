@@ -2,6 +2,13 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-14: Lines trade between neighbors
+- **Before:** dragging a line changed only the layer below it. The line under the garnish couldn't move, so dragging it near the top made amounts jump to 12 oz and the drag felt stuck.
+- **After:**
+  - Dragging a line moves volume between the two layers it separates. The line follows the finger, the rest of the drink stays still, and the pair's total is unchanged.
+  - Lines next to a garnish are fainter and can't be dragged.
+  - The hint now reads "Drag a line to move volume between the two layers it separates."
+
 ## 2026-11-14: Smoother dragging
 - **Before:** the line jumped in ¼ oz steps while you dragged, and every movement re-blurred all the color bands, which is slow on phones.
 - **After:**

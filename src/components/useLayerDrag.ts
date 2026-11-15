@@ -17,9 +17,9 @@ type DragCallbacks = {
  * Pointer events can arrive faster than the screen redraws, so moves are
  * collected and applied once per animation frame.
  *
- * OPEN: gesture map (brief §7). Placeholder: drag the line between two layers;
- * the line belongs to the layer BELOW it, so moving it changes that layer's
- * amount and the line follows the finger.
+ * OPEN: gesture map (brief §7). Placeholder (JP chose "trade between
+ * neighbors"): dragging the line between two layers moves volume between
+ * them, so the line follows the finger and the rest of the drink stays put.
  */
 export function useLayerDrag({ onMove, onEnd }: DragCallbacks) {
   const active = useRef<{ key: number; pointerId: number; y: number; frame: number } | null>(null);

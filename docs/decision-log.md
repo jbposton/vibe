@@ -2,6 +2,19 @@
 
 Design and build judgments, newest first. **Placeholder** means a stand-in for an open decision (CLAUDE.md §7). It's marked `// OPEN:` in the code and waits for JP to decide.
 
+## 2026-11-14: Dragging a line trades between neighbors (JP's choice)
+- **Problem:** a line "belonged" to the layer below it while the stack always fills the panel. The line under a garnish could never move (the garnish keeps 60px), so dragging it shot the amount below up to the 12 oz cap. JP saw this as the drag "getting stuck" and acting weird near the top.
+- **Options shown to JP:**
+  1. The drink grows and shrinks (fixed px per oz).
+  2. Trade between neighbors.
+- **JP chose trade between neighbors.** Dragging a line moves volume from one of its two layers into the other. Their combined volume stays the same, so the line follows the finger and the rest of the drink stays put.
+- **Consequences:**
+  - A line next to a garnish can't trade, since a garnish has no volume. It's locked and drawn fainter (15% opacity instead of 40%).
+  - A drag always changes two ingredients at once. Changing one ingredient alone (which changes the drink's total) is keyboard-only for now (↑/↓ on a focused layer).
+  - Pushing a line well past where a layer reaches its 60px minimum (12px overshoot) empties that layer to 0.
+  - Trading between oz and dashes converts at 0.1 oz per dash (Old fashioned: ¼ oz syrup ↔ 2–3 dashes).
+- **Known rough edge:** two tiny neighbors (both held at the 60px minimum, like syrup and bitters in an Old fashioned) leave the line very little room to move, so their trades feel jumpy.
+
 ## 2026-11-14: Smoother dragging (build choices)
 - **Continuous amounts:** while dragging, amounts aren't snapped. They snap to ¼ oz or whole dashes on release. Labels always show the rounded value.
 - **Cheap band motion:** during a drag, each blurred band keeps the blur it was drawn with and is stretched vertically (`scaleY`). That means the vertical softness scales with the band for a moment, which is close to the v4 recipe since blur grows with height anyway. The true v4 blur comes back 0.4s after the last change.
@@ -38,7 +51,7 @@ Design and build judgments, newest first. **Placeholder** means a stand-in for a
 ### Placeholders waiting on JP
 | Open decision | Placeholder in v1 | Where |
 |---|---|---|
-| Gesture map | Drag the line between two layers; it changes the layer below. ↑/↓ on a focused layer steps ¼ oz (Page Up/Down step 1 oz). *(Updated in Layout v2.)* | `useLayerDrag.ts` |
+| Gesture map | Drag the line between two layers to trade volume between them (JP's choice). Lines next to a garnish are locked. ↑/↓ on a focused layer changes that layer alone by ¼ oz (Page Up/Down by 1 oz). | `useLayerDrag.ts` |
 | Tie-break for same-role layers | Recipe order: the earlier line sits lower. It never depends on amount, so layers can't swap mid-drag. | `stack.ts` `orderLines` |
 | Garnishes as non-volume marks | A fixed 60px layer with a label. It can't be dragged. | `DrinkPanel.tsx` |
 | What a missing role looks like | A layer dragged to 0 oz stays at 60px with "0 oz", so it can be dragged back. | `stack.ts` `layerHeights` |

@@ -3,15 +3,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DRINKS, type RecipeLine } from "@/data/drinks";
 import { INGREDIENTS } from "@/data/ingredients";
+import type { Amount } from "@/data/drinks";
 import {
-  amountForEdge,
   formatAmount,
   layerBottoms,
   layerGeometry,
   layerHeights,
   orderLines,
-  snapAmount,
+  snapTrade,
   stepAmount,
+  tradeForEdge,
   volumeOz,
 } from "@/lib/stack";
 import { useLayerDrag } from "./useLayerDrag";
@@ -82,21 +83,38 @@ export function DrinkPanel() {
 
   const reset = () => setState((s) => ({ ...s, lines: DRINKS[s.index].lines }));
 
-  // Dragging a divider moves the top edge of the layer below it to the finger.
-  // The amount follows the finger smoothly and snaps to ¼ oz on release.
+  // Dragging a divider trades volume between the two layers it separates, so
+  // the line follows the finger and the rest of the drink stays put. Amounts
+  // follow the finger smoothly and snap to ¼ oz (or whole dashes) on release.
+  // A drag is identified by the key of the layer BELOW the line.
+  const updatePair = (
+    lowerKey: number,
+    compute: (lines: RecipeLine[], upperKey: number) => [Amount, Amount],
+  ) =>
+    setState((s) => {
+      const ordered = orderLines(s.lines);
+      const upperKey = ordered[ordered.findIndex((l) => l.key === lowerKey) + 1]?.key;
+      if (upperKey === undefined) return s;
+      const [a, b] = compute(s.lines, upperKey);
+      return {
+        ...s,
+        lines: s.lines.map((l, i) =>
+          i === lowerKey ? { ...l, amount: a } : i === upperKey ? { ...l, amount: b } : l,
+        ),
+      };
+    });
+
   const { handlers, draggingKey } = useLayerDrag({
-    onMove: (key, clientY) => {
+    onMove: (lowerKey, clientY) => {
       const el = panelEl.current;
       if (!el) return;
       const rect = el.getBoundingClientRect();
       const innerBottom = rect.bottom - el.clientTop; // skip the border
       const edge = Math.min(panelHeight, Math.max(0, innerBottom - clientY));
-      setState((s) => {
-        const amount = amountForEdge(s.lines, key, edge, panelHeight);
-        return { ...s, lines: s.lines.map((l, i) => (i === key ? { ...l, amount } : l)) };
-      });
+      updatePair(lowerKey, (lines, upperKey) => tradeForEdge(lines, lowerKey, upperKey, edge, panelHeight));
     },
-    onEnd: (key) => setLine(key, (l) => ({ ...l, amount: snapAmount(l.amount) })),
+    onEnd: (lowerKey) =>
+      updatePair(lowerKey, (lines, upperKey) => snapTrade(lines[lowerKey].amount, lines[upperKey].amount)),
   });
 
   // Once nothing has moved for a moment, redraw the bands at their true size.
@@ -169,7 +187,7 @@ export function DrinkPanel() {
           className={`mt-3 text-[11px] text-[#141414]/45 ${modified ? "invisible" : ""}`}
           aria-hidden={modified}
         >
-          Drag a line between layers to change the amount below it.
+          Drag a line to move volume between the two layers it separates.
         </p>
       </section>
 
@@ -262,11 +280,14 @@ export function DrinkPanel() {
               );
             })}
 
-            {/* Divider lines between layers. Each one drags the layer BELOW it,
-                with a 40px touch target (20px above and 20px below the line). */}
+            {/* Divider lines between layers. Dragging one trades volume between
+                the two layers it separates, with a 40px touch target (20px
+                above and 20px below the line). A line next to a garnish can't
+                trade (a garnish has no volume), so it's locked and drawn fainter. */}
             {ordered.slice(0, -1).map((below, i) => {
               const y = bottoms[i + 1];
-              const draggable = below.amount.kind !== "garnish";
+              const above = ordered[i + 1];
+              const draggable = below.amount.kind !== "garnish" && above.amount.kind !== "garnish";
               const active = draggingKey === below.key;
               return (
                 <div
@@ -280,7 +301,11 @@ export function DrinkPanel() {
                 >
                   <div
                     className={`absolute inset-x-0 top-1/2 -translate-y-1/2 bg-[#141414] transition-[height,opacity] ${
-                      active ? "h-0.5 opacity-80" : "h-px opacity-40 group-hover:h-0.5 group-hover:opacity-70"
+                      active
+                        ? "h-0.5 opacity-80"
+                        : draggable
+                          ? "h-px opacity-40 group-hover:h-0.5 group-hover:opacity-70"
+                          : "h-px opacity-15"
                     }`}
                   />
                 </div>
