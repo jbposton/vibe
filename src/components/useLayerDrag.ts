@@ -2,24 +2,17 @@
 
 import { useRef, useState } from "react";
 
-type DragCallbacks = {
-  /** Screen pixels per artboard pixel (the panel is scaled to fit the screen). */
-  scale: number;
-  onStart: (key: number) => void;
-  /** `dy` is in artboard pixels, positive when the pointer moved UP. */
-  onMove: (key: number, dy: number) => void;
-};
-
 /**
- * Vertical drag on a layer. Works the same for touch, pen and mouse.
- * The element using these handlers must have `touch-action: none` so the
- * browser doesn't scroll or pull-to-refresh during the drag.
+ * Vertical drag on a divider handle. Works the same for touch, pen and mouse.
+ * The handle must have `touch-action: none` so the browser doesn't scroll or
+ * pull-to-refresh during the drag.
  *
- * OPEN: gesture map (brief §7). Placeholder: drag a layer up to add to it,
- * down to take away. Dragging the edge between two layers isn't built yet.
+ * OPEN: gesture map (brief §7). Placeholder: drag the line between two layers;
+ * the line belongs to the layer BELOW it, so moving it changes that layer's
+ * amount and the line follows the finger.
  */
-export function useLayerDrag({ scale, onStart, onMove }: DragCallbacks) {
-  const active = useRef<{ key: number; pointerId: number; startY: number } | null>(null);
+export function useLayerDrag(onMove: (key: number, clientY: number) => void) {
+  const active = useRef<{ key: number; pointerId: number } | null>(null);
   const [draggingKey, setDraggingKey] = useState<number | null>(null);
 
   const end = (e: React.PointerEvent) => {
@@ -32,15 +25,15 @@ export function useLayerDrag({ scale, onStart, onMove }: DragCallbacks) {
     onPointerDown: (e: React.PointerEvent<HTMLElement>) => {
       if (e.pointerType === "mouse" && e.button !== 0) return;
       if (active.current) return; // one finger at a time
+      e.preventDefault();
       e.currentTarget.setPointerCapture(e.pointerId);
-      active.current = { key, pointerId: e.pointerId, startY: e.clientY };
+      active.current = { key, pointerId: e.pointerId };
       setDraggingKey(key);
-      onStart(key);
     },
     onPointerMove: (e: React.PointerEvent) => {
       const a = active.current;
       if (!a || a.pointerId !== e.pointerId) return;
-      onMove(a.key, (a.startY - e.clientY) / scale);
+      onMove(a.key, e.clientY);
     },
     onPointerUp: end,
     onPointerCancel: end,
