@@ -48,6 +48,19 @@ export const GLASS_LENS_STYLE: CSSProperties = {
 };
 
 /**
+ * Cylinder: shading that makes the flat panel read as a round glass. The drink
+ * darkens as the glass turns away at the left and right edges, with a very
+ * soft, broad light a little left of center where the glass faces the light.
+ */
+export const GLASS_CYLINDER_STYLE: CSSProperties = {
+  borderRadius: "inherit",
+  backgroundImage: [
+    "linear-gradient(90deg, rgba(0,0,0,0.34) 0%, rgba(0,0,0,0.14) 9%, rgba(0,0,0,0.03) 22%, rgba(0,0,0,0) 32%, rgba(0,0,0,0) 64%, rgba(0,0,0,0.05) 76%, rgba(0,0,0,0.18) 91%, rgba(0,0,0,0.38) 100%)",
+    "linear-gradient(90deg, rgba(255,255,255,0) 16%, rgba(255,255,255,0.06) 30%, rgba(255,255,255,0) 46%)",
+  ].join(", "),
+};
+
+/**
  * Specular rim: a thin gradient outline that catches light brightest at the
  * top left and again, more softly, at the bottom right.
  */

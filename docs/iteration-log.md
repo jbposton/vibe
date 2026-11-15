@@ -2,6 +2,12 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-14: Wrapped around a glass
+- **Before:** a flat panel with straight divider lines.
+- **After:** two cues make it read as a round glass:
+  - **Curved levels:** each divider line is a shallow curve that dips 10px in the middle, like a liquid's surface seen slightly from above in a round glass. The 40px drag target is unchanged.
+  - **Cylinder shading:** the drink darkens toward the left and right edges as the glass turns away, with a very faint, broad light a little left of center (6% white).
+
 ## 2026-11-14: Dimmer glass rim
 - **Before:** the liquid-glass rim was a bright outline.
 - **After:** the rim is at 50% opacity, so it reads as a hint of light along the edge. The lens and inner glow are unchanged.

@@ -15,11 +15,20 @@ import {
   tradeForEdge,
   volumeOz,
 } from "@/lib/stack";
-import { GLASS_GLOW_STYLE, GLASS_LENS_STYLE, GLASS_RIM_STYLE, GRAIN_STYLE } from "./surfaceEffects";
+import {
+  GLASS_CYLINDER_STYLE,
+  GLASS_GLOW_STYLE,
+  GLASS_LENS_STYLE,
+  GLASS_RIM_STYLE,
+  GRAIN_STYLE,
+} from "./surfaceEffects";
 import { useLayerDrag } from "./useLayerDrag";
 
 // OPEN: which drink a visitor sees first (brief §1 flow). Placeholder: Negroni.
 const START_DRINK = Math.max(0, DRINKS.findIndex((d) => d.id === "negroni"));
+
+/** How far the middle of a divider line dips below its ends, in px (the glass's curve). */
+const LEVEL_SAG = 10;
 
 /** Half the height of a divider's touch target: 20px above and 20px below the line. */
 const HANDLE_HALF = 20;
@@ -230,8 +239,9 @@ export function DrinkPanel() {
             })}
 
             {/* Surface effects over the whole drink, under the labels and lines:
-                film grain, then the liquid-glass lens at the edges. */}
+                film grain, round-glass shading, then the liquid-glass lens at the edges. */}
             <div aria-hidden className="pointer-events-none absolute inset-0" style={GRAIN_STYLE} />
+            <div aria-hidden className="pointer-events-none absolute inset-0" style={GLASS_CYLINDER_STYLE} />
             <div aria-hidden className="pointer-events-none absolute inset-0" style={GLASS_LENS_STYLE} />
 
             {/* One region per layer: label (name left, amount right) and keyboard control. */}
@@ -306,15 +316,28 @@ export function DrinkPanel() {
                   style={{ bottom: y - HANDLE_HALF, height: HANDLE_HALF * 2, transition: animate }}
                   {...(draggable ? handlers(below.key) : {})}
                 >
-                  <div
-                    className={`absolute inset-x-0 top-1/2 -translate-y-1/2 bg-white transition-[height,opacity] ${
+                  {/* The line is a shallow curve, lower in the middle, like the
+                      level of a liquid seen slightly from above in a round glass. */}
+                  <svg
+                    className={`absolute inset-x-0 w-full overflow-visible transition-opacity ${
                       active
-                        ? "h-0.5 opacity-80"
+                        ? "opacity-80"
                         : draggable
-                          ? "h-px opacity-40 group-hover:h-0.5 group-hover:opacity-70"
-                          : "h-px opacity-15"
+                          ? "opacity-40 group-hover:opacity-70"
+                          : "opacity-15"
                     }`}
-                  />
+                    style={{ top: HANDLE_HALF - LEVEL_SAG / 2 - 1, height: LEVEL_SAG + 2 }}
+                    viewBox={`0 0 100 ${LEVEL_SAG + 2}`}
+                    preserveAspectRatio="none"
+                  >
+                    <path
+                      d={`M0,1 Q50,${1 + 2 * LEVEL_SAG} 100,1`}
+                      fill="none"
+                      stroke="white"
+                      vectorEffect="non-scaling-stroke"
+                      className={active ? "stroke-2" : draggable ? "stroke-1 group-hover:stroke-2" : "stroke-1"}
+                    />
+                  </svg>
                 </div>
               );
             })}
