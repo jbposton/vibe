@@ -68,7 +68,11 @@ export function useLayerDrag({ onStart, onMove, onEnd, onHorizontal }: DragCallb
       if (e.pointerType === "mouse" && e.button !== 0) return;
       if (active.current) return; // one finger at a time
       e.preventDefault();
-      e.currentTarget.setPointerCapture(e.pointerId);
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } catch {
+        // The pointer already ended (a very quick tap): nothing to capture.
+      }
       active.current = {
         key,
         pointerId: e.pointerId,

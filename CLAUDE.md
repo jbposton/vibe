@@ -107,10 +107,12 @@ Several role assignments are guesses to confirm with JP: Cranberry juice and Lem
 
 ## 6. Interaction (designed for a phone, must also work with mouse and keyboard)
 
-- **Drag** the layers (or the edge between two layers) to change quantities.
+- **Drag** a layer (anywhere on its section) to change quantities. The boundary it shares with a neighbor follows the finger and the two trade volume, so the rest of the drink stays put. Down expands the layer; the base layer is the exception (its top boundary follows the finger, so down shrinks it). Garnishes can't be dragged.
 - **Swipe** through ingredients that pair well with the current drink (a tray).
 - **Tap** to add an ingredient. **Swipe to reveal** ingredient panels or drink details.
-- Each gesture means one thing in one place. A swipe that reveals options must start on the tray or handle, never on the drink (dragging the drink changes amounts).
+- Each gesture means one thing in one place. *(Updated 2026-11-15 at JP's direction.)* Direction decides: on the drink, a vertical drag changes amounts and a sideways swipe switches drinks. The first few pixels of movement settle which it is. A swipe that reveals options (the tray) still starts on the tray or handle.
+- **Drink carousel (phones):** the drink card is slightly narrower, with the previous and next drinks peeking in at the sides at a smaller size. Swiping slides the row (the card coming to the middle grows, the one leaving shrinks); tapping a peeking card, or ← / →, does the same. Each drink keeps its edits while you browse. Wide screens show one card with ‹ › buttons.
+- **Auto-scroll (phones):** the carousel drifts continuously on its own, with no stops, at about one drink every 6 seconds. It waits while you touch the screen and picks up where it left off. It stops when the drink in the middle has been edited, when the tab is hidden, when "reduce motion" is on, and via a Pause / Play button.
 - Keep gestures away from screen edges (browser back and forward). Provide hints for gestures. Keep touch targets large enough even for tiny amounts. Every swipe needs a click or keyboard equivalent, and there must be a non-drag way (tap or keyboard) to change quantities.
 - The mixer sits on a fixed, full-height screen so vertical drags don't scroll the page or trigger pull-to-refresh.
 - Respect reduced motion and plan a simplified or still version for slow devices; check shader and blur performance on a mid-range phone early. Don't rely on vibration.

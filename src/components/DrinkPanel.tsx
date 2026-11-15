@@ -30,9 +30,18 @@ const GAP = 10; // px between the middle card and a side card
 const SLOP = 6;
 /** A swipe this fast (px/ms) flips to the next drink even if it was short. */
 const FLICK = 0.4;
+/** Auto-scroll: the row drifts continuously, one drink every this many seconds. */
+const AUTO_SECONDS_PER_DRINK = 6;
 
 const DESKTOP = "(min-width: 768px)";
 const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
+
+function subscribeReducedMotion(onChange: () => void) {
+  const query = window.matchMedia(REDUCED_MOTION);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+}
+const getReducedMotion = () => window.matchMedia(REDUCED_MOTION).matches;
 
 function subscribeDesktop(onChange: () => void) {
   const query = window.matchMedia(DESKTOP);
@@ -55,6 +64,10 @@ export function DrinkPanel() {
   // card keeps its edits when you swipe away and back.
   const [edits, setEdits] = useState<Record<number, RecipeLine[]>>({});
   const [trackWidth, setTrackWidth] = useState(0);
+  const [autoPlay, setAutoPlay] = useState(true); // the Pause / Play button
+  const reducedMotion = useSyncExternalStore(subscribeReducedMotion, getReducedMotion, () => false);
+  // Whether the row is drifting by itself. See the effect further down.
+  const autoScrolling = !isDesktop && autoPlay && !reducedMotion && !(infoIndex in edits);
 
   const trackRef = useCallback((el: HTMLDivElement | null) => {
     if (!el) return;
@@ -86,6 +99,7 @@ export function DrinkPanel() {
     cardWidth: 0,
     step: 0,
     pointer: null as Pointer | null,
+    auto: false,
   });
   const cardEls = useRef(new Map<number, HTMLElement>());
 
@@ -108,6 +122,7 @@ export function DrinkPanel() {
     c.desktop = isDesktop;
     c.cardWidth = cardWidth;
     c.step = step;
+    c.auto = autoScrolling;
     applyTransforms();
   });
 
@@ -226,6 +241,43 @@ export function DrinkPanel() {
     [settleTo],
   );
 
+  // Auto-scroll (phones): the row drifts continuously, with no stops. It
+  // waits while you're touching the screen and picks up where it left off. It's
+  // off when the drink nearest the middle has been edited, "reduce motion" is
+  // on, or it's been paused (the tab being hidden pauses it too).
+  useEffect(() => {
+    if (!autoScrolling) return;
+    let frame = 0;
+    let last = performance.now();
+    const tick = (now: number) => {
+      frame = requestAnimationFrame(tick);
+      const dt = Math.min(0.1, (now - last) / 1000);
+      last = now;
+      const c = ctl.current;
+      if (document.hidden || c.pointer || c.swiping || c.animating) return;
+      let p = c.p - dt / AUTO_SECONDS_PER_DRINK; // negative p = towards the next drink
+      if (p <= -1) {
+        // The next drink has reached the middle: it becomes the middle card
+        // and the row carries on without a pause.
+        c.index = mod(c.index + 1, N);
+        setIndex(c.index);
+        p += 1;
+      }
+      setP(p);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [autoScrolling, setP]);
+
+  // When the scrolling stops (paused, or you edited a drink), bring the drink
+  // nearest the middle to rest in the middle. If a finger is still on a layer,
+  // this waits until it lifts (see onPointerEnd).
+  useEffect(() => {
+    const c = ctl.current;
+    if (autoScrolling || c.pointer || c.swiping || c.animating || c.p === 0) return;
+    settleTo(Math.round(c.p));
+  }, [autoScrolling, settleTo]);
+
   // ← / → switch drinks.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -248,7 +300,13 @@ export function DrinkPanel() {
     if (c.pointer && c.pointer.id !== e.pointerId) return; // one finger at a time
     const owned = !!(e.target as Element).closest("[data-layer-drag]");
     c.pointer = { id: e.pointerId, x: e.clientX, y: e.clientY, owned, moved: false };
-    if (!owned) e.currentTarget.setPointerCapture(e.pointerId);
+    if (!owned) {
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } catch {
+        // The pointer already ended (a very quick tap): nothing to capture.
+      }
+    }
     if (c.animating) swipe.begin(e.clientX); // grab the row while it's still settling
   };
 
@@ -277,6 +335,8 @@ export function DrinkPanel() {
       swipe.end();
       return;
     }
+    // A layer was edited while the row was frozen off-centre: rest it in the middle.
+    if (!c.auto && c.p !== 0 && !c.animating) settleTo(Math.round(c.p));
     if (e.type === "pointerup" && !ptr.owned && !ptr.moved) {
       // A tap on a card peeking at the side brings it to the middle.
       const rect = e.currentTarget.getBoundingClientRect();
@@ -336,6 +396,18 @@ export function DrinkPanel() {
           <span className="ml-auto text-xs tabular-nums text-[#F7F7F7]/45" aria-live="polite">
             {infoIndex + 1} / {N}
           </span>
+          {/* Phones only: stop or restart the auto-advance. */}
+          {!isDesktop && !reducedMotion && (
+            <button
+              type="button"
+              onClick={() => setAutoPlay((on) => !on)}
+              aria-pressed={!autoPlay}
+              aria-label={autoPlay ? "Pause automatic scrolling" : "Play automatic scrolling"}
+              className="h-8 rounded-full px-3 text-xs text-[#F7F7F7]/60 hover:text-[#F7F7F7] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7]"
+            >
+              {autoPlay ? "Pause" : "Play"}
+            </button>
+          )}
           {/* On a phone you swipe; these stay for screen readers and wide screens. */}
           <button type="button" onClick={() => goBy(-1)} aria-label="Previous drink" className={navButton}>
             ‹
@@ -380,7 +452,7 @@ export function DrinkPanel() {
                 if (el) cardEls.current.set(j, el);
                 else cardEls.current.delete(j);
               }}
-              inert={r !== 0}
+              inert={j !== infoIndex}
               className="absolute inset-y-0 left-1/2 will-change-transform"
               style={{ width: cardWidth }}
             >
@@ -389,7 +461,7 @@ export function DrinkPanel() {
                 drinkIndex={j}
                 lines={edits[j] ?? DRINKS[j].lines}
                 onEdit={onEdit}
-                interactive={r === 0 && !busy}
+                interactive={j === infoIndex && !busy}
                 active={j === infoIndex}
                 onHorizontal={onHorizontal}
               />
