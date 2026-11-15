@@ -234,14 +234,14 @@ export function DrinkPanel() {
               const amountText = formatAmount(line.amount);
               const isGarnish = line.amount.kind === "garnish";
               const box = { bottom: bottoms[i], height: heights[i], transition: animate };
-              // Amount on the left edge, ingredient name on the right edge.
+              // Ingredient name on the left edge, amount on the right edge.
               const label = (
                 <span
                   className="pointer-events-none absolute inset-x-4 top-1/2 flex -translate-y-1/2 items-baseline justify-between gap-3 text-[11px] leading-4"
                   style={{ color: labelColor(ingredient.color) }}
                 >
-                  <span className="opacity-70 tabular-nums">{amountText}</span>
-                  <span className="text-right">{ingredient.name}</span>
+                  <span>{ingredient.name}</span>
+                  <span className="text-right opacity-70 tabular-nums">{amountText}</span>
                 </span>
               );
 
