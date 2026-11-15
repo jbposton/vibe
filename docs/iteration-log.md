@@ -2,18 +2,17 @@
 
 Visible before-and-after changes, newest first.
 
-## 2026-11-15: Continuous auto-scroll (phones)
+## 2026-11-15: Auto-scroll with a pause on each drink (phones)
 - **Before:** the carousel only moved when you swiped.
 - **After:**
-  - The row drifts continuously by itself, with no stops: one drink about every 6 seconds (about 49px per second on a 375px phone). When the next drink reaches the middle, the row just carries on.
-  - **Touch:** it waits while a finger is on the screen and picks up where it left off.
-  - **Editing:** it stops when the drink nearest the middle has been edited, and rests that drink in the middle. Reset starts it again.
-  - **Pause / Play:** a small button next to the counter. Pausing also rests the nearest drink in the middle.
+  - Each drink stays in the middle for 6 seconds, then the row glides to the next one (0.9s, eased in and out). The timer starts over whenever the middle drink changes, including after you swipe.
+  - **Touch:** it waits while a finger is on the screen.
+  - **Editing:** it stops while the drink in the middle has been edited, and starts again after Reset.
+  - **Pause / Play:** a small button next to the counter.
   - It's off for "reduce motion" (the button is hidden too), when the tab is hidden, and on wide screens.
-  - The drink nearest the middle is the one you can drag, even while it's still gliding in.
+- **Tried and removed (JP):** a continuous, never-stopping drift of about one drink every 6 seconds.
 - **Hardening:** a quick tap that ends before the browser can capture the pointer no longer throws an error.
 - **Brief:** CLAUDE.md §6 now describes the drag rule, direction-decides gestures, the carousel and the auto-scroll.
-- **Not checked:** how the drift feels on a real phone.
 
 ## 2026-11-14: Swipe carousel on phones
 - **Before:** ‹ › buttons switched drinks.

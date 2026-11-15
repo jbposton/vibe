@@ -30,8 +30,9 @@ const GAP = 10; // px between the middle card and a side card
 const SLOP = 6;
 /** A swipe this fast (px/ms) flips to the next drink even if it was short. */
 const FLICK = 0.4;
-/** Auto-scroll: the row drifts continuously, one drink every this many seconds. */
-const AUTO_SECONDS_PER_DRINK = 6;
+/** Auto-scroll: how long each drink stays in the middle, and how long the glide to the next takes. */
+const AUTO_DWELL = 6000;
+const AUTO_GLIDE = 900;
 
 const DESKTOP = "(min-width: 768px)";
 const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
@@ -66,8 +67,8 @@ export function DrinkPanel() {
   const [trackWidth, setTrackWidth] = useState(0);
   const [autoPlay, setAutoPlay] = useState(true); // the Pause / Play button
   const reducedMotion = useSyncExternalStore(subscribeReducedMotion, getReducedMotion, () => false);
-  // Whether the row is drifting by itself. See the effect further down.
-  const autoScrolling = !isDesktop && autoPlay && !reducedMotion && !(infoIndex in edits);
+  // Whether the row moves on by itself. See the effect further down.
+  const autoScrolling = !isDesktop && autoPlay && !reducedMotion && !(index in edits);
 
   const trackRef = useCallback((el: HTMLDivElement | null) => {
     if (!el) return;
@@ -99,7 +100,6 @@ export function DrinkPanel() {
     cardWidth: 0,
     step: 0,
     pointer: null as Pointer | null,
-    auto: false,
   });
   const cardEls = useRef(new Map<number, HTMLElement>());
 
@@ -122,7 +122,6 @@ export function DrinkPanel() {
     c.desktop = isDesktop;
     c.cardWidth = cardWidth;
     c.step = step;
-    c.auto = autoScrolling;
     applyTransforms();
   });
 
@@ -141,16 +140,16 @@ export function DrinkPanel() {
     [applyTransforms],
   );
 
-  /** Glide the row to `target` (-1 next, 0 stay, +1 previous), then commit. */
+  /** Glide the row to `target` (-1 next, 0 stay, +1 previous), then commit. `slow` is the gentle auto-scroll glide. */
   const settleTo = useCallback(
-    (target: number) => {
+    (target: number, slow = false) => {
       const c = ctl.current;
       cancelAnimationFrame(c.raf);
       c.animating = true;
       setBusy(true);
       const from = c.p;
       const distance = Math.abs(target - from);
-      const duration = window.matchMedia(REDUCED_MOTION).matches || distance === 0 ? 0 : 240 + 160 * distance;
+      const duration = window.matchMedia(REDUCED_MOTION).matches || distance === 0 ? 0 : slow ? AUTO_GLIDE : 240 + 160 * distance;
       const t0 = performance.now();
 
       const finish = () => {
@@ -171,7 +170,9 @@ export function DrinkPanel() {
       };
       const tick = (now: number) => {
         const k = duration === 0 ? 1 : Math.min(1, (now - t0) / duration);
-        setP(from + (target - from) * (1 - Math.pow(1 - k, 3))); // ease out
+        // Quick swipes ease out; the auto-scroll glide eases in and out.
+        const eased = slow ? (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2) : 1 - Math.pow(1 - k, 3);
+        setP(from + (target - from) * eased);
         if (k < 1) c.raf = requestAnimationFrame(tick);
         else finish();
       };
@@ -226,7 +227,7 @@ export function DrinkPanel() {
 
   /** Go to the next (+1) or previous (-1) drink. */
   const goBy = useCallback(
-    (delta: number) => {
+    (delta: number, slow = false) => {
       const c = ctl.current;
       if (c.desktop) {
         c.index = mod(c.index + delta, N);
@@ -236,47 +237,28 @@ export function DrinkPanel() {
         return;
       }
       if (c.swiping || c.animating) return;
-      settleTo(delta > 0 ? -1 : 1);
+      settleTo(delta > 0 ? -1 : 1, slow);
     },
     [settleTo],
   );
 
-  // Auto-scroll (phones): the row drifts continuously, with no stops. It
-  // waits while you're touching the screen and picks up where it left off. It's
-  // off when the drink nearest the middle has been edited, "reduce motion" is
-  // on, or it's been paused (the tab being hidden pauses it too).
+  // Auto-scroll (phones): each drink stays in the middle for a few seconds,
+  // then the row glides to the next. It waits while you're touching the
+  // screen, and it's off when the drink in the middle has been edited, the tab
+  // is hidden, "reduce motion" is on, or it's been paused.
   useEffect(() => {
     if (!autoScrolling) return;
-    let frame = 0;
-    let last = performance.now();
-    const tick = (now: number) => {
-      frame = requestAnimationFrame(tick);
-      const dt = Math.min(0.1, (now - last) / 1000);
-      last = now;
-      const c = ctl.current;
-      if (document.hidden || c.pointer || c.swiping || c.animating) return;
-      let p = c.p - dt / AUTO_SECONDS_PER_DRINK; // negative p = towards the next drink
-      if (p <= -1) {
-        // The next drink has reached the middle: it becomes the middle card
-        // and the row carries on without a pause.
-        c.index = mod(c.index + 1, N);
-        setIndex(c.index);
-        p += 1;
-      }
-      setP(p);
+    let timer = 0;
+    const schedule = (ms: number) => {
+      timer = window.setTimeout(() => {
+        const c = ctl.current;
+        if (document.hidden || c.pointer || c.swiping || c.animating) schedule(1000);
+        else goBy(1, true);
+      }, ms);
     };
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [autoScrolling, setP]);
-
-  // When the scrolling stops (paused, or you edited a drink), bring the drink
-  // nearest the middle to rest in the middle. If a finger is still on a layer,
-  // this waits until it lifts (see onPointerEnd).
-  useEffect(() => {
-    const c = ctl.current;
-    if (autoScrolling || c.pointer || c.swiping || c.animating || c.p === 0) return;
-    settleTo(Math.round(c.p));
-  }, [autoScrolling, settleTo]);
+    schedule(AUTO_DWELL); // starts over whenever the middle drink changes
+    return () => window.clearTimeout(timer);
+  }, [autoScrolling, index, goBy]);
 
   // ← / → switch drinks.
   useEffect(() => {
@@ -335,8 +317,6 @@ export function DrinkPanel() {
       swipe.end();
       return;
     }
-    // A layer was edited while the row was frozen off-centre: rest it in the middle.
-    if (!c.auto && c.p !== 0 && !c.animating) settleTo(Math.round(c.p));
     if (e.type === "pointerup" && !ptr.owned && !ptr.moved) {
       // A tap on a card peeking at the side brings it to the middle.
       const rect = e.currentTarget.getBoundingClientRect();
