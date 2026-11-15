@@ -2,6 +2,10 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-14: White lines removed
+- **Before:** a white line showed the boundary being moved while you dragged (and on hover with a mouse).
+- **After:** no lines at all. The layer you're dragging is shown only by its 5% darker tint and by the color boundary moving.
+
 ## 2026-11-14: Lighter solid highlight; bottom layer follows the finger
 - **Before:**
   - The layer being dragged darkened by 25% with soft (gradient) edges.

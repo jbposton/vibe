@@ -45,9 +45,6 @@ const SELECTED_DARKEN = 0.05;
 /** How far each color band runs past the panel's sides (the panel clips it). */
 const BAND_BLEED = 128;
 
-/** Half the height of the box a divider line is drawn in. */
-const HANDLE_HALF = 20;
-
 /** Dark text on light colors, white text on dark ones, so labels stay readable. */
 function labelColor(hex: string): string {
   const n = parseInt(hex.slice(1), 16);
@@ -157,10 +154,6 @@ export function DrinkPanel() {
       });
     },
   });
-
-  // The section being hovered (desktop), to preview which line it moves.
-  const [hoverKey, setHoverKey] = useState<number | null>(null);
-  const shownPair = tradePartner(ordered, draggingKey ?? hoverKey ?? -1);
 
   // Once nothing has moved for a moment, redraw the bands at their true size.
   useEffect(() => {
@@ -348,8 +341,6 @@ export function DrinkPanel() {
                   }`}
                   style={box}
                   {...(canDrag ? handlers(line.key) : {})}
-                  onPointerEnter={(e) => e.pointerType === "mouse" && setHoverKey(line.key)}
-                  onPointerLeave={() => setHoverKey((k) => (k === line.key ? null : k))}
                   onKeyDown={(e) => {
                     const steps =
                       e.key === "ArrowUp" ? 1 : e.key === "ArrowDown" ? -1 : e.key === "PageUp" ? 4 : e.key === "PageDown" ? -4 : 0;
@@ -362,30 +353,6 @@ export function DrinkPanel() {
                 </div>
               );
             })}
-
-            {/* Divider lines between layers (visual only; the sections are the
-                touch targets). A line shows while you drag a section, or hover
-                one with a mouse, when it's the line that section moves. */}
-            {ordered.slice(0, -1).map((below, i) => {
-              const y = bottoms[i + 1];
-              const shown = shownPair?.lowerKey === below.key;
-              const active = shown && draggingKey !== null;
-              return (
-                <div
-                  key={`divider-${drink.id}-${below.key}`}
-                  aria-hidden
-                  className="layer-anim pointer-events-none absolute inset-x-0"
-                  style={{ bottom: y - HANDLE_HALF, height: HANDLE_HALF * 2, transition: animate }}
-                >
-                  <div
-                    className={`divider-line absolute inset-x-0 top-1/2 -translate-y-1/2 bg-white transition-opacity duration-150 ${
-                      active ? "h-0.5 opacity-80" : shown ? "h-px opacity-70" : "h-px opacity-0"
-                    }`}
-                  />
-                </div>
-              );
-            })}
-
           </>
         )}
       </section>
