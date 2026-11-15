@@ -2,6 +2,12 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-14: Layer labels split, text not selectable
+- **Before:** each label read "Gin · 1 oz", right-aligned, and the text in the panel could be selected or highlighted while dragging.
+- **After:**
+  - The amount sits on the left edge of each layer and the ingredient name on the right edge, both 16px in from the panel border.
+  - The drink panel's text can't be selected, highlighted or long-pressed.
+
 ## 2026-11-14: Lines trade between neighbors
 - **Before:** dragging a line changed only the layer below it. The line under the garnish couldn't move, so dragging it near the top made amounts jump to 12 oz and the drag felt stuck.
 - **After:**

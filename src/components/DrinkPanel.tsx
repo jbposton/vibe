@@ -195,7 +195,7 @@ export function DrinkPanel() {
       <section
         ref={panelRef}
         aria-label={`${drink.name} layers`}
-        className="relative min-h-0 flex-1 overflow-hidden border border-[#141414] md:h-full"
+        className="relative min-h-0 flex-1 touch-manipulation overflow-hidden border border-[#141414] select-none [-webkit-touch-callout:none] md:h-full"
       >
         {panelHeight > 0 && (
           <>
@@ -234,13 +234,14 @@ export function DrinkPanel() {
               const amountText = formatAmount(line.amount);
               const isGarnish = line.amount.kind === "garnish";
               const box = { bottom: bottoms[i], height: heights[i], transition: animate };
+              // Amount on the left edge, ingredient name on the right edge.
               const label = (
                 <span
-                  className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-right text-[11px] leading-4"
+                  className="pointer-events-none absolute inset-x-4 top-1/2 flex -translate-y-1/2 items-baseline justify-between gap-3 text-[11px] leading-4"
                   style={{ color: labelColor(ingredient.color) }}
                 >
-                  {ingredient.name}
-                  <span className="opacity-70"> · {amountText}</span>
+                  <span className="opacity-70 tabular-nums">{amountText}</span>
+                  <span className="text-right">{ingredient.name}</span>
                 </span>
               );
 
