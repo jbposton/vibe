@@ -2,6 +2,14 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-14: Drinks start unmixed
+- **Before:** a drink was already mixing the moment it appeared.
+- **After:**
+  - Each newly shown drink (on load, or when switching with ‹ ›) starts **unmixed**: still, straight blends, the plain v4 look.
+  - After **3 seconds** on screen, the mixing eases in smoothly over **4 seconds** to full strength.
+  - The time only counts while the page is visible. Reset doesn't restart it.
+- **Measured** on the Negroni: no movement at 0.5s and 2.5s, starting by 4.5s, full by about 6.5s.
+
 ## 2026-11-14: Gentler waves, still garnishes
 - **Before:** the boundaries drifted ±40px, and the garnish bands drifted like the liquids.
 - **After:**

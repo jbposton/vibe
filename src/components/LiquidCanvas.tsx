@@ -40,6 +40,13 @@ const MAX_LAYERS = 8;
 const WAVE_AMPLITUDE = 28;
 /** Animation speed (1 = default). Lower is slower. */
 const WAVE_SPEED = 1.6;
+/**
+ * A newly shown drink starts unmixed (still, straight boundaries). After it
+ * has been on screen for MIX_DELAY seconds, the mixing eases in over MIX_RAMP
+ * seconds. Time only counts while the page is visible.
+ */
+const MIX_DELAY = 3;
+const MIX_RAMP = 4;
 
 const VERTEX = `
 attribute vec2 aPos;
@@ -207,6 +214,7 @@ export function LiquidCanvas({ layers, resetKey, dragging, background, onReady }
     let frame = 0;
     let last = performance.now();
     let clock = 0;
+    let mixClock = 0; // seconds the current drink has been on screen
     let ready = false;
 
     const draw = (now: number) => {
@@ -229,6 +237,8 @@ export function LiquidCanvas({ layers, resetKey, dragging, background, onReady }
       const { layers: target, resetKey: key, dragging: drag, background: bg } = latest.current;
       const count = Math.min(target.length, MAX_LAYERS);
       const flat = target.slice(0, count).flatMap((l) => [l.lo, l.hi, l.blur]);
+      if (key !== shownKey) mixClock = 0; // a new drink starts unmixed
+      mixClock += dt;
       if (key !== shownKey || count !== shownCount || drag || reducedMotion.matches) {
         shown = flat;
         shownKey = key;
@@ -246,7 +256,10 @@ export function LiquidCanvas({ layers, resetKey, dragging, background, onReady }
 
       gl.uniform1f(u.dpr, dpr);
       gl.uniform1f(u.time, clock);
-      gl.uniform1f(u.amp, WAVE_AMPLITUDE);
+      // 0 while unmixed, easing smoothly up to 1 once the delay has passed.
+      const m = Math.min(1, Math.max(0, (mixClock - MIX_DELAY) / MIX_RAMP));
+      const mix = m * m * (3 - 2 * m);
+      gl.uniform1f(u.amp, WAVE_AMPLITUDE * mix);
       gl.uniform1i(u.count, count);
       gl.uniform4fv(u.band, bands);
       gl.uniform3fv(u.color, colors);
