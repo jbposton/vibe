@@ -96,23 +96,32 @@ export function layerGeometry(height: number) {
   return { overlap, totalHeight, blur: Math.min(84, Math.round(totalHeight * 0.3)) };
 }
 
-/** Every amount a line can be set to, smallest first. */
-function amountOptions(amount: Amount): Amount[] {
+/** An amount of the same kind holding `value` (oz, or dashes). Not snapped. */
+function withValue(amount: Amount, value: number): Amount {
   switch (amount.kind) {
     case "garnish":
-      return [amount];
+      return amount;
     case "dash":
-      return Array.from({ length: MAX_DASHES + 1 }, (_, i) => ({ kind: "dash", count: i }));
+      return { kind: "dash", count: value };
     case "oz":
-      return Array.from({ length: MAX_STEPS_OZ + 1 }, (_, i) => ({ kind: "oz", oz: i / 4 }));
+      return { kind: "oz", oz: value };
   }
 }
 
+/** Top edge (px above the stack bottom) of line `key`'s layer if it held `amount`. */
+function topEdge(lines: RecipeLine[], key: number, amount: Amount, total: number): number {
+  const trial = lines.map((l, i) => (i === key ? { ...l, amount } : l));
+  const ordered = orderLines(trial);
+  const heights = layerHeights(ordered, total);
+  const idx = ordered.findIndex((l) => l.key === key);
+  return heights.slice(0, idx + 1).reduce((s, h) => s + h, 0);
+}
+
 /**
- * The amount for line `key` that puts the TOP edge of its layer closest to
- * `edge` px above the bottom of the stack. Used when dragging the divider
- * line above a layer, so the line follows the finger. Ties (e.g. while the
- * layer is held at its minimum height) keep the amount nearest the current one.
+ * The amount for line `key` that puts the TOP edge of its layer at `edge` px
+ * above the bottom of the stack, so the divider follows the finger exactly.
+ * The result is continuous (not snapped); call `snapAmount` when the drag ends.
+ * Dragging well below the layer's minimum height takes it to 0.
  */
 export function amountForEdge(
   lines: RecipeLine[],
@@ -121,24 +130,34 @@ export function amountForEdge(
   total: number,
 ): Amount {
   const current = lines[key].amount;
-  let best = current;
-  let bestDiff = Infinity;
-  let bestDist = Infinity;
-  for (const option of amountOptions(current)) {
-    const trial = lines.map((l, i) => (i === key ? { ...l, amount: option } : l));
-    const ordered = orderLines(trial);
-    const heights = layerHeights(ordered, total);
-    const idx = ordered.findIndex((l) => l.key === key);
-    const top = heights.slice(0, idx + 1).reduce((s, h) => s + h, 0);
-    const diff = Math.abs(top - edge);
-    const dist = Math.abs(volumeOz(option) - volumeOz(current));
-    if (diff < bestDiff - 0.5 || (Math.abs(diff - bestDiff) <= 0.5 && dist < bestDist)) {
-      best = option;
-      bestDiff = diff;
-      bestDist = dist;
-    }
+  if (current.kind === "garnish") return current;
+  const max = current.kind === "dash" ? MAX_DASHES : MAX_STEPS_OZ / 4;
+  const top = (v: number) => topEdge(lines, key, withValue(current, v), total);
+
+  if (edge < top(0) - 12) return withValue(current, 0);
+  if (top(max) <= edge) return withValue(current, max);
+
+  // The edge only moves up as the amount grows, so bisect for it.
+  let lo = 0;
+  let hi = max;
+  for (let i = 0; i < 24; i++) {
+    const mid = (lo + hi) / 2;
+    if (top(mid) <= edge) lo = mid;
+    else hi = mid;
   }
-  return best;
+  return withValue(current, lo);
+}
+
+/** Round an amount to its notch: ¼ oz, or a whole dash. */
+export function snapAmount(amount: Amount): Amount {
+  switch (amount.kind) {
+    case "garnish":
+      return amount;
+    case "dash":
+      return { kind: "dash", count: clamp(Math.round(amount.count), 0, MAX_DASHES) };
+    case "oz":
+      return { kind: "oz", oz: clamp(Math.round(amount.oz * 4) / 4, 0, MAX_STEPS_OZ / 4) };
+  }
 }
 
 /** Human-readable amount, e.g. "2 oz", "¾ oz", "2 dashes", "garnish". */
@@ -146,8 +165,10 @@ export function formatAmount(amount: Amount): string {
   switch (amount.kind) {
     case "garnish":
       return "garnish";
-    case "dash":
-      return `${amount.count} ${amount.count === 1 ? "dash" : "dashes"}`;
+    case "dash": {
+      const count = Math.round(amount.count);
+      return `${count} ${count === 1 ? "dash" : "dashes"}`;
+    }
     case "oz": {
       const whole = Math.floor(amount.oz);
       const frac = Math.round((amount.oz - whole) * 4);
@@ -165,9 +186,9 @@ export function stepAmount(amount: Amount, steps: number): Amount {
     case "garnish":
       return amount;
     case "dash":
-      return { kind: "dash", count: clamp(amount.count + steps, 0, MAX_DASHES) };
+      return { kind: "dash", count: clamp(Math.round(amount.count) + steps, 0, MAX_DASHES) };
     case "oz":
-      return { kind: "oz", oz: clamp(Math.round((amount.oz + steps * 0.25) * 4) / 4, 0, 12) };
+      return { kind: "oz", oz: clamp(Math.round(amount.oz * 4) / 4 + steps * 0.25, 0, 12) };
   }
 }
 

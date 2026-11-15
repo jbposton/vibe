@@ -2,6 +2,10 @@
 
 Design and build judgments, newest first. **Placeholder** means a stand-in for an open decision (CLAUDE.md §7). It's marked `// OPEN:` in the code and waits for JP to decide.
 
+## 2026-11-14: Smoother dragging (build choices)
+- **Continuous amounts:** while dragging, amounts aren't snapped. They snap to ¼ oz or whole dashes on release. Labels always show the rounded value.
+- **Cheap band motion:** during a drag, each blurred band keeps the blur it was drawn with and is stretched vertically (`scaleY`). That means the vertical softness scales with the band for a moment, which is close to the v4 recipe since blur grows with height anyway. The true v4 blur comes back 0.4s after the last change.
+
 ## 2026-11-14: Layout v2 (JP's direction)
 
 ### Decided by JP

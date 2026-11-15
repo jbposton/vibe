@@ -27,13 +27,13 @@ body {
 /* Layers ease to their new size after a keyboard step or a drink switch. */
 .layer-anim {
   transition:
-    bottom 200ms ease,
-    height 200ms ease,
-    filter 200ms ease;
+    bottom 180ms ease-out,
+    height 180ms ease-out;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .layer-anim {
+  .layer-anim,
+  .band {
     transition: none !important;
   }
 }

@@ -10,6 +10,7 @@ import {
   layerGeometry,
   layerHeights,
   orderLines,
+  snapAmount,
   stepAmount,
   volumeOz,
 } from "@/lib/stack";
@@ -33,9 +34,15 @@ function labelColor(hex: string): string {
 }
 
 export function DrinkPanel() {
+  // `baseLines` is the recipe the blurred bands were last drawn at. While the
+  // amounts change, the bands are only stretched and moved (cheap for the
+  // graphics chip) instead of being re-blurred every frame. Shortly after
+  // things settle, the bands are redrawn at their true size (`baseVersion`).
   const [state, setState] = useState(() => ({
     index: START_DRINK,
     lines: DRINKS[START_DRINK].lines,
+    baseLines: DRINKS[START_DRINK].lines,
+    baseVersion: 0,
   }));
   const drink = DRINKS[state.index];
   const modified = state.lines !== drink.lines;
@@ -46,6 +53,7 @@ export function DrinkPanel() {
   const panelRef = useCallback((el: HTMLElement | null) => {
     panelEl.current = el;
     if (!el) return;
+    setPanelHeight(el.clientHeight); // measure now; the observer keeps it current
     const observer = new ResizeObserver(([entry]) => setPanelHeight(entry.contentRect.height));
     observer.observe(el);
     return () => observer.disconnect();
@@ -54,6 +62,10 @@ export function DrinkPanel() {
   const ordered = orderLines(state.lines);
   const heights = layerHeights(ordered, panelHeight);
   const bottoms = layerBottoms(heights);
+
+  // Geometry the bands were drawn at (same layers, same order).
+  const baseHeights = layerHeights(orderLines(state.baseLines), panelHeight);
+  const baseBottoms = layerBottoms(baseHeights);
 
   const setLine = (key: number, update: (line: RecipeLine) => RecipeLine) =>
     setState((s) => ({
@@ -64,24 +76,41 @@ export function DrinkPanel() {
   const goTo = (delta: number) =>
     setState((s) => {
       const index = (s.index + delta + DRINKS.length) % DRINKS.length;
-      return { index, lines: DRINKS[index].lines };
+      const lines = DRINKS[index].lines;
+      return { index, lines, baseLines: lines, baseVersion: s.baseVersion + 1 };
     });
 
   const reset = () => setState((s) => ({ ...s, lines: DRINKS[s.index].lines }));
 
   // Dragging a divider moves the top edge of the layer below it to the finger.
-  const { handlers, draggingKey } = useLayerDrag((key, clientY) => {
-    const el = panelEl.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const innerBottom = rect.bottom - el.clientTop; // skip the border
-    const edge = Math.min(panelHeight, Math.max(0, innerBottom - clientY));
-    setState((s) => {
-      const amount = amountForEdge(s.lines, key, edge, panelHeight);
-      if (amount === s.lines[key].amount) return s;
-      return { ...s, lines: s.lines.map((l, i) => (i === key ? { ...l, amount } : l)) };
-    });
+  // The amount follows the finger smoothly and snaps to ¼ oz on release.
+  const { handlers, draggingKey } = useLayerDrag({
+    onMove: (key, clientY) => {
+      const el = panelEl.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const innerBottom = rect.bottom - el.clientTop; // skip the border
+      const edge = Math.min(panelHeight, Math.max(0, innerBottom - clientY));
+      setState((s) => {
+        const amount = amountForEdge(s.lines, key, edge, panelHeight);
+        return { ...s, lines: s.lines.map((l, i) => (i === key ? { ...l, amount } : l)) };
+      });
+    },
+    onEnd: (key) => setLine(key, (l) => ({ ...l, amount: snapAmount(l.amount) })),
   });
+
+  // Once nothing has moved for a moment, redraw the bands at their true size.
+  useEffect(() => {
+    if (draggingKey !== null || state.baseLines === state.lines) return;
+    const timer = setTimeout(
+      () =>
+        setState((s) =>
+          s.baseLines === s.lines ? s : { ...s, baseLines: s.lines, baseVersion: s.baseVersion + 1 },
+        ),
+      400,
+    );
+    return () => clearTimeout(timer);
+  }, [draggingKey, state.lines, state.baseLines]);
 
   // ← / → switch drinks (placeholder until the Finder exists).
   useEffect(() => {
@@ -155,18 +184,27 @@ export function DrinkPanel() {
             {/* The blurred color bands (Figma v4 recipe). Later layers paint on top.
                 Bands run past the sides; the panel's border clips the extra blur. */}
             {ordered.map((line, i) => {
-              const g = layerGeometry(heights[i]);
+              // Drawn (and blurred) once at the base size, then stretched and
+              // moved to the current size with a transform.
+              const base = layerGeometry(baseHeights[i]);
+              const now = layerGeometry(heights[i]);
+              const baseBottom = baseBottoms[i] - base.overlap;
+              const nowBottom = bottoms[i] - now.overlap;
+              const stretch = now.totalHeight / base.totalHeight;
               return (
                 <div
-                  key={`band-${drink.id}-${line.key}`}
+                  key={`band-${drink.id}-${state.baseVersion}-${line.key}`}
                   aria-hidden
-                  className="layer-anim absolute -inset-x-32"
+                  className="band absolute -inset-x-32"
                   style={{
-                    bottom: bottoms[i] - g.overlap,
-                    height: g.totalHeight,
+                    bottom: baseBottom,
+                    height: base.totalHeight,
                     background: INGREDIENTS[line.ingredient].color,
-                    filter: `blur(${g.blur}px)`,
-                    transition: animate,
+                    filter: `blur(${base.blur}px)`,
+                    transformOrigin: "bottom",
+                    transform: `translateY(${baseBottom - nowBottom}px) scaleY(${stretch})`,
+                    transition: draggingKey === null ? "transform 180ms ease-out" : "none",
+                    willChange: "transform",
                   }}
                 />
               );

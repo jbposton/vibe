@@ -2,6 +2,13 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-14: Smoother dragging
+- **Before:** the line jumped in ¼ oz steps while you dragged, and every movement re-blurred all the color bands, which is slow on phones.
+- **After:**
+  - The line follows the finger continuously and snaps to the nearest ¼ oz (or whole dash) only when you let go, gliding the last few pixels.
+  - During a drag the bands are stretched and moved with GPU transforms instead of being re-blurred, then redrawn at full quality about 0.4s after things settle.
+  - Pointer moves are applied once per screen frame.
+
 ## 2026-11-14: Mixer v1 → Layout v2
 - **Before:** a fixed phone-shaped artboard scaled to fit the screen, with open blur bleeding to the screen edges. You dragged anywhere on a layer, and the layer's edge moved less than your finger.
 - **After:**
