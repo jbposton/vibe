@@ -450,7 +450,7 @@ export function DrinkPanel() {
         {/* Servings scale the oz only; the parts (the ratio) never change. */}
         <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
           <div role="group" aria-label="Servings" className="flex items-center gap-2">
-            <span className="mr-1 text-base text-[#F7F7F7]/55">Servings:</span>
+            <span className="mr-1 text-xs text-[#F7F7F7]/55">Servings:</span>
             {SERVING_CHOICES.map((n) => (
               <button
                 key={n}
@@ -477,9 +477,9 @@ export function DrinkPanel() {
               +
             </button>
           </div>
-          <p className="flex items-baseline gap-2 tabular-nums">
-            <span className="text-base text-[#F7F7F7]/55">Total</span>
-            <span className="text-[22px] font-semibold leading-7">
+          <p className="flex items-baseline gap-1.5 whitespace-nowrap tabular-nums">
+            <span className="text-xs text-[#F7F7F7]/55">Total</span>
+            <span className="text-base font-semibold leading-6">
               {formatTotal(totalParts(infoLines), DEFAULT_UNIT, infoServings)}
             </span>
           </p>
