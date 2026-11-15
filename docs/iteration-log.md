@@ -2,6 +2,14 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-14: Reset always visible, film grain
+- **Before:**
+  - Reset was faint grey text that appeared only after a change, so it was easy to miss, especially on phones.
+  - The drink's colors were perfectly smooth.
+- **After:**
+  - Reset is a small outlined pill at the top left on phone and web, lined up with the 16px margin. It's dimmed until something has changed.
+  - A static film grain sits over the whole drink, under the labels and lines: grey fractal noise blended with "overlay" at 45% opacity. It's subtle on very pale layers like Gin and Soda water.
+
 ## 2026-11-14: Layer labels split, text not selectable
 - **Before:** each label read "Gin · 1 oz", right-aligned, and the text in the panel could be selected or highlighted while dragging.
 - **After:**

@@ -20,6 +20,22 @@ import { useLayerDrag } from "./useLayerDrag";
 // OPEN: which drink a visitor sees first (brief §1 flow). Placeholder: Negroni.
 const START_DRINK = Math.max(0, DRINKS.findIndex((d) => d.id === "negroni"));
 
+/**
+ * Film grain over the drink: a tiled, grey fractal-noise texture blended into
+ * the colors underneath. It's a static image, so it costs nothing while dragging.
+ */
+const GRAIN_SVG =
+  "<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'>" +
+  "<filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/>" +
+  "<feColorMatrix type='saturate' values='0'/></filter>" +
+  "<rect width='100%' height='100%' filter='url(#n)'/></svg>";
+const GRAIN_STYLE: React.CSSProperties = {
+  backgroundImage: `url("data:image/svg+xml,${encodeURIComponent(GRAIN_SVG)}")`,
+  backgroundSize: "180px 180px",
+  mixBlendMode: "overlay",
+  opacity: 0.45,
+};
+
 /** Half the height of a divider's touch target: 20px above and 20px below the line. */
 const HANDLE_HALF = 20;
 
@@ -157,16 +173,16 @@ export function DrinkPanel() {
       {/* ── Information ───────────────────────────────────────────── */}
       <section aria-label="Drink information" className="flex flex-col">
         {/* Drink switcher (placeholder until the Finder exists) */}
-        <div className="-mx-3 flex items-center gap-1">
-          {modified && (
-            <button
-              type="button"
-              onClick={reset}
-              className="h-11 rounded-full px-3 text-xs text-[#141414]/60 hover:text-[#141414] focus-visible:outline-2 focus-visible:outline-[#141414]"
-            >
-              Reset
-            </button>
-          )}
+        <div className="-mr-3 flex items-center gap-1">
+          {/* Reset is always shown (phone and web); it's dimmed until something has changed. */}
+          <button
+            type="button"
+            onClick={reset}
+            disabled={!modified}
+            className="h-8 rounded-full border border-[#141414]/25 px-3 text-xs text-[#141414]/80 transition-opacity hover:border-[#141414]/60 hover:text-[#141414] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141414] disabled:pointer-events-none disabled:opacity-35"
+          >
+            Reset
+          </button>
           <span className="ml-auto text-xs tabular-nums text-[#141414]/45" aria-live="polite">
             {state.index + 1} / {DRINKS.length}
           </span>
@@ -228,7 +244,10 @@ export function DrinkPanel() {
               );
             })}
 
-            {/* One region per layer: label (right-aligned to the panel) and keyboard control. */}
+            {/* Film grain over the whole drink, under the labels and lines. */}
+            <div aria-hidden className="pointer-events-none absolute inset-0" style={GRAIN_STYLE} />
+
+            {/* One region per layer: label (name left, amount right) and keyboard control. */}
             {ordered.map((line, i) => {
               const ingredient = INGREDIENTS[line.ingredient];
               const amountText = formatAmount(line.amount);
