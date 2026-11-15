@@ -2,6 +2,15 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-14: Warm black, no panel border
+- **Before:**
+  - The dark page was a neutral black (`#141414`).
+  - The drink panel had a white border.
+- **After:**
+  - The page is a warm black (`#1A1612`).
+  - The drink panel has no border, but the drink is still clipped to its rectangle, so the blur doesn't spill onto the page.
+  - The white divider lines are unchanged.
+
 ## 2026-11-14: Dark mode trial
 - **Before:** light page (`#F7F7F7`) with dark text (`#141414`), and a dark panel border and lines.
 - **After:**

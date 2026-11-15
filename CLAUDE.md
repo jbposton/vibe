@@ -133,5 +133,5 @@ Name of the app; flavor dimensions and drink families; what "feeling and vibe" c
 - The GitHub repo is **public** (https://github.com/jbposton/vibe), so never commit secrets. API keys go in `.env.local` (gitignored) and in Vercel → Project → Settings → Environment Variables.
 - Live site: https://vibe-delta-orpin.vercel.app. Every push to `main` deploys automatically, so push only after JP has seen a change in the preview.
 - Commands: `npm run dev` (preview at http://localhost:3000), `npm run build` and `npm run lint` before pushing.
-- Placeholders for open decisions (§7) are marked `// OPEN:` in the code and listed in `docs/decision-log.md`. Visible changes go in `docs/iteration-log.md`.
+- Placeholders for open decisions (§7) are marked `// OPEN:` in the code. JP asked on 2026-11-14 to stop writing in `docs/decision-log.md` (it stays as a record up to that date). Visible changes still go in `docs/iteration-log.md`.
 - Code map: data in `src/data/` (ingredients, drinks, roles), stack math in `src/lib/stack.ts`, the mixer in `src/components/DrinkPanel.tsx`.

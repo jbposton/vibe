@@ -2,7 +2,7 @@
 
 :root {
   /* Dark mode trial: dark page, light text (the drink colors stay the same). */
-  --background: #141414;
+  --background: #1a1612; /* warm black */
   --foreground: #f7f7f7;
 }
 

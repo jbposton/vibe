@@ -169,7 +169,7 @@ export function DrinkPanel() {
     "grid size-11 place-items-center rounded-full text-lg text-[#F7F7F7]/60 hover:text-[#F7F7F7] focus-visible:outline-2 focus-visible:outline-[#F7F7F7]";
 
   return (
-    <main className="fixed inset-0 flex flex-col gap-4 bg-[#141414] p-4 text-[#F7F7F7] md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] md:gap-8">
+    <main className="fixed inset-0 flex flex-col gap-4 bg-[#1A1612] p-4 text-[#F7F7F7] md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] md:gap-8">
       {/* ── Information ───────────────────────────────────────────── */}
       <section aria-label="Drink information" className="flex flex-col">
         {/* Drink switcher (placeholder until the Finder exists) */}
@@ -211,7 +211,7 @@ export function DrinkPanel() {
       <section
         ref={panelRef}
         aria-label={`${drink.name} layers`}
-        className="relative min-h-0 flex-1 touch-manipulation overflow-hidden border border-white select-none [-webkit-touch-callout:none] md:h-full"
+        className="relative min-h-0 flex-1 touch-manipulation overflow-hidden select-none [-webkit-touch-callout:none] md:h-full"
       >
         {panelHeight > 0 && (
           <>
