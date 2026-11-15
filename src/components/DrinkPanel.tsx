@@ -15,26 +15,11 @@ import {
   tradeForEdge,
   volumeOz,
 } from "@/lib/stack";
+import { GLASS_STYLE, GRAIN_STYLE } from "./surfaceEffects";
 import { useLayerDrag } from "./useLayerDrag";
 
 // OPEN: which drink a visitor sees first (brief §1 flow). Placeholder: Negroni.
 const START_DRINK = Math.max(0, DRINKS.findIndex((d) => d.id === "negroni"));
-
-/**
- * Film grain over the drink: a tiled, grey fractal-noise texture blended into
- * the colors underneath. It's a static image, so it costs nothing while dragging.
- */
-const GRAIN_SVG =
-  "<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'>" +
-  "<filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/>" +
-  "<feColorMatrix type='saturate' values='0'/></filter>" +
-  "<rect width='100%' height='100%' filter='url(#n)'/></svg>";
-const GRAIN_STYLE: React.CSSProperties = {
-  backgroundImage: `url("data:image/svg+xml,${encodeURIComponent(GRAIN_SVG)}")`,
-  backgroundSize: "180px 180px",
-  mixBlendMode: "overlay",
-  opacity: 0.45,
-};
 
 /** Half the height of a divider's touch target: 20px above and 20px below the line. */
 const HANDLE_HALF = 20;
@@ -211,7 +196,7 @@ export function DrinkPanel() {
       <section
         ref={panelRef}
         aria-label={`${drink.name} layers`}
-        className="relative min-h-0 flex-1 touch-manipulation overflow-hidden select-none [-webkit-touch-callout:none] md:h-full"
+        className="relative isolate min-h-0 flex-1 touch-manipulation overflow-hidden rounded-[28px] [clip-path:inset(0_round_28px)] select-none [-webkit-touch-callout:none] md:h-full"
       >
         {panelHeight > 0 && (
           <>
@@ -244,8 +229,10 @@ export function DrinkPanel() {
               );
             })}
 
-            {/* Film grain over the whole drink, under the labels and lines. */}
+            {/* Surface effects over the whole drink, under the labels and lines:
+                film grain, then the glass edge. */}
             <div aria-hidden className="pointer-events-none absolute inset-0" style={GRAIN_STYLE} />
+            <div aria-hidden className="pointer-events-none absolute inset-0" style={GLASS_STYLE} />
 
             {/* One region per layer: label (name left, amount right) and keyboard control. */}
             {ordered.map((line, i) => {

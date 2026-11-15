@@ -2,6 +2,13 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-14: Rounded glass panel
+- **Before:** the drink panel was a sharp-cornered rectangle with no edge treatment.
+- **After:**
+  - The panel has 28px rounded corners, and the drink is clipped to them.
+  - A subtle glass edge: a bright 1px rim at the top, a faint hairline all around, soft light along the left and right edges, and a little shading at the bottom.
+- **Tried and removed (JP):** a wet look with condensation drops (first as noise blobs that read as scratches, then as drawn water beads), and a glass sheen (a diagonal shine plus a vertical reflection streak).
+
 ## 2026-11-14: Warm black, no panel border
 - **Before:**
   - The dark page was a neutral black (`#141414`).
