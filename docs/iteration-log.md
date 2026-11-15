@@ -2,6 +2,14 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-14: Straight lines again; selected layer darkens
+- **Before:**
+  - The divider lines and color blends were curved like a round glass.
+  - Dragging a layer gave no feedback on the layer itself.
+- **After:**
+  - **Straight again:** the lines and the color bands' edges are straight. The 10px curve and the curved band bottoms are removed.
+  - **Darkening:** pressing a layer to drag it eases it darker (a soft-edged black veil to 25%, 220ms ease-in). It stays darker while you adjust, then eases back to its own color when you let go (380ms ease-out). Only the veil's opacity animates, so dragging stays smooth.
+
 ## 2026-11-14: Drag down to expand, up to shrink
 - **Before:** dragging a section up gave more of it, and it traded with the layer above.
 - **After:**

@@ -21,9 +21,6 @@ import { useLayerDrag } from "./useLayerDrag";
 // OPEN: which drink a visitor sees first (brief §1 flow). Placeholder: Negroni.
 const START_DRINK = Math.max(0, DRINKS.findIndex((d) => d.id === "negroni"));
 
-/** How far the middle of a divider line dips below its ends, in px (the glass's curve). */
-const LEVEL_SAG = 10;
-
 /** The two layers a section drag trades between, lower one first. */
 type Pair = { lowerKey: number; upperKey: number; sectionIsLower: boolean };
 
@@ -41,6 +38,13 @@ function tradePartner(ordered: StackLine[], key: number): Pair | null {
   if (liquid(ordered[i + 1])) return { lowerKey: key, upperKey: ordered[i + 1].key, sectionIsLower: true };
   return null;
 }
+
+/** How dark a layer gets while you drag it (opacity of a black veil). */
+const SELECTED_DARKEN = 0.25;
+
+/** Soft top and bottom edges for that veil, so it blends like the colors do. */
+const SHADE_FEATHER =
+  "linear-gradient(to bottom, transparent, #000 14px, #000 calc(100% - 14px), transparent)";
 
 /** How far each color band runs past the panel's sides (the panel clips it). */
 const BAND_BLEED = 128;
@@ -73,19 +77,14 @@ export function DrinkPanel() {
   const drink = DRINKS[state.index];
   const modified = state.lines !== drink.lines;
 
-  // Measure the panel: the stack fills its full inner height, and the width
-  // sets how the band edges curve.
+  // Measure the panel: the stack fills its full inner height.
   const panelEl = useRef<HTMLElement | null>(null);
-  const [panelSize, setPanelSize] = useState({ width: 0, height: 0 });
-  const panelHeight = panelSize.height;
+  const [panelHeight, setPanelHeight] = useState(0);
   const panelRef = useCallback((el: HTMLElement | null) => {
     panelEl.current = el;
     if (!el) return;
-    // Measure now; the observer keeps it current.
-    setPanelSize({ width: el.clientWidth, height: el.clientHeight });
-    const observer = new ResizeObserver(([entry]) =>
-      setPanelSize({ width: entry.contentRect.width, height: entry.contentRect.height }),
-    );
+    setPanelHeight(el.clientHeight); // measure now; the observer keeps it current
+    const observer = new ResizeObserver(([entry]) => setPanelHeight(entry.contentRect.height));
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
@@ -93,13 +92,6 @@ export function DrinkPanel() {
   const ordered = orderLines(state.lines);
   const heights = layerHeights(ordered, panelHeight);
   const bottoms = layerBottoms(heights);
-
-  // Vertical radius of each band's curved bottom edge. The band is an ellipse
-  // spanning its full width (panel + bleed on both sides); this radius makes
-  // its edge dip exactly LEVEL_SAG px from the panel's sides to its middle.
-  const bandWidth = panelSize.width + 2 * BAND_BLEED;
-  const visible = bandWidth > 0 ? Math.min(0.999, panelSize.width / bandWidth) : 0;
-  const levelCurveRadius = visible > 0 ? LEVEL_SAG / (1 - Math.sqrt(1 - visible * visible)) : 0;
 
   // Geometry the bands were drawn at (same layers, same order).
   const baseHeights = layerHeights(orderLines(state.baseLines), panelHeight);
@@ -266,10 +258,6 @@ export function DrinkPanel() {
               const baseBottom = baseBottoms[i] - base.overlap;
               const nowBottom = bottoms[i] - now.overlap;
               const stretch = now.totalHeight / base.totalHeight;
-              // The bottom edge (where this band blends into the one below) is
-              // a shallow curve matching the divider lines. Shifting the band
-              // down half the sag centers the curve on the layer boundary.
-              const curveRadius = Math.min(levelCurveRadius, base.totalHeight);
               return (
                 <div
                   key={`band-${drink.id}-${state.baseVersion}-${line.key}`}
@@ -278,10 +266,8 @@ export function DrinkPanel() {
                   style={{
                     left: -BAND_BLEED,
                     right: -BAND_BLEED,
-                    bottom: baseBottom - LEVEL_SAG / 2,
+                    bottom: baseBottom,
                     height: base.totalHeight,
-                    borderBottomLeftRadius: `50% ${curveRadius}px`,
-                    borderBottomRightRadius: `50% ${curveRadius}px`,
                     background: INGREDIENTS[line.ingredient].color,
                     filter: `blur(${base.blur}px)`,
                     transformOrigin: "bottom",
@@ -295,6 +281,31 @@ export function DrinkPanel() {
 
             {/* Film grain over the whole drink, under the labels and lines. */}
             <div aria-hidden className="pointer-events-none absolute inset-0" style={GRAIN_STYLE} />
+
+            {/* While you drag a layer it eases darker, then eases back to its
+                own color when you let go. A soft-edged dark veil over the
+                layer: only its opacity animates, which is cheap. */}
+            {ordered.map((line, i) => {
+              if (line.amount.kind === "garnish") return null;
+              const selected = draggingKey === line.key;
+              return (
+                <div
+                  key={`shade-${drink.id}-${line.key}`}
+                  aria-hidden
+                  className="layer-anim pointer-events-none absolute inset-x-0 bg-black"
+                  style={{
+                    bottom: bottoms[i],
+                    height: heights[i],
+                    opacity: selected ? SELECTED_DARKEN : 0,
+                    maskImage: SHADE_FEATHER,
+                    WebkitMaskImage: SHADE_FEATHER,
+                    transition: selected
+                      ? "opacity 220ms ease-in"
+                      : "opacity 380ms ease-out, bottom 180ms ease-out, height 180ms ease-out",
+                  }}
+                />
+              );
+            })}
 
             {/* One region per layer: label (name left, amount right) and keyboard control. */}
             {ordered.map((line, i) => {
@@ -372,24 +383,11 @@ export function DrinkPanel() {
                   className="layer-anim pointer-events-none absolute inset-x-0"
                   style={{ bottom: y - HANDLE_HALF, height: HANDLE_HALF * 2, transition: animate }}
                 >
-                  {/* The line is a shallow curve, lower in the middle, like the
-                      level of a liquid seen slightly from above in a round glass. */}
-                  <svg
-                    className={`absolute inset-x-0 w-full overflow-visible transition-opacity duration-150 ${
-                      active ? "opacity-80" : shown ? "opacity-70" : "opacity-0"
+                  <div
+                    className={`divider-line absolute inset-x-0 top-1/2 -translate-y-1/2 bg-white transition-opacity duration-150 ${
+                      active ? "h-0.5 opacity-80" : shown ? "h-px opacity-70" : "h-px opacity-0"
                     }`}
-                    style={{ top: HANDLE_HALF - LEVEL_SAG / 2 - 1, height: LEVEL_SAG + 2 }}
-                    viewBox={`0 0 100 ${LEVEL_SAG + 2}`}
-                    preserveAspectRatio="none"
-                  >
-                    <path
-                      d={`M0,1 Q50,${1 + 2 * LEVEL_SAG} 100,1`}
-                      fill="none"
-                      stroke="white"
-                      vectorEffect="non-scaling-stroke"
-                      className={active ? "stroke-2" : "stroke-1"}
-                    />
-                  </svg>
+                  />
                 </div>
               );
             })}
