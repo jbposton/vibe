@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DRINKS, type RecipeLine } from "@/data/drinks";
 import { INGREDIENTS } from "@/data/ingredients";
-import type { Amount } from "@/data/drinks";
 import {
   formatAmount,
   layerBottoms,
@@ -11,14 +10,12 @@ import {
   layerHeights,
   orderLines,
   snapTrade,
+  type StackLine,
   stepAmount,
   tradeForEdge,
   volumeOz,
 } from "@/lib/stack";
-import {
-  GLASS_CYLINDER_STYLE,
-  GRAIN_STYLE,
-} from "./surfaceEffects";
+import { GRAIN_STYLE } from "./surfaceEffects";
 import { useLayerDrag } from "./useLayerDrag";
 
 // OPEN: which drink a visitor sees first (brief §1 flow). Placeholder: Negroni.
@@ -27,10 +24,26 @@ const START_DRINK = Math.max(0, DRINKS.findIndex((d) => d.id === "negroni"));
 /** How far the middle of a divider line dips below its ends, in px (the glass's curve). */
 const LEVEL_SAG = 10;
 
+/** The two layers a section drag trades between, lower one first. */
+type Pair = { lowerKey: number; upperKey: number; sectionIsLower: boolean };
+
+/**
+ * Which neighbor a section trades with when dragged: the layer above if it
+ * holds volume, otherwise the layer below. Garnishes (no volume) can't trade.
+ */
+function tradePartner(ordered: StackLine[], key: number): Pair | null {
+  const i = ordered.findIndex((l) => l.key === key);
+  const liquid = (l: StackLine | undefined) => !!l && l.amount.kind !== "garnish";
+  if (i < 0 || !liquid(ordered[i])) return null;
+  if (liquid(ordered[i + 1])) return { lowerKey: key, upperKey: ordered[i + 1].key, sectionIsLower: true };
+  if (liquid(ordered[i - 1])) return { lowerKey: ordered[i - 1].key, upperKey: key, sectionIsLower: false };
+  return null;
+}
+
 /** How far each color band runs past the panel's sides (the panel clips it). */
 const BAND_BLEED = 128;
 
-/** Half the height of a divider's touch target: 20px above and 20px below the line. */
+/** Half the height of the box a divider line is drawn in. */
 const HANDLE_HALF = 20;
 
 /** Dark text on light colors, white text on dark ones, so labels stay readable. */
@@ -105,39 +118,58 @@ export function DrinkPanel() {
 
   const reset = () => setState((s) => ({ ...s, lines: DRINKS[s.index].lines }));
 
-  // Dragging a divider trades volume between the two layers it separates, so
-  // the line follows the finger and the rest of the drink stays put. Amounts
-  // follow the finger smoothly and snap to ¼ oz (or whole dashes) on release.
-  // A drag is identified by the key of the layer BELOW the line.
-  const updatePair = (
-    lowerKey: number,
-    compute: (lines: RecipeLine[], upperKey: number) => [Amount, Amount],
-  ) =>
-    setState((s) => {
-      const ordered = orderLines(s.lines);
-      const upperKey = ordered[ordered.findIndex((l) => l.key === lowerKey) + 1]?.key;
-      if (upperKey === undefined) return s;
-      const [a, b] = compute(s.lines, upperKey);
-      return {
-        ...s,
-        lines: s.lines.map((l, i) =>
-          i === lowerKey ? { ...l, amount: a } : i === upperKey ? { ...l, amount: b } : l,
-        ),
-      };
-    });
+  // Dragging a section trades volume with a neighbor: up = more of this
+  // ingredient, down = less. The line shared with that neighbor follows the
+  // finger and the rest of the drink stays put. Amounts follow the finger
+  // smoothly and snap to ¼ oz (or whole dashes) on release.
+  const drag = useRef<{ pair: Pair; startY: number; startEdge: number } | null>(null);
 
   const { handlers, draggingKey } = useLayerDrag({
-    onMove: (lowerKey, clientY) => {
-      const el = panelEl.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const innerBottom = rect.bottom - el.clientTop; // skip the border
-      const edge = Math.min(panelHeight, Math.max(0, innerBottom - clientY));
-      updatePair(lowerKey, (lines, upperKey) => tradeForEdge(lines, lowerKey, upperKey, edge, panelHeight));
+    onStart: (key, clientY) => {
+      const pair = tradePartner(ordered, key);
+      if (!pair) return;
+      // Where the shared line is now, in px above the stack bottom.
+      const idx = ordered.findIndex((l) => l.key === pair.lowerKey);
+      drag.current = { pair, startY: clientY, startEdge: bottoms[idx] + heights[idx] };
     },
-    onEnd: (lowerKey) =>
-      updatePair(lowerKey, (lines, upperKey) => snapTrade(lines[lowerKey].amount, lines[upperKey].amount)),
+    onMove: (_key, clientY) => {
+      const d = drag.current;
+      if (!d) return;
+      const up = d.startY - clientY; // px moved up
+      // Up grows the section: if it's the lower layer its top line rises with
+      // the finger; if it's the upper layer its bottom line goes down instead.
+      const edge = Math.min(panelHeight, Math.max(0, d.startEdge + (d.pair.sectionIsLower ? up : -up)));
+      const { lowerKey, upperKey } = d.pair;
+      setState((s) => {
+        const [a, b] = tradeForEdge(s.lines, lowerKey, upperKey, edge, panelHeight);
+        return {
+          ...s,
+          lines: s.lines.map((l, i) =>
+            i === lowerKey ? { ...l, amount: a } : i === upperKey ? { ...l, amount: b } : l,
+          ),
+        };
+      });
+    },
+    onEnd: () => {
+      const d = drag.current;
+      drag.current = null;
+      if (!d) return;
+      const { lowerKey, upperKey } = d.pair;
+      setState((s) => {
+        const [a, b] = snapTrade(s.lines[lowerKey].amount, s.lines[upperKey].amount);
+        return {
+          ...s,
+          lines: s.lines.map((l, i) =>
+            i === lowerKey ? { ...l, amount: a } : i === upperKey ? { ...l, amount: b } : l,
+          ),
+        };
+      });
+    },
   });
+
+  // The section being hovered (desktop), to preview which line it moves.
+  const [hoverKey, setHoverKey] = useState<number | null>(null);
+  const shownPair = tradePartner(ordered, draggingKey ?? hoverKey ?? -1);
 
   // Once nothing has moved for a moment, redraw the bands at their true size.
   useEffect(() => {
@@ -209,7 +241,7 @@ export function DrinkPanel() {
           className={`mt-3 text-[11px] text-[#F7F7F7]/45 ${modified ? "invisible" : ""}`}
           aria-hidden={modified}
         >
-          Drag a line to move volume between the two layers it separates.
+          Drag a layer up for more of it, down for less.
         </p>
       </section>
 
@@ -258,10 +290,8 @@ export function DrinkPanel() {
               );
             })}
 
-            {/* Surface effects over the whole drink, under the labels and lines:
-                film grain, then the round-glass shading. */}
+            {/* Film grain over the whole drink, under the labels and lines. */}
             <div aria-hidden className="pointer-events-none absolute inset-0" style={GRAIN_STYLE} />
-            <div aria-hidden className="pointer-events-none absolute inset-0" style={GLASS_CYLINDER_STYLE} />
 
             {/* One region per layer: label (name left, amount right) and keyboard control. */}
             {ordered.map((line, i) => {
@@ -290,6 +320,10 @@ export function DrinkPanel() {
                 );
               }
 
+              // The whole section is the touch target: drag up for more of
+              // this ingredient, down for less.
+              const canDrag = tradePartner(ordered, line.key) !== null;
+
               return (
                 <div
                   key={`layer-${drink.id}-${line.key}`}
@@ -301,8 +335,13 @@ export function DrinkPanel() {
                   aria-valuenow={Math.round(volumeOz(line.amount) * 100) / 100}
                   aria-valuetext={amountText}
                   aria-orientation="vertical"
-                  className="layer-anim absolute inset-x-0 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white"
+                  className={`layer-anim absolute inset-x-0 touch-none outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white ${
+                    canDrag ? (draggingKey === line.key ? "cursor-grabbing" : "cursor-grab") : ""
+                  }`}
                   style={box}
+                  {...(canDrag ? handlers(line.key) : {})}
+                  onPointerEnter={(e) => e.pointerType === "mouse" && setHoverKey(line.key)}
+                  onPointerLeave={() => setHoverKey((k) => (k === line.key ? null : k))}
                   onKeyDown={(e) => {
                     const steps =
                       e.key === "ArrowUp" ? 1 : e.key === "ArrowDown" ? -1 : e.key === "PageUp" ? 4 : e.key === "PageDown" ? -4 : 0;
@@ -316,32 +355,25 @@ export function DrinkPanel() {
               );
             })}
 
-            {/* Divider lines between layers. Dragging one trades volume between
-                the two layers it separates, with a 40px touch target (20px
-                above and 20px below the line). A line next to a garnish can't
-                trade (a garnish has no volume), so it's locked and drawn fainter. */}
+            {/* Divider lines between layers (visual only; the sections are the
+                touch targets). A line shows while you drag a section, or hover
+                one with a mouse, when it's the line that section moves. */}
             {ordered.slice(0, -1).map((below, i) => {
               const y = bottoms[i + 1];
-              const above = ordered[i + 1];
-              const draggable = below.amount.kind !== "garnish" && above.amount.kind !== "garnish";
-              const active = draggingKey === below.key;
+              const shown = shownPair?.lowerKey === below.key;
+              const active = shown && draggingKey !== null;
               return (
                 <div
                   key={`divider-${drink.id}-${below.key}`}
                   aria-hidden
-                  className={`layer-anim group absolute inset-x-0 ${
-                    draggable ? (active ? "cursor-grabbing" : "cursor-row-resize") : "pointer-events-none"
-                  } touch-none select-none`}
+                  className="layer-anim pointer-events-none absolute inset-x-0"
                   style={{ bottom: y - HANDLE_HALF, height: HANDLE_HALF * 2, transition: animate }}
-                  {...(draggable ? handlers(below.key) : {})}
                 >
                   {/* The line is a shallow curve, lower in the middle, like the
                       level of a liquid seen slightly from above in a round glass. */}
                   <svg
-                    // Hidden until you hover over a line or drag it. Lines that
-                    // can't be dragged (next to a garnish) never show.
                     className={`absolute inset-x-0 w-full overflow-visible transition-opacity duration-150 ${
-                      active ? "opacity-80" : draggable ? "opacity-0 group-hover:opacity-70" : "opacity-0"
+                      active ? "opacity-80" : shown ? "opacity-70" : "opacity-0"
                     }`}
                     style={{ top: HANDLE_HALF - LEVEL_SAG / 2 - 1, height: LEVEL_SAG + 2 }}
                     viewBox={`0 0 100 ${LEVEL_SAG + 2}`}
@@ -352,7 +384,7 @@ export function DrinkPanel() {
                       fill="none"
                       stroke="white"
                       vectorEffect="non-scaling-stroke"
-                      className={active ? "stroke-2" : draggable ? "stroke-1 group-hover:stroke-2" : "stroke-1"}
+                      className={active ? "stroke-2" : "stroke-1"}
                     />
                   </svg>
                 </div>

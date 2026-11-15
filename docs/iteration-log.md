@@ -2,6 +2,18 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-14: Whole sections are the drag target; side shading removed
+- **Before:**
+  - You had to grab the thin line between two layers (a 40px target).
+  - The panel had darker round-glass sides.
+- **After:**
+  - **Drag anywhere on a section:** up gives more of that ingredient, down gives less. Volume is traded with the layer above if it holds volume, otherwise with the layer below (e.g. Campari under the Orange peel garnish trades with the Sweet vermouth below it). The shared line follows the finger, and the rest of the drink stays put.
+  - **Lines are visual only:** while you drag, or hover a section with a mouse, the line that section will move fades in.
+  - **Garnish sections** can't be dragged.
+  - **Side shading:** the darker round-glass sides (and their faint light) are removed. The curved levels and curved bands stay.
+  - **Hint:** now reads "Drag a layer up for more of it, down for less."
+- **Fixed during the build:** the snap on release could read slightly old amounts. It now uses the latest ones.
+
 ## 2026-11-14: Lines hidden until hover or drag
 - **Before:** the divider lines were always visible (40% white, or 15% when locked next to a garnish).
 - **After:**
