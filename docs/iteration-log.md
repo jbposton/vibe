@@ -2,6 +2,15 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-14: Inner shadow and edge lens removed
+- **Before:** a soft inner glow ran along the edges, and the edge lens (a backdrop blur and saturation) brightened the drink near the sides.
+- **After:** both are removed, which leaves only gradients:
+  - the blurred color bands
+  - the film grain
+  - the round-glass side shading
+  - the curved levels, with the rounded corners kept
+- **Side benefit:** with the live backdrop blur gone, dragging no longer has to recompute it every frame.
+
 ## 2026-11-14: Glass border removed
 - **Before:** the liquid glass had a gradient rim around the panel at 50%, plus thin bright edge lines at the top left and bottom right.
 - **After:** both are removed, so there's no border at all. The panel's edge is defined only by the drink, the rounded corners, the edge lens and a soft inner glow.

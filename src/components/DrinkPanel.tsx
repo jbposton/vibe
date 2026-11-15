@@ -17,8 +17,6 @@ import {
 } from "@/lib/stack";
 import {
   GLASS_CYLINDER_STYLE,
-  GLASS_GLOW_STYLE,
-  GLASS_LENS_STYLE,
   GRAIN_STYLE,
 } from "./surfaceEffects";
 import { useLayerDrag } from "./useLayerDrag";
@@ -261,10 +259,9 @@ export function DrinkPanel() {
             })}
 
             {/* Surface effects over the whole drink, under the labels and lines:
-                film grain, round-glass shading, then the liquid-glass lens at the edges. */}
+                film grain, then the round-glass shading. */}
             <div aria-hidden className="pointer-events-none absolute inset-0" style={GRAIN_STYLE} />
             <div aria-hidden className="pointer-events-none absolute inset-0" style={GLASS_CYLINDER_STYLE} />
-            <div aria-hidden className="pointer-events-none absolute inset-0" style={GLASS_LENS_STYLE} />
 
             {/* One region per layer: label (name left, amount right) and keyboard control. */}
             {ordered.map((line, i) => {
@@ -364,8 +361,6 @@ export function DrinkPanel() {
               );
             })}
 
-            {/* Liquid-glass inner glow, on top of everything. */}
-            <div aria-hidden className="pointer-events-none absolute inset-0" style={GLASS_GLOW_STYLE} />
           </>
         )}
       </section>

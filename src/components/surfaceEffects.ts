@@ -20,33 +20,6 @@ export const GRAIN_STYLE: CSSProperties = {
   opacity: 0.45,
 };
 
-/*
- * Liquid glass: the panel reads as a thick slab of clear glass over the drink.
- * The middle stays clear; the effect lives at the edges, like light bending
- * through a rounded glass rim.
- */
-
-/** How far in from the edge the glass "thickness" (the lens) reaches. */
-const LENS = 22;
-
-/**
- * Lens: near the edges, the drink behind the glass is softened, brightened and
- * made more saturated, as if seen through the curved rim. A mask fades it out
- * toward the middle.
- */
-const edgeMask = [
-  `linear-gradient(to right, #000, transparent ${LENS}px, transparent calc(100% - ${LENS}px), #000)`,
-  `linear-gradient(to bottom, #000, transparent ${LENS}px, transparent calc(100% - ${LENS}px), #000)`,
-].join(", ");
-
-export const GLASS_LENS_STYLE: CSSProperties = {
-  borderRadius: "inherit",
-  backdropFilter: "blur(5px) saturate(1.7) brightness(1.12)",
-  WebkitBackdropFilter: "blur(5px) saturate(1.7) brightness(1.12)",
-  maskImage: edgeMask,
-  WebkitMaskImage: edgeMask,
-};
-
 /**
  * Cylinder: shading that makes the flat panel read as a round glass. The drink
  * darkens as the glass turns away at the left and right edges, with a very
@@ -57,18 +30,5 @@ export const GLASS_CYLINDER_STYLE: CSSProperties = {
   backgroundImage: [
     "linear-gradient(90deg, rgba(0,0,0,0.34) 0%, rgba(0,0,0,0.14) 9%, rgba(0,0,0,0.03) 22%, rgba(0,0,0,0) 32%, rgba(0,0,0,0) 64%, rgba(0,0,0,0.05) 76%, rgba(0,0,0,0.18) 91%, rgba(0,0,0,0.38) 100%)",
     "linear-gradient(90deg, rgba(255,255,255,0) 16%, rgba(255,255,255,0.06) 30%, rgba(255,255,255,0) 46%)",
-  ].join(", "),
-};
-
-/**
- * Inner glow: light caught inside the glass along its edges (stronger at the
- * top left), plus a faint darker band just inside the rim for thickness.
- */
-export const GLASS_GLOW_STYLE: CSSProperties = {
-  borderRadius: "inherit",
-  boxShadow: [
-    "inset 0 0 18px rgba(255,255,255,0.16)",
-    "inset 10px 10px 24px -14px rgba(255,255,255,0.35)",
-    "inset 0 0 0 5px rgba(0,0,0,0.04)",
   ].join(", "),
 };
