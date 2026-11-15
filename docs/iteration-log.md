@@ -2,6 +2,14 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-14: Color bands follow the curved levels
+- **Before:** only the divider lines curved. The blurred color bands were flat strips, so the blends ran straight across while the lines dipped.
+- **After:**
+  - Each band's bottom edge (where it blends into the layer below) is a wide, shallow elliptical curve.
+  - It's sized from the panel's width so it dips the same 10px across the visible panel as the lines, and shifted down 5px so the curve is centered like the lines.
+  - The blur, the v4 overlap and dragging cost are unchanged.
+- **Note:** as before, the blend sits slightly below each line, because the v4 recipe extends each band past its boundary before blurring. It now follows the line's curve.
+
 ## 2026-11-14: Wrapped around a glass
 - **Before:** a flat panel with straight divider lines.
 - **After:** two cues make it read as a round glass:

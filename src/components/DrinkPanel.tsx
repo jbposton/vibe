@@ -30,6 +30,9 @@ const START_DRINK = Math.max(0, DRINKS.findIndex((d) => d.id === "negroni"));
 /** How far the middle of a divider line dips below its ends, in px (the glass's curve). */
 const LEVEL_SAG = 10;
 
+/** How far each color band runs past the panel's sides (the panel clips it). */
+const BAND_BLEED = 128;
+
 /** Half the height of a divider's touch target: 20px above and 20px below the line. */
 const HANDLE_HALF = 20;
 
@@ -58,14 +61,19 @@ export function DrinkPanel() {
   const drink = DRINKS[state.index];
   const modified = state.lines !== drink.lines;
 
-  // Measure the panel: the stack fills its full inner height.
+  // Measure the panel: the stack fills its full inner height, and the width
+  // sets how the band edges curve.
   const panelEl = useRef<HTMLElement | null>(null);
-  const [panelHeight, setPanelHeight] = useState(0);
+  const [panelSize, setPanelSize] = useState({ width: 0, height: 0 });
+  const panelHeight = panelSize.height;
   const panelRef = useCallback((el: HTMLElement | null) => {
     panelEl.current = el;
     if (!el) return;
-    setPanelHeight(el.clientHeight); // measure now; the observer keeps it current
-    const observer = new ResizeObserver(([entry]) => setPanelHeight(entry.contentRect.height));
+    // Measure now; the observer keeps it current.
+    setPanelSize({ width: el.clientWidth, height: el.clientHeight });
+    const observer = new ResizeObserver(([entry]) =>
+      setPanelSize({ width: entry.contentRect.width, height: entry.contentRect.height }),
+    );
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
@@ -73,6 +81,13 @@ export function DrinkPanel() {
   const ordered = orderLines(state.lines);
   const heights = layerHeights(ordered, panelHeight);
   const bottoms = layerBottoms(heights);
+
+  // Vertical radius of each band's curved bottom edge. The band is an ellipse
+  // spanning its full width (panel + bleed on both sides); this radius makes
+  // its edge dip exactly LEVEL_SAG px from the panel's sides to its middle.
+  const bandWidth = panelSize.width + 2 * BAND_BLEED;
+  const visible = bandWidth > 0 ? Math.min(0.999, panelSize.width / bandWidth) : 0;
+  const levelCurveRadius = visible > 0 ? LEVEL_SAG / (1 - Math.sqrt(1 - visible * visible)) : 0;
 
   // Geometry the bands were drawn at (same layers, same order).
   const baseHeights = layerHeights(orderLines(state.baseLines), panelHeight);
@@ -219,14 +234,22 @@ export function DrinkPanel() {
               const baseBottom = baseBottoms[i] - base.overlap;
               const nowBottom = bottoms[i] - now.overlap;
               const stretch = now.totalHeight / base.totalHeight;
+              // The bottom edge (where this band blends into the one below) is
+              // a shallow curve matching the divider lines. Shifting the band
+              // down half the sag centers the curve on the layer boundary.
+              const curveRadius = Math.min(levelCurveRadius, base.totalHeight);
               return (
                 <div
                   key={`band-${drink.id}-${state.baseVersion}-${line.key}`}
                   aria-hidden
-                  className="band absolute -inset-x-32"
+                  className="band absolute"
                   style={{
-                    bottom: baseBottom,
+                    left: -BAND_BLEED,
+                    right: -BAND_BLEED,
+                    bottom: baseBottom - LEVEL_SAG / 2,
                     height: base.totalHeight,
+                    borderBottomLeftRadius: `50% ${curveRadius}px`,
+                    borderBottomRightRadius: `50% ${curveRadius}px`,
                     background: INGREDIENTS[line.ingredient].color,
                     filter: `blur(${base.blur}px)`,
                     transformOrigin: "bottom",
