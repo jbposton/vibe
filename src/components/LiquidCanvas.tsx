@@ -45,7 +45,7 @@ const WAVE_SPEED = 1.6;
  * has been on screen for MIX_DELAY seconds, the mixing eases in over MIX_RAMP
  * seconds. Time only counts while the page is visible.
  */
-const MIX_DELAY = 1;
+const MIX_DELAY = 0;
 const MIX_RAMP = 4;
 
 const VERTEX = `

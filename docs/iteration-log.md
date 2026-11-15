@@ -2,6 +2,10 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-14: Mixing starts right away
+- **Before:** a new drink held unmixed for 1 second.
+- **After:** there's no hold. A new drink still appears unmixed, but the mixing starts easing in immediately and reaches full strength over 4 seconds.
+
 ## 2026-11-14: Shorter unmixed hold
 - **Before:** a new drink stayed unmixed for 3 seconds.
 - **After:** it stays unmixed for **1 second**, then the mixing eases in over 4 seconds as before.
