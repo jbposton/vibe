@@ -20,9 +20,9 @@ type DragCallbacks = {
  * collected and applied once per animation frame.
  *
  * OPEN: gesture map (brief §7). Placeholder (JP's choices): drag anywhere on a
- * section; down expands it, up shrinks it. Volume is traded with a neighbor
- * (the one below if it can trade, else the one above), so the shared line
- * moves and the rest of the drink stays put.
+ * section and the line it shares with a neighbor follows the finger (the
+ * neighbor below if it can trade, else the one above). So down expands a
+ * section, except the base layer, whose top line moves down and shrinks it.
  */
 export function useLayerDrag({ onStart, onMove, onEnd }: DragCallbacks) {
   const active = useRef<{ key: number; pointerId: number; y: number; frame: number } | null>(null);

@@ -21,8 +21,8 @@ import { useLayerDrag } from "./useLayerDrag";
 // OPEN: which drink a visitor sees first (brief §1 flow). Placeholder: Negroni.
 const START_DRINK = Math.max(0, DRINKS.findIndex((d) => d.id === "negroni"));
 
-/** The two layers a section drag trades between, lower one first. */
-type Pair = { lowerKey: number; upperKey: number; sectionIsLower: boolean };
+/** The two layers a section drag trades between. */
+type Pair = { lowerKey: number; upperKey: number };
 
 /**
  * Which neighbor a section trades with when dragged: the layer below if it
@@ -34,17 +34,13 @@ function tradePartner(ordered: StackLine[], key: number): Pair | null {
   const i = ordered.findIndex((l) => l.key === key);
   const liquid = (l: StackLine | undefined) => !!l && l.amount.kind !== "garnish";
   if (i < 0 || !liquid(ordered[i])) return null;
-  if (liquid(ordered[i - 1])) return { lowerKey: ordered[i - 1].key, upperKey: key, sectionIsLower: false };
-  if (liquid(ordered[i + 1])) return { lowerKey: key, upperKey: ordered[i + 1].key, sectionIsLower: true };
+  if (liquid(ordered[i - 1])) return { lowerKey: ordered[i - 1].key, upperKey: key };
+  if (liquid(ordered[i + 1])) return { lowerKey: key, upperKey: ordered[i + 1].key };
   return null;
 }
 
-/** How dark a layer gets while you drag it (opacity of a black veil). */
-const SELECTED_DARKEN = 0.25;
-
-/** Soft top and bottom edges for that veil, so it blends like the colors do. */
-const SHADE_FEATHER =
-  "linear-gradient(to bottom, transparent, #000 14px, #000 calc(100% - 14px), transparent)";
+/** How dark a layer gets while you drag it (opacity of a solid black veil). */
+const SELECTED_DARKEN = 0.05;
 
 /** How far each color band runs past the panel's sides (the panel clips it). */
 const BAND_BLEED = 128;
@@ -130,10 +126,10 @@ export function DrinkPanel() {
       const d = drag.current;
       if (!d) return;
       const down = clientY - d.startY; // px moved down
-      // Down expands the section, up shrinks it. Usually the shared line is
-      // the section's bottom line, which follows the finger. For the base
-      // layer it's the top line, which moves the opposite way.
-      const edge = Math.min(panelHeight, Math.max(0, d.startEdge + (d.pair.sectionIsLower ? down : -down)));
+      // The shared line always follows the finger. Usually it's the section's
+      // bottom line, so down expands the section. For the base layer it's the
+      // top line (JP's choice), so down shrinks the base instead.
+      const edge = Math.min(panelHeight, Math.max(0, d.startEdge - down));
       const { lowerKey, upperKey } = d.pair;
       setState((s) => {
         const [a, b] = tradeForEdge(s.lines, lowerKey, upperKey, edge, panelHeight);
@@ -282,9 +278,9 @@ export function DrinkPanel() {
             {/* Film grain over the whole drink, under the labels and lines. */}
             <div aria-hidden className="pointer-events-none absolute inset-0" style={GRAIN_STYLE} />
 
-            {/* While you drag a layer it eases darker, then eases back to its
-                own color when you let go. A soft-edged dark veil over the
-                layer: only its opacity animates, which is cheap. */}
+            {/* While you drag a layer it eases slightly darker, then eases back
+                to its own color when you let go. A solid black veil at 5% over
+                the layer: only its opacity animates, which is cheap. */}
             {ordered.map((line, i) => {
               if (line.amount.kind === "garnish") return null;
               const selected = draggingKey === line.key;
@@ -297,8 +293,6 @@ export function DrinkPanel() {
                     bottom: bottoms[i],
                     height: heights[i],
                     opacity: selected ? SELECTED_DARKEN : 0,
-                    maskImage: SHADE_FEATHER,
-                    WebkitMaskImage: SHADE_FEATHER,
                     transition: selected
                       ? "opacity 220ms ease-in"
                       : "opacity 380ms ease-out, bottom 180ms ease-out, height 180ms ease-out",

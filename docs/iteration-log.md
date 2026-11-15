@@ -2,6 +2,14 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-14: Lighter solid highlight; bottom layer follows the finger
+- **Before:**
+  - The layer being dragged darkened by 25% with soft (gradient) edges.
+  - Dragging the bottom layer down expanded it while its top line moved up, opposite to the finger.
+- **After:**
+  - **Highlight:** the dragged layer gets a solid black tint at 5%, eased in and out the same way.
+  - **Bottom layer (JP's choice):** the line always follows the finger. Dragging the bottom layer down moves its top line down, so it shrinks and the layer above grows. Every other layer still expands when dragged down.
+
 ## 2026-11-14: Straight lines again; selected layer darkens
 - **Before:**
   - The divider lines and color blends were curved like a round glass.
