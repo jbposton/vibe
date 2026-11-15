@@ -2,6 +2,13 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-15: Fix: description text highlighting during drags
+- **Problem:** sometimes dragging highlighted the text in the description (the caption and hint above or beside the drink).
+- **Cause:** only the drink panel had text selection turned off. The description text was still selectable, so a drag or press that strayed onto it (or a browser starting a selection near it) highlighted it.
+- **Fix:** text selection is now off for the whole screen (the callout menu on long-press too). The drink name, family, caption and hint can no longer be selected or copied.
+- **Tested:** dragging across the caption selected the caption and hint text before the fix; it selects nothing now. Layer dragging and the buttons still work.
+- **Note:** I couldn't trigger the highlight from the layers themselves in this browser (a likely trigger is a touch or browser-specific behavior), so the fix removes the possibility rather than a single cause. If you want the drink name to be copyable, that's a one-line change.
+
 ## 2026-11-15: Dragged layer shows its flat color
 - **Before:** the layer you were dragging got a solid 5% black tint.
 - **After:** while you drag, the layer eases (220ms) to its ingredient's flat color: hard edges, no blur, no gradient and no film grain. When you let go it eases back (380ms) to the soft blurred look. The other layers are unchanged, and the labels stay on top.

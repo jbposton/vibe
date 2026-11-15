@@ -364,8 +364,10 @@ export function DrinkPanel() {
   // card is already in place while you swipe.
   const offsets = isDesktop ? [0] : [-2, -1, 0, 1, 2];
 
+  // Nothing on this screen is meant to be copied, and a drag that strays onto
+  // the text would otherwise highlight it, so text selection is off everywhere.
   return (
-    <main className="fixed inset-0 flex flex-col gap-4 bg-[#1A1612] p-4 text-[#F7F7F7] md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] md:gap-8">
+    <main className="fixed inset-0 flex flex-col gap-4 bg-[#1A1612] p-4 text-[#F7F7F7] select-none [-webkit-touch-callout:none] md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] md:gap-8">
       {/* ── Information ───────────────────────────────────────────── */}
       <section aria-label="Drink information" className="flex flex-col">
         <div className="flex items-center gap-1 md:-mr-3">
