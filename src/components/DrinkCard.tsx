@@ -5,6 +5,7 @@ import type { Drink, RecipeLine } from "@/data/drinks";
 import { INGREDIENTS } from "@/data/ingredients";
 import {
   DEFAULT_UNIT,
+  dragEdge,
   MAX_DASHES,
   formatAmount,
   layerBottoms,
@@ -140,9 +141,11 @@ export const DrinkCard = memo(function DrinkCard({
       // On screen the card may be scaled (carousel); drags are in screen px.
       const scale = el && el.offsetHeight > 0 ? el.getBoundingClientRect().height / el.offsetHeight : 1;
       const edgeOf = i === 0 ? "top" : "bottom";
-      const startEdge = bottoms[i] + (edgeOf === "top" ? heights[i] : 0);
       const amount = ordered[i].amount;
       if (amount.kind === "parts") {
+        // The edge is measured in the steady layout the drag follows (see dragEdge),
+        // so the finger and the amount stay in step even when layers are squeezed.
+        const startEdge = dragEdge(lines, key, edgeOf, panelHeight);
         shareDrag.current = { key, edgeOf, startY: clientY, startEdge, scale, base: lines };
       } else if (amount.kind === "dash") {
         // Down adds dashes (up for the base layer, matching the other layers).

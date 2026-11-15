@@ -2,6 +2,12 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-15: Fix: layers no longer jump when dragged in busy drinks
+- **Before:** in drinks with four or more ingredients (Tom Collins, Mojito, Hot toddy and others), dragging one layer, usually the third from the bottom, made its amount jump by several parts in one small movement (for example 0.25 to 5 parts).
+- **Why:** the drag followed the layer's edge on screen. Once the layers below were squeezed down to the 60px minimum height, that edge stopped moving even though the amount could still change, so the math jumped across the gap.
+- **After:** the drag now follows the edge in a steady layout without those minimum heights, so a given finger movement always changes the amount by a small, even amount. Layers are still drawn with their minimum heights.
+- **Tested:** drags up and down on every ingredient of Tom Collins, Mojito, Cosmopolitan, Hot toddy, Margarita, Moscow mule and Aperol spritz. The biggest change per 6px of finger movement fell from about 5 parts to under 0.2, except at the very end of a drag (the layer almost filling the glass), where one step can still change an amount by up to about half a part.
+
 ## 2026-11-15: Smaller filter chips
 - **Before:** filter chips were 36px tall with 14px text.
 - **After:** 32px tall with 12px text and tighter padding and gaps, a smaller sparkle on "Build my own", and a shorter divider line. More chips show at once before you scroll. Each chip has an invisible 44px-tall tap area around the 32px pill (and a little room left and right), so they stay easy to hit.

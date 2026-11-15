@@ -260,6 +260,30 @@ export function stepShare(lines: RecipeLine[], key: number, steps: number): Reci
  * below it, so dragging down shrinks it). `lines` is the drink as it was when
  * the drag began. Not snapped; call `snapShare` on release.
  */
+/**
+ * Layer heights used only to follow a drag. Like `layerHeights`, but liquids
+ * have no minimum height: they share the space in strict proportion, so a
+ * layer's edge always moves steadily as its amount changes. (With the minimums
+ * in, the edge goes flat once the layers below are squeezed to 60px, and
+ * following the finger made the amount jump across that flat stretch.)
+ * Garnishes and dashes keep their fixed minimum.
+ */
+function dragHeights(ordered: { amount: Amount }[], total: number): number[] {
+  const fixed = ordered.map((l) => l.amount.kind !== "parts");
+  const rest = Math.max(0, total - MIN_LAYER * fixed.filter(Boolean).length);
+  const sum = ordered.reduce((s, l, i) => (fixed[i] || l.amount.kind !== "parts" ? s : s + l.amount.parts), 0);
+  return ordered.map((l, i) => (fixed[i] || l.amount.kind !== "parts" ? MIN_LAYER : sum > 0 ? (rest * l.amount.parts) / sum : 0));
+}
+
+/** Where line `key`'s dragged edge sits (px above the stack bottom) in that steady layout. */
+export function dragEdge(lines: RecipeLine[], key: number, edgeOf: "bottom" | "top", total: number): number {
+  const ordered = orderLines(lines);
+  const heights = dragHeights(ordered, total);
+  const idx = ordered.findIndex((l) => l.key === key);
+  const below = heights.slice(0, idx).reduce((s, h) => s + h, 0);
+  return edgeOf === "bottom" ? below : below + heights[idx];
+}
+
 export function shareForEdge(
   lines: RecipeLine[],
   key: number,
@@ -273,13 +297,7 @@ export function shareForEdge(
   let hi = sum - SHARE_FLOOR * (liquid.length - 1);
   if (!liquid.includes(key) || hi <= lo) return lines;
 
-  const edgeAt = (a: number) => {
-    const ordered = orderLines(shareLines(lines, key, a));
-    const heights = layerHeights(ordered, total);
-    const idx = ordered.findIndex((l) => l.key === key);
-    const below = heights.slice(0, idx).reduce((s, h) => s + h, 0);
-    return edgeOf === "bottom" ? below : below + heights[idx];
-  };
+  const edgeAt = (a: number) => dragEdge(shareLines(lines, key, a), key, edgeOf, total);
   const wantMore = (a: number) => (edgeOf === "bottom" ? edgeAt(a) > edge : edgeAt(a) < edge);
   for (let i = 0; i < 24; i++) {
     const mid = (lo + hi) / 2;
