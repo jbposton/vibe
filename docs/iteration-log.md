@@ -2,6 +2,14 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-14: Drag down to expand, up to shrink
+- **Before:** dragging a section up gave more of it, and it traded with the layer above.
+- **After:**
+  - Dragging a section **down expands it** and **up shrinks it**.
+  - It trades with the layer **below**, so the section's bottom line follows the finger, like pulling its bottom edge.
+  - The base layer has nothing below it, so it trades with the layer above. Dragging it down still expands it, and its top line rises.
+  - The hint now reads "Drag a layer down to expand it, up to shrink it."
+
 ## 2026-11-14: Whole sections are the drag target; side shading removed
 - **Before:**
   - You had to grab the thin line between two layers (a 40px target).

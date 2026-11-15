@@ -28,15 +28,17 @@ const LEVEL_SAG = 10;
 type Pair = { lowerKey: number; upperKey: number; sectionIsLower: boolean };
 
 /**
- * Which neighbor a section trades with when dragged: the layer above if it
- * holds volume, otherwise the layer below. Garnishes (no volume) can't trade.
+ * Which neighbor a section trades with when dragged: the layer below if it
+ * holds volume (so the section's bottom line follows the finger), otherwise
+ * the layer above (the base layer has nothing below it). Garnishes (no volume)
+ * can't trade.
  */
 function tradePartner(ordered: StackLine[], key: number): Pair | null {
   const i = ordered.findIndex((l) => l.key === key);
   const liquid = (l: StackLine | undefined) => !!l && l.amount.kind !== "garnish";
   if (i < 0 || !liquid(ordered[i])) return null;
-  if (liquid(ordered[i + 1])) return { lowerKey: key, upperKey: ordered[i + 1].key, sectionIsLower: true };
   if (liquid(ordered[i - 1])) return { lowerKey: ordered[i - 1].key, upperKey: key, sectionIsLower: false };
+  if (liquid(ordered[i + 1])) return { lowerKey: key, upperKey: ordered[i + 1].key, sectionIsLower: true };
   return null;
 }
 
@@ -118,8 +120,8 @@ export function DrinkPanel() {
 
   const reset = () => setState((s) => ({ ...s, lines: DRINKS[s.index].lines }));
 
-  // Dragging a section trades volume with a neighbor: up = more of this
-  // ingredient, down = less. The line shared with that neighbor follows the
+  // Dragging a section trades volume with a neighbor: down expands it (more
+  // of this ingredient), up shrinks it (less). The line shared with that neighbor follows the
   // finger and the rest of the drink stays put. Amounts follow the finger
   // smoothly and snap to ¼ oz (or whole dashes) on release.
   const drag = useRef<{ pair: Pair; startY: number; startEdge: number } | null>(null);
@@ -135,10 +137,11 @@ export function DrinkPanel() {
     onMove: (_key, clientY) => {
       const d = drag.current;
       if (!d) return;
-      const up = d.startY - clientY; // px moved up
-      // Up grows the section: if it's the lower layer its top line rises with
-      // the finger; if it's the upper layer its bottom line goes down instead.
-      const edge = Math.min(panelHeight, Math.max(0, d.startEdge + (d.pair.sectionIsLower ? up : -up)));
+      const down = clientY - d.startY; // px moved down
+      // Down expands the section, up shrinks it. Usually the shared line is
+      // the section's bottom line, which follows the finger. For the base
+      // layer it's the top line, which moves the opposite way.
+      const edge = Math.min(panelHeight, Math.max(0, d.startEdge + (d.pair.sectionIsLower ? down : -down)));
       const { lowerKey, upperKey } = d.pair;
       setState((s) => {
         const [a, b] = tradeForEdge(s.lines, lowerKey, upperKey, edge, panelHeight);
@@ -241,7 +244,7 @@ export function DrinkPanel() {
           className={`mt-3 text-[11px] text-[#F7F7F7]/45 ${modified ? "invisible" : ""}`}
           aria-hidden={modified}
         >
-          Drag a layer up for more of it, down for less.
+          Drag a layer down to expand it, up to shrink it.
         </p>
       </section>
 
@@ -320,8 +323,8 @@ export function DrinkPanel() {
                 );
               }
 
-              // The whole section is the touch target: drag up for more of
-              // this ingredient, down for less.
+              // The whole section is the touch target: drag down to expand it,
+              // up to shrink it.
               const canDrag = tradePartner(ordered, line.key) !== null;
 
               return (
