@@ -19,7 +19,6 @@ import {
   GLASS_CYLINDER_STYLE,
   GLASS_GLOW_STYLE,
   GLASS_LENS_STYLE,
-  GLASS_RIM_STYLE,
   GRAIN_STYLE,
 } from "./surfaceEffects";
 import { useLayerDrag } from "./useLayerDrag";
@@ -365,9 +364,8 @@ export function DrinkPanel() {
               );
             })}
 
-            {/* Liquid-glass rim and inner glow, on top of everything. */}
+            {/* Liquid-glass inner glow, on top of everything. */}
             <div aria-hidden className="pointer-events-none absolute inset-0" style={GLASS_GLOW_STYLE} />
-            <div aria-hidden className="pointer-events-none absolute inset-0" style={GLASS_RIM_STYLE} />
           </>
         )}
       </section>

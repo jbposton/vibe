@@ -2,6 +2,10 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-14: Glass border removed
+- **Before:** the liquid glass had a gradient rim around the panel at 50%, plus thin bright edge lines at the top left and bottom right.
+- **After:** both are removed, so there's no border at all. The panel's edge is defined only by the drink, the rounded corners, the edge lens and a soft inner glow.
+
 ## 2026-11-14: Color bands follow the curved levels
 - **Before:** only the divider lines curved. The blurred color bands were flat strips, so the blends ran straight across while the lines dipped.
 - **After:**

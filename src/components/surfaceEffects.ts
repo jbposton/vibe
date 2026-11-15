@@ -61,34 +61,12 @@ export const GLASS_CYLINDER_STYLE: CSSProperties = {
 };
 
 /**
- * Specular rim: a thin gradient outline that catches light brightest at the
- * top left and again, more softly, at the bottom right.
- */
-const ringMask = "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)";
-
-export const GLASS_RIM_STYLE: CSSProperties = {
-  borderRadius: "inherit",
-  padding: 1.5,
-  opacity: 0.5, // dimmed so the rim is a hint of light, not an outline
-  background:
-    "linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.35) 18%, rgba(255,255,255,0.08) 45%, rgba(255,255,255,0.08) 60%, rgba(255,255,255,0.45) 85%, rgba(255,255,255,0.8) 100%)",
-  // The `mask` shorthand (not `mask-image`) is needed for `content-box`, and
-  // the composite must come after it, since the shorthand resets it.
-  WebkitMask: ringMask,
-  WebkitMaskComposite: "xor",
-  mask: ringMask,
-  maskComposite: "exclude",
-};
-
-/**
  * Inner glow: light caught inside the glass along its edges (stronger at the
  * top left), plus a faint darker band just inside the rim for thickness.
  */
 export const GLASS_GLOW_STYLE: CSSProperties = {
   borderRadius: "inherit",
   boxShadow: [
-    "inset 2px 2px 1px -1px rgba(255,255,255,0.55)",
-    "inset -2px -2px 1px -1px rgba(255,255,255,0.30)",
     "inset 0 0 18px rgba(255,255,255,0.16)",
     "inset 10px 10px 24px -14px rgba(255,255,255,0.35)",
     "inset 0 0 0 5px rgba(0,0,0,0.04)",
