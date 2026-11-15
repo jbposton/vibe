@@ -2,6 +2,40 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-15: Smaller filter chips
+- **Before:** filter chips were 36px tall with 14px text.
+- **After:** 32px tall with 12px text and tighter padding and gaps, a smaller sparkle on "Build my own", and a shorter divider line. More chips show at once before you scroll. Each chip has an invisible 44px-tall tap area around the 32px pill (and a little room left and right), so they stay easy to hit.
+
+## 2026-11-15: Servings shown as cups (try-out)
+- **Before:** Servings were three circled number buttons (1, 2, 4) and a circled "+".
+- **After:** small line-drawn cup icons: one cup for 1, two cups for 2, four cups (2 x 2) for 4. The picked one is bright and the others are dimmed to 40%. Each has a 44 x 44px touch target, with no outline. The "+" is a plain plus with no outline (still off until custom amounts are built). Screen readers hear "1 serving", "2 servings", "4 servings". The cups live in `src/components/ServingCups.tsx`.
+- **Tested:** each cup sets the right total (3, 6, 12 oz for the Negroni), only one is picked at a time, and the row with the Total stays on one line on a phone-size screen.
+- **Then:** the cups were made a little smaller (22px wide instead of 28px), and the whole row, the cups with the oz Total, moved from under the ingredient list to just above the flavor bars, under the drink card.
+- **Open:** whether the dimmed-versus-bright state is clear enough to read as "picked" without a ring or fill.
+
+## 2026-11-15: Reset icon smaller, black instead of glass
+- **Before:** a 44px liquid-glass circle (see-through, blurred, light rim).
+- **After:** a 36px black circle at 80% opacity (the drink shows faintly through it) with the same soft drop shadow, and a slightly smaller arrow icon (16px). Everything else is the same: bottom center of each card, only shown once the drink has changed.
+
+## 2026-11-15: Reset becomes a glass icon on each drink
+- **Before:** a small text "Reset" button at the bottom of the screen, dimmed until something changed.
+- **After:** the text button is gone. Each drink card gets a small round reset icon (a circular arrow) at its bottom center. It only appears once that drink has been changed (an amount or the servings), and tapping it puts the drink back to its classic recipe and one serving. The circle uses a liquid-glass look: see-through, blurred and brightened, with a light rim and a soft highlight, so the drink's colors show through it.
+- **Tested:** the icon appears after a drag and after changing Servings, belongs to its own card (swiping to another drink leaves it behind), resets on tap and then hides, and doesn't start a swipe. Checked on phone-size and wide previews.
+- **Open:** the 44px circle is slightly larger than "small" so it's easy to hit; the glass look depends on the browser supporting background blur.
+
+## 2026-11-15: Helper text removed
+- **Before:** a line under the flavor bars read "Drag a layer down to give it a bigger share... Swipe sideways for other drinks." until the first edit.
+- **After:** no helper text; only the small Reset button is left at the bottom, on the right.
+- **Open:** the brief (§6) still asks for gesture hints; with the text gone, nothing tells a new visitor that layers can be dragged or the row swiped.
+
+## 2026-11-15: Flavor note tags hidden
+- **Before:** up to three note tags (citrus, herbal, botanical...) sat under the flavor bars.
+- **After:** only the three bars (Strength, Sweetness, Bitterness) show. The notes are still worked out in `src/lib/flavor.ts` and `src/data/flavor.ts`, so they can come back or feed the Finder later.
+
+## 2026-11-15: Filters in one row
+- **Before:** two rows of filter chips (taste, then occasion), each scrolling on its own.
+- **After:** one row that scrolls sideways: Classics, Build my own and the taste chips, then a thin light line, then the occasion chips. The "What are you having?" line above it is gone too. Together that saves about 70px, so the drink card is taller.
+
 ## 2026-11-15: Parts labels hidden again
 - **Before:** each layer read "2 parts" in bold with the oz beside it ("4 oz").
 - **After:** layers show only the oz ("4 oz"). Parts are still how drinks are stored and calculated, and `formatParts` in `src/lib/stack.ts` is still there to bring the label back.

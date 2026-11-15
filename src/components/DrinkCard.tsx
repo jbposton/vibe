@@ -22,6 +22,12 @@ import { LiquidCanvas, type LiquidLayer } from "./LiquidCanvas";
 import { GRAIN_STYLE } from "./surfaceEffects";
 import { useLayerDrag } from "./useLayerDrag";
 
+/** The reset button: a black disc at 80% opacity (the arrow stays solid) with a soft drop shadow. */
+const RESET_STYLE: React.CSSProperties = {
+  background: "rgba(0,0,0,0.8)",
+  boxShadow: "0 8px 20px rgba(0,0,0,0.28)",
+};
+
 /** The page's warm black, also shown by the shader above and below the drink. */
 const PAGE_BACKGROUND = "#1A1612";
 
@@ -56,6 +62,10 @@ type Props = {
   onHorizontal: (clientX: number, pointerId: number) => void;
   /** How many drinks the recipe makes: scales the oz labels, never the ratio. */
   servings: number;
+  /** True once this drink's amounts or servings have been changed. */
+  modified: boolean;
+  /** Put this drink back to its classic recipe and one serving. */
+  onReset: (drinkIndex: number) => void;
 };
 
 /**
@@ -71,6 +81,8 @@ export const DrinkCard = memo(function DrinkCard({
   interactive,
   onHorizontal,
   servings,
+  modified,
+  onReset,
 }: Props) {
   // Measure the card: the stack fills its full inner height.
   const panelEl = useRef<HTMLElement | null>(null);
@@ -300,6 +312,27 @@ export const DrinkCard = memo(function DrinkCard({
               </div>
             );
           })}
+
+          {/* Reset: a small black circle at the bottom center. It's only there
+              once the drink has been changed. data-no-swipe keeps the carousel
+              from grabbing the tap. */}
+          <button
+            type="button"
+            data-no-swipe
+            onClick={() => onReset(drinkIndex)}
+            aria-label={`Reset ${drink.name}`}
+            tabIndex={modified && interactive ? 0 : -1}
+            aria-hidden={!modified}
+            className={`absolute bottom-4 left-1/2 z-20 grid size-9 -translate-x-1/2 place-items-center rounded-full text-[#F7F7F7] transition-[opacity,transform] duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] ${
+              modified ? "scale-100 opacity-100" : "pointer-events-none scale-75 opacity-0"
+            }`}
+            style={RESET_STYLE}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path d="M3 12a9 9 0 1 0 3-6.7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M3 4v5h5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
         </>
       )}
     </section>

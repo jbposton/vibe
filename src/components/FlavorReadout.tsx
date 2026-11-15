@@ -49,7 +49,8 @@ type Props = {
 };
 
 /**
- * The flavor profile as a readout: three bars and a few note tags.
+ * The flavor profile as a readout: three bars. (The flavor note tags are not
+ * shown for now; they are still worked out in lib/flavor.ts.)
  * OPEN: the brief (§3) wants calculated and hand-set values kept visibly
  * apart; for now they share one list (JP asked to simplify).
  * OPEN: where this sits on the screen (brief §7).
@@ -66,15 +67,6 @@ export function FlavorReadout({ profile, baseline }: Props) {
       />
       <Bar label="Sweetness" axis="sweetness" value={profile.sweetness} baseline={baseline.sweetness} />
       <Bar label="Bitterness" axis="bitterness" value={profile.bitterness} baseline={baseline.bitterness} />
-      {profile.notes.length > 0 && (
-        <ul aria-label="Flavor notes" className="mt-1 flex flex-wrap gap-1.5">
-          {profile.notes.map((note) => (
-            <li key={note} className="rounded-full border border-[#F7F7F7]/25 px-2.5 py-0.5 text-[11px] text-[#F7F7F7]/70">
-              {note}
-            </li>
-          ))}
-        </ul>
-      )}
     </div>
   );
 }

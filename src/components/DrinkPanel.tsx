@@ -16,6 +16,7 @@ import { flavorProfile } from "@/lib/flavor";
 import { DrinkCard } from "./DrinkCard";
 import { CLASSICS_ID, FILTERS, filterList } from "@/data/finder";
 import { FilterBar } from "./FilterBar";
+import { ServingCups } from "./ServingCups";
 import { FlavorReadout } from "./FlavorReadout";
 
 /** Servings buttons (the "+" for a custom amount comes later). */
@@ -269,6 +270,8 @@ export function DrinkPanel() {
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     const c = ctl.current;
     if (c.desktop || (e.pointerType === "mouse" && e.button !== 0)) return;
+    // The reset button handles its own taps.
+    if ((e.target as Element).closest("[data-no-swipe]")) return;
     // One finger at a time. A new first finger replaces a touch whose lift was never seen.
     if (c.pointer && c.pointer.id !== e.pointerId && !e.isPrimary) return;
     const owned = !!(e.target as Element).closest("[data-layer-drag]");
@@ -331,19 +334,19 @@ export function DrinkPanel() {
   const infoDrink = DRINKS[infoD];
   const infoLines = edits[infoD] ?? infoDrink.lines;
   const infoServings = servings[infoD] ?? 1;
-  const modified = infoD in edits || infoServings !== 1;
-  const reset = () => {
+  // Put a drink back to its classic recipe and one serving.
+  const resetDrink = useCallback((d: number) => {
     setEdits((all) => {
       const next = { ...all };
-      delete next[infoD];
+      delete next[d];
       return next;
     });
     setServings((all) => {
       const next = { ...all };
-      delete next[infoD];
+      delete next[d];
       return next;
     });
-  };
+  }, []);
 
   // Picking a quick filter swaps the row to that curated list. If the drink in
   // the middle is also in the new list we stay on it, otherwise we start at the top.
@@ -410,43 +413,6 @@ export function DrinkPanel() {
         <h1 className="text-[22px] font-semibold leading-7">{infoDrink.name}</h1>
         <p className="mt-1 text-xs opacity-55">{infoDrink.family}</p>
         <p className="mt-3 text-[11px] leading-4 text-[#F7F7F7]/45">{caption}</p>
-        {/* Servings scale the oz only; the parts (the ratio) never change. */}
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-          <div role="group" aria-label="Servings" className="flex items-center gap-2">
-            <span className="mr-1 text-xs text-[#F7F7F7]/55">Servings:</span>
-            {SERVING_CHOICES.map((n) => (
-              <button
-                key={n}
-                type="button"
-                aria-pressed={infoServings === n}
-                onClick={() => setServings((all) => ({ ...all, [infoD]: n }))}
-                className={`h-9 w-9 rounded-full border text-sm tabular-nums focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] ${
-                  infoServings === n
-                    ? "border-[#F7F7F7] bg-[#F7F7F7] font-semibold text-[#1A1612]"
-                    : "border-[#F7F7F7]/25 text-[#F7F7F7]/55 hover:text-[#F7F7F7]"
-                }`}
-              >
-                {n}
-              </button>
-            ))}
-            {/* OPEN: custom amount (later): type a number and everything scales. */}
-            <button
-              type="button"
-              disabled
-              aria-label="Custom number of servings (coming later)"
-              title="Custom amount: coming later"
-              className="h-9 w-9 rounded-full border border-[#F7F7F7]/25 text-sm text-[#F7F7F7]/35"
-            >
-              +
-            </button>
-          </div>
-          <p className="flex items-baseline gap-1.5 whitespace-nowrap tabular-nums">
-            <span className="text-xs text-[#F7F7F7]/55">Total</span>
-            <span className="text-base font-semibold leading-6">
-              {formatTotal(totalParts(infoLines), DEFAULT_UNIT, infoServings)}
-            </span>
-          </p>
-        </div>
       </header>
 
       {/* ── The row of drinks ─────────────────────────────────────── */}
@@ -483,6 +449,8 @@ export function DrinkPanel() {
                 interactive={j === infoIndex && !busy}
                 onHorizontal={onHorizontal}
                 servings={servings[d] ?? 1}
+                modified={d in edits || (servings[d] ?? 1) !== 1}
+                onReset={resetDrink}
               />
               {/* Dims the card when it's at the side; its opacity is set as the row moves. */}
               <div aria-hidden data-dim className="pointer-events-none absolute inset-0 rounded-[28px] bg-black opacity-0" />
@@ -496,29 +464,48 @@ export function DrinkPanel() {
         aria-label="Flavor details"
         className="flex shrink-0 flex-col md:col-start-1 md:row-start-3 md:min-h-0 md:overflow-y-auto"
       >
+        {/* Servings scale the oz only; the parts (the ratio) never change. */}
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+          <div role="group" aria-label="Servings" className="flex items-center">
+            <span className="mr-1 text-xs text-[#F7F7F7]/55">Servings:</span>
+            {SERVING_CHOICES.map((n) => (
+              <button
+                key={n}
+                type="button"
+                aria-pressed={infoServings === n}
+                aria-label={n === 1 ? "1 serving" : `${n} servings`}
+                onClick={() => setServings((all) => ({ ...all, [infoD]: n }))}
+                className={`grid h-11 w-11 place-items-center rounded-xl transition-opacity focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#F7F7F7] ${
+                  infoServings === n ? "text-[#F7F7F7] opacity-100" : "text-[#F7F7F7] opacity-40 hover:opacity-75"
+                }`}
+              >
+                <ServingCups count={n} />
+              </button>
+            ))}
+            {/* OPEN: custom amount (later): type a number and everything scales. */}
+            <button
+              type="button"
+              disabled
+              aria-label="Custom number of servings (coming later)"
+              title="Custom amount: coming later"
+              className="grid h-11 w-11 place-items-center text-lg text-[#F7F7F7]/35"
+            >
+              +
+            </button>
+          </div>
+          <p className="flex items-baseline gap-1.5 whitespace-nowrap tabular-nums">
+            <span className="text-xs text-[#F7F7F7]/55">Total</span>
+            <span className="text-base font-semibold leading-6">
+              {formatTotal(totalParts(infoLines), DEFAULT_UNIT, infoServings)}
+            </span>
+          </p>
+        </div>
+
         <div>
           <FlavorReadout profile={profile} baseline={baseline} />
         </div>
 
-        {/* OPEN: gesture hints (brief §6). Placeholder: one line of text until the first change. */}
-        <div className="mt-3 flex items-end justify-between gap-3">
-          <p
-            className={`text-[11px] text-[#F7F7F7]/45 ${modified ? "invisible" : ""}`}
-            aria-hidden={modified}
-          >
-            Drag a layer down to give it a bigger share, up to give it less. The others adjust so the glass stays full.
-            <span className="md:hidden"> Swipe sideways for other drinks.</span>
-          </p>
-          {/* Reset is always there; it's dimmed until something has changed. */}
-          <button
-            type="button"
-            onClick={reset}
-            disabled={!modified}
-            className="h-7 shrink-0 rounded-full border border-[#F7F7F7]/25 px-3 text-[11px] text-[#F7F7F7]/80 transition-opacity hover:border-[#F7F7F7]/60 hover:text-[#F7F7F7] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] disabled:pointer-events-none disabled:opacity-35"
-          >
-            Reset
-          </button>
-        </div>
+        {/* OPEN: gesture hints (brief §6). The helper text under the drink was removed (JP, 2026-11-15); the brief still wants hints for gestures. */}
       </section>
     </main>
   );
