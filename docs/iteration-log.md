@@ -2,6 +2,10 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-14: Dimmer glass rim
+- **Before:** the liquid-glass rim was a bright outline.
+- **After:** the rim is at 50% opacity, so it reads as a hint of light along the edge. The lens and inner glow are unchanged.
+
 ## 2026-11-14: Liquid glass overlay
 - **Before:** a subtle glass edge, made of a thin rim and soft inner shading.
 - **After:** a liquid-glass treatment that keeps the middle of the drink clear and puts the effect at the edges:

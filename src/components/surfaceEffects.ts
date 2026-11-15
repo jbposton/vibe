@@ -56,6 +56,7 @@ const ringMask = "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 
 export const GLASS_RIM_STYLE: CSSProperties = {
   borderRadius: "inherit",
   padding: 1.5,
+  opacity: 0.5, // dimmed so the rim is a hint of light, not an outline
   background:
     "linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.35) 18%, rgba(255,255,255,0.08) 45%, rgba(255,255,255,0.08) 60%, rgba(255,255,255,0.45) 85%, rgba(255,255,255,0.8) 100%)",
   // The `mask` shorthand (not `mask-image`) is needed for `content-box`, and
