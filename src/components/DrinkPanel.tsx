@@ -99,6 +99,7 @@ export function DrinkPanel() {
       hi: bottoms[i] + heights[i] + g.overlap,
       blur: g.blur,
       color: INGREDIENTS[line.ingredient].color,
+      still: line.amount.kind === "garnish", // garnishes keep a still gradient
     };
   });
   // null until the shader has drawn (true) or failed (false). Until it's

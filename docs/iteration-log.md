@@ -2,6 +2,12 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-14: Gentler waves, still garnishes
+- **Before:** the boundaries drifted ±40px, and the garnish bands drifted like the liquids.
+- **After:**
+  - **Gentler drift:** ±28px, about 30% smaller crests, at the same slow speed.
+  - **Still garnishes:** garnish bands (Orange peel, Lime wedge, Cherry…) keep a still gradient with straight edges. Only the liquid layers move.
+
 ## 2026-11-14: Liquid shader
 - **Before:** the drink was drawn as CSS-blurred strips with still boundaries.
 - **After:** a WebGL shader draws the whole drink on the graphics chip (`src/components/LiquidCanvas.tsx`).

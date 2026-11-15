@@ -19,6 +19,8 @@ export type LiquidLayer = {
   blur: number;
   /** "#RRGGBB" */
   color: string;
+  /** True to keep this band's edges still (garnishes don't drift). */
+  still?: boolean;
 };
 
 type Props = {
@@ -35,7 +37,7 @@ type Props = {
 const MAX_LAYERS = 8;
 
 /** How far the boundaries wander up and down, in CSS px. */
-const WAVE_AMPLITUDE = 40;
+const WAVE_AMPLITUDE = 28;
 /** Animation speed (1 = default). Lower is slower. */
 const WAVE_SPEED = 1.6;
 
@@ -51,7 +53,7 @@ uniform float uDpr;
 uniform float uTime;
 uniform float uAmp;
 uniform int uCount;
-uniform vec4 uBand[${MAX_LAYERS}];   // lo, hi, blur (px from the bottom)
+uniform vec4 uBand[${MAX_LAYERS}];   // lo, hi, blur (px from the bottom), wave (0 = still, 1 = drifting)
 uniform vec3 uColor[${MAX_LAYERS}];
 uniform vec3 uBg;
 
@@ -104,12 +106,13 @@ void main() {
   vec2 q = vec2(fbm(p + vec2(0.0, t * 0.05)),
                 fbm(p + vec2(5.2, 1.3) - vec2(t * 0.04, 0.0)));
   float w = fbm(p + 1.8 * q + vec2(t * 0.03, -t * 0.02));
-  float y = px.y + uAmp * (w - 0.5) * 2.0;
+  float drift = uAmp * (w - 0.5) * 2.0;
 
   vec3 col = uBg;
   for (int i = 0; i < ${MAX_LAYERS}; i++) {
     if (i >= uCount) break;
     vec4 b = uBand[i];
+    float y = px.y + drift * b.w;
     float s = max(b.z, 0.5) * 1.41421356;
     float cover = 0.5 * (erf_((y - b.x) / s) - erf_((y - b.y) / s));
     col = mix(col, uColor[i], clamp(cover, 0.0, 1.0));
@@ -237,7 +240,7 @@ export function LiquidCanvas({ layers, resetKey, dragging, background, onReady }
       }
 
       for (let i = 0; i < count; i++) {
-        bands.set([shown[i * 3], shown[i * 3 + 1], shown[i * 3 + 2], 0], i * 4);
+        bands.set([shown[i * 3], shown[i * 3 + 1], shown[i * 3 + 2], target[i].still ? 0 : 1], i * 4);
         colors.set(hexToRgb(target[i].color), i * 3);
       }
 
