@@ -2,6 +2,18 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-15: Servings and a "Share" drag (prototype, from JP's Figma "Interaction Design and Structure")
+- **Before:** the drink's total changed as you dragged (Add), or traded with one neighbor (Trade). No way to scale a drink.
+- **After:**
+  - New **Servings** buttons (1, 2, 4) under the ingredient list. They scale only the oz labels; the parts (the ratio) and the picture never change. The "+" for a custom number is there but off until that feature is built.
+  - The Total (e.g. 6 oz, 12 oz at 2 servings) now stays fixed while you edit.
+  - New default **Share** drag: change one ingredient and all the others rescale in proportion, so their ratios to each other stay the same. Every liquid keeps at least ¼ part. Amounts round to ¼ part with the sum kept exact. Dashes and garnishes sit outside the ratio and aren't touched.
+  - Labels read "2 parts" in bold with the oz beside it ("4 oz"). 1 part = 1 oz in a standard serving.
+  - "Drag:" now cycles Share, Add, Trade so all three can be compared. Reset also clears servings.
+  - Arrow keys step the focused layer by ¼ part in Share mode.
+- **Tested:** Gin and tonic: tonic 4 → 3 parts moved gin 2 → 3 (total 6 oz) and dragging back returned 2 / 4. Servings 2 gave 4 oz gin, 8 oz tonic, total 12 oz with parts unchanged. Cosmopolitan: raising lime kept the total at 4 oz and the other three scaled together; an extreme drag left every other liquid at ¼ part, not 0.
+- **Open:** the simplified ratio (1 : 2) as a separate readout; a cap and a custom amount for Servings; what a layer at the floor should look like; whether to remove Add and Trade once Share is chosen.
+
 ## 2026-11-15: Drag changes only the ingredient you touch (prototype, beside the old drag)
 - **Before:** dragging a layer traded volume with a neighbor, so adding lime also cut whatever sat next to it, and the drink's total never changed.
 - **After:**
