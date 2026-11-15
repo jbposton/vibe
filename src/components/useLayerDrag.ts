@@ -44,8 +44,8 @@ export function useLayerDrag({ onStart, onMove, onEnd, onHorizontal }: DragCallb
     startY: number;
     y: number;
     frame: number;
-    /** null until the finger has moved far enough to tell. */
-    axis: "v" | "h" | null;
+    /** null until the finger has moved far enough to tell; "v" once it's a layer drag. */
+    axis: "v" | null;
   } | null>(null);
   const [draggingKey, setDraggingKey] = useState<number | null>(null);
 
@@ -66,7 +66,10 @@ export function useLayerDrag({ onStart, onMove, onEnd, onHorizontal }: DragCallb
   const handlers = (key: number) => ({
     onPointerDown: (e: React.PointerEvent<HTMLElement>) => {
       if (e.pointerType === "mouse" && e.button !== 0) return;
-      if (active.current) return; // one finger at a time
+      // One finger at a time. A new first finger replaces a drag whose lift
+      // was never seen (so a missed lift can't leave this card stuck).
+      if (active.current && !e.isPrimary) return;
+      if (active.current) cancelAnimationFrame(active.current.frame);
       e.preventDefault();
       try {
         e.currentTarget.setPointerCapture(e.pointerId);
@@ -87,14 +90,18 @@ export function useLayerDrag({ onStart, onMove, onEnd, onHorizontal }: DragCallb
     },
     onPointerMove: (e: React.PointerEvent) => {
       const a = active.current;
-      if (!a || a.pointerId !== e.pointerId || a.axis === "h") return;
+      if (!a || a.pointerId !== e.pointerId) return;
       if (a.axis === null) {
         const dx = e.clientX - a.startX;
         const dy = e.clientY - a.startY;
         if (dx * dx + dy * dy < SLOP * SLOP) return;
         if (Math.abs(dx) > Math.abs(dy) * 1.2) {
-          // A sideways swipe: let go of the layer and hand over to the carousel.
-          a.axis = "h";
+          // A sideways swipe: let go of the layer and hand over to the
+          // carousel. The carousel owns the rest of this gesture, including
+          // the finger lifting, and this card may stop taking touches while it
+          // moves, so clear our state now rather than waiting for the lift.
+          // (Leaving it set made later drags on this card be ignored.)
+          active.current = null;
           setDraggingKey(null);
           onHorizontal(e.clientX, e.pointerId);
           return;

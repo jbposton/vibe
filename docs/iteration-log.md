@@ -2,6 +2,14 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-15: Fix: layers couldn't be dragged after a small swipe back
+- **Problem:** start a swipe on a layer, move a little sideways, and come back to the same drink: after that, dragging that drink's layers did nothing.
+- **Cause:** when a touch on a layer turned into a sideways swipe, the layer handed the gesture to the carousel but kept its own "a drag is in progress" flag. The carousel then paused the card, so the layer never saw the finger lift and the flag stayed set. Every later drag on that card was ignored as a second finger.
+- **Fix:**
+  - The layer clears its flag the moment it hands the gesture over.
+  - Both the layer and the carousel now treat a new first finger as replacing any touch whose lift was never seen, so a missed lift can't leave things stuck.
+- **Tested:** on the old code, a vertical drag worked before any swipe but did nothing after a small swipe back. On the fixed code it works after one and after three swipe-backs.
+
 ## 2026-11-15: Dimmed side cards
 - **Before:** the previous and next drinks peeked in at full color.
 - **After:** the cards at the sides are covered by a black overlay at **60%**. The overlay follows the card's distance from the middle: it's 0% when the card is in the middle and fades up to 60% as it moves aside, so a card brightens smoothly as it swipes in and dims as it leaves.

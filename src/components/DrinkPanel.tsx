@@ -283,7 +283,8 @@ export function DrinkPanel() {
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     const c = ctl.current;
     if (c.desktop || (e.pointerType === "mouse" && e.button !== 0)) return;
-    if (c.pointer && c.pointer.id !== e.pointerId) return; // one finger at a time
+    // One finger at a time. A new first finger replaces a touch whose lift was never seen.
+    if (c.pointer && c.pointer.id !== e.pointerId && !e.isPrimary) return;
     const owned = !!(e.target as Element).closest("[data-layer-drag]");
     c.pointer = { id: e.pointerId, x: e.clientX, y: e.clientY, owned, moved: false };
     if (!owned) {
