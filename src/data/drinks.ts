@@ -29,10 +29,15 @@ export type RecipeLine = {
   amount: Amount;
 };
 
+export type Method = "shaken" | "stirred" | "built";
+
 export type Drink = {
   id: string;
   name: string;
   family: Family;
+  method: Method;
+  /** OPEN: "feeling and vibe" tags (brief §7). Placeholder: a few plain words per drink. */
+  tags: string[];
   lines: RecipeLine[];
 };
 
@@ -51,6 +56,8 @@ export const DRINKS: Drink[] = [
     id: "gimlet",
     name: "Gimlet",
     family: "Sour",
+    method: "shaken",
+    tags: ["crisp", "sharp"],
     lines: [
       line("gin", "base", parts(2)),
       line("lime-juice", "sour", parts(0.75)),
@@ -62,6 +69,8 @@ export const DRINKS: Drink[] = [
     id: "daiquiri",
     name: "Daiquiri",
     family: "Sour",
+    method: "shaken",
+    tags: ["bright", "easy"],
     lines: [
       line("white-rum", "base", parts(2)),
       line("lime-juice", "sour", parts(1)),
@@ -72,6 +81,8 @@ export const DRINKS: Drink[] = [
     id: "whiskey-sour",
     name: "Whiskey sour",
     family: "Sour",
+    method: "shaken",
+    tags: ["cozy", "tart"],
     lines: [
       line("bourbon", "base", parts(2)),
       line("lemon-juice", "sour", parts(0.75)),
@@ -83,6 +94,8 @@ export const DRINKS: Drink[] = [
     id: "margarita",
     name: "Margarita",
     family: "Sour",
+    method: "shaken",
+    tags: ["lively", "salty"],
     lines: [
       line("tequila", "base", parts(2)),
       line("orange-liqueur", "modifier", parts(0.75)),
@@ -94,6 +107,8 @@ export const DRINKS: Drink[] = [
     id: "cosmopolitan",
     name: "Cosmopolitan",
     family: "Sour",
+    method: "shaken",
+    tags: ["playful", "tart"],
     lines: [
       line("vodka", "base", parts(1.5)),
       line("orange-liqueur", "modifier", parts(1)),
@@ -106,6 +121,8 @@ export const DRINKS: Drink[] = [
     id: "tom-collins",
     name: "Tom Collins",
     family: "Long sour",
+    method: "shaken",
+    tags: ["refreshing", "light"],
     lines: [
       line("gin", "base", parts(2)),
       line("simple-syrup", "sweet", parts(0.5)),
@@ -117,6 +134,8 @@ export const DRINKS: Drink[] = [
     id: "mojito",
     name: "Mojito",
     family: "Long sour",
+    method: "built",
+    tags: ["refreshing", "minty"],
     lines: [
       line("white-rum", "base", parts(2)),
       line("simple-syrup", "sweet", parts(0.75)),
@@ -130,6 +149,8 @@ export const DRINKS: Drink[] = [
     id: "old-fashioned",
     name: "Old fashioned",
     family: "Spirit-forward",
+    method: "stirred",
+    tags: ["slow", "warming"],
     lines: [
       line("bourbon", "base", parts(2)),
       line("simple-syrup", "sweet", parts(0.25)),
@@ -141,6 +162,8 @@ export const DRINKS: Drink[] = [
     id: "manhattan",
     name: "Manhattan",
     family: "Spirit-forward",
+    method: "stirred",
+    tags: ["rich", "serious"],
     lines: [
       line("rye", "base", parts(2)),
       line("sweet-vermouth", "modifier", parts(1)),
@@ -152,6 +175,8 @@ export const DRINKS: Drink[] = [
     id: "negroni",
     name: "Negroni",
     family: "Spirit-forward",
+    method: "stirred",
+    tags: ["bittersweet", "bold"],
     lines: [
       line("gin", "base", parts(1)),
       line("sweet-vermouth", "modifier", parts(1)),
@@ -163,6 +188,8 @@ export const DRINKS: Drink[] = [
     id: "martini",
     name: "Martini",
     family: "Spirit-forward",
+    method: "stirred",
+    tags: ["sharp", "elegant"],
     lines: [
       line("gin", "base", parts(2.5)),
       line("dry-vermouth", "modifier", parts(0.5)),
@@ -173,6 +200,8 @@ export const DRINKS: Drink[] = [
     id: "gin-and-tonic",
     name: "Gin and tonic",
     family: "Highball",
+    method: "built",
+    tags: ["crisp", "easy"],
     lines: [
       line("gin", "base", parts(2)),
       line("tonic-water", "lengthener", parts(4)),
@@ -183,6 +212,8 @@ export const DRINKS: Drink[] = [
     id: "moscow-mule",
     name: "Moscow mule",
     family: "Highball",
+    method: "built",
+    tags: ["zesty", "spicy"],
     lines: [
       line("vodka", "base", parts(2)),
       line("lime-juice", "sour", parts(0.5)),
@@ -194,6 +225,8 @@ export const DRINKS: Drink[] = [
     id: "aperol-spritz",
     name: "Aperol spritz",
     family: "Spritz",
+    method: "built",
+    tags: ["sunny", "light"],
     lines: [
       // OPEN: Prosecco as base and Aperol as bitter are guesses to confirm with JP.
       line("prosecco", "base", parts(3)),
@@ -206,6 +239,8 @@ export const DRINKS: Drink[] = [
     id: "hot-toddy",
     name: "Hot toddy",
     family: "Hot",
+    method: "built",
+    tags: ["warming", "comforting"],
     lines: [
       line("whiskey", "base", parts(2)),
       line("honey", "sweet", parts(0.5)),
@@ -218,6 +253,8 @@ export const DRINKS: Drink[] = [
     id: "arnold-palmer",
     name: "Arnold Palmer",
     family: "Non-alcoholic",
+    method: "built",
+    tags: ["gentle", "sunny"],
     lines: [
       line("iced-tea", "base", parts(4)),
       // OPEN: Lemonade as modifier is a guess to confirm with JP.
@@ -229,6 +266,8 @@ export const DRINKS: Drink[] = [
     id: "shirley-temple",
     name: "Shirley Temple",
     family: "Non-alcoholic",
+    method: "built",
+    tags: ["sweet", "nostalgic"],
     lines: [
       // OPEN: Ginger ale as base is a guess to confirm with JP.
       line("ginger-ale", "base", parts(6)),
@@ -241,6 +280,8 @@ export const DRINKS: Drink[] = [
     name: "Espresso martini",
     // OPEN: which family the Espresso martini belongs to is undecided.
     family: "Unplaced",
+    method: "shaken",
+    tags: ["rich", "awake"],
     lines: [
       line("vodka", "base", parts(2)),
       line("coffee-liqueur", "modifier", parts(1)),

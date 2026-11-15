@@ -2,6 +2,46 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-15: Parts labels hidden again
+- **Before:** each layer read "2 parts" in bold with the oz beside it ("4 oz").
+- **After:** layers show only the oz ("4 oz"). Parts are still how drinks are stored and calculated, and `formatParts` in `src/lib/stack.ts` is still there to bring the label back.
+
+## 2026-11-15: Finder filters; counter, Pause and auto-scroll removed
+- **Before:** one list of 18 drinks. A "10 / 18" counter, a Pause button and a Reset button sat in a row at the top, and the row scrolled to the next drink by itself every six seconds on phones.
+- **After:**
+  - **Quick filters** across the top under "What are you having?": two rows of chips that each scroll sideways on their own (the right edge fades). Top row, taste: Classics, Build my own, Bright, Fresh & Herbal, Fruity, Bitter, Boozy, Warm, Rich & Roasted. Bottom row, occasion: Happy Hour, Daytime, Night Out, Nightcap, Cozy, Zero-proof, After Dinner.
+  - Picking a chip swaps the drink row to a curated list for it (the old list is Classics, the default). If the drink in the middle is also in the new list we stay on it, otherwise we start at the top. Edits and servings are kept per drink across filters. Short lists work (Zero-proof has two drinks and swipes back and forth).
+  - **Build my own** is a placeholder: it shows a sparkle, does nothing, and says "Coming soon" on hover.
+  - Removed the counter, the Pause/Play button and the auto-scroll. The ‹ › buttons stay for wide screens and screen readers.
+  - **Reset** moved to the bottom, smaller, beside the hint.
+- **Open for JP:** every list is my first-pass curation (data in `src/data/finder.ts`); Zero-proof has only two drinks; the mock's heading read "What are having?" and I wrote "What are you having?".
+- **Tested:** chips on phone-size and wide previews; Bright, Zero-proof, Nightcap and Warm swapped the row; Next walked each list and wrapped around; Classics restored the full list; Build my own changed nothing.
+
+## 2026-11-15: Simpler flavor profile (three bars and tags)
+- **Before:** five lines: Strength, Sweetness, Acidity, a Dilution line and Bitterness, in two groups headed "Calculated from the amounts" and "Chosen by hand".
+- **After:** three bars (Strength, Sweetness, Bitterness) in one list with the note tags below. Acidity and Dilution are gone, and so are the two group headings (users don't need to know which numbers are hand-set).
+- **What changed in the numbers:** with dilution gone, the values are the drink as poured, not after ice melts, so strength reads a bit higher (Daiquiri 21% instead of 17%; Old fashioned 40%). The bar scales were re-set to match (Strength full at 40%, Bitterness full at 4).
+- **Open:** the brief (§3) wants calculated and hand-set values kept visibly apart; this drops that on purpose. `method` stays on each drink but nothing uses it now.
+
+## 2026-11-15: Flavor profile under the drink
+- **Before:** there was no flavor profile.
+- **After:**
+  - On phones the name, family label, ingredient list, Servings and Total stay above the drink card (as before), and the flavor profile and the hint sit below it. (JP first asked for everything below the card, then moved the name and info back up.) On wide screens the left column holds the same things in the same order.
+  - **Flavor profile**, in two groups kept visibly apart. *Calculated from the amounts:* Strength (% ABV), Sweetness, Acidity, plus a line for dilution (about 25% water for shaken, 20% stirred, 10% built). *Chosen by hand:* Bitterness and up to three notes (citrus, herbal, oaky and so on).
+  - It follows the Share drag live. Servings never change it. A small tick on each bar marks where it started, so you can see what an edit moved (more lime: Acidity slides right, Strength and Sweetness slide left).
+  - New data: `src/data/flavor.ts` (ABV, sugar, acid, bitterness and notes for all 40 ingredients, first-pass bartending approximations) and a `method` and placeholder `tags` on each drink. Calculation in `src/lib/flavor.ts`; display in `src/components/FlavorReadout.tsx`.
+- **Open for JP:** review the ingredient numbers and note words; the dilution numbers; the feeling and vibe tags (placeholders, not shown yet); body and finish (not built); on a short phone (667px tall) the drink card gets small.
+- **Tested:** printed all 18 drinks (Daiquiri about 17% ABV, Negroni most bitter, Old fashioned and Martini strongest, non-alcoholic drinks 0%). In the preview, dragging lime up in the Daiquiri moved Acidity from medium to high and Strength from 17% to 15%; Servings 4 changed nothing; Reset put the bars back on their ticks.
+
+## 2026-11-15: Dragging bitters changes one dash at a time
+- **Before:** dragging the bitters layer a little (about 60px) jumped it from 2 dashes to 12, because its layer is held at the minimum height and the drag math read that as a huge change.
+- **After:** bitters change by one dash for every 16px you drag (down adds, up removes), between 0 and 12 dashes, and snap to whole dashes when you let go.
+
+## 2026-11-15: Share is the only drag (Add, Trade and the tabs removed)
+- **Before:** three drag versions (Share, Add, Trade) with tabs at the top to switch between them.
+- **After:** only Share is left, and the tabs are gone. Dragging a layer changes its share of the glass and all the other ingredients rescale in proportion; the total stays fixed and each liquid keeps at least ¼ part. Dashes (bitters) still just change their own count, since they sit outside the ratio.
+- **Why:** JP chose Share after comparing. The old code is still in git history (commit d3f593f) if the Add or Trade behavior is ever wanted again.
+
 ## 2026-11-15: Servings and a "Share" drag (prototype, from JP's Figma "Interaction Design and Structure")
 - **Before:** the drink's total changed as you dragged (Add), or traded with one neighbor (Trade). No way to scale a drink.
 - **After:**

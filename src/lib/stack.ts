@@ -24,7 +24,7 @@ export const MIN_LAYER = 60;
 
 /** Largest amount a layer can hold: 12 parts, or 12 dashes. */
 const MAX_STEPS_PARTS = 48; // 12 parts in ¼ part steps
-const MAX_DASHES = 12;
+export const MAX_DASHES = 12;
 
 /** A recipe line plus its position in the original recipe (stable identity). */
 export type StackLine = RecipeLine & { key: number };
@@ -108,96 +108,6 @@ export function layerGeometry(height: number) {
   return { overlap, totalHeight, blur: Math.min(84, Math.round(totalHeight * 0.3)) };
 }
 
-/** An amount of the same kind holding `value` (parts, or dashes). Not snapped. */
-function withValue(amount: Amount, value: number): Amount {
-  switch (amount.kind) {
-    case "garnish":
-      return amount;
-    case "dash":
-      return { kind: "dash", count: value };
-    case "parts":
-      return { kind: "parts", parts: value };
-  }
-}
-
-/** An amount of the same kind as `amount` holding `parts` of volume. Not snapped. */
-function withVolume(amount: Amount, parts: number): Amount {
-  return amount.kind === "dash" ? withValue(amount, parts / DASH_PARTS) : withValue(amount, parts);
-}
-
-/**
- * Trade volume between two neighboring layers so the line between them sits
- * at `edge` px above the bottom of the stack, following the finger.
- *
- * The two layers' combined volume stays the same: whatever the lower layer
- * gains, the upper one loses, so the rest of the drink doesn't move. Results
- * are continuous (not snapped); call `snapTrade` when the drag ends.
- * Pushing well past the point where a layer hits its minimum height empties it.
- */
-export function tradeForEdge(
-  lines: RecipeLine[],
-  lowerKey: number,
-  upperKey: number,
-  edge: number,
-  total: number,
-): [Amount, Amount] {
-  const lower = lines[lowerKey].amount;
-  const upper = lines[upperKey].amount;
-  if (lower.kind === "garnish" || upper.kind === "garnish") return [lower, upper];
-  const pair = volumeParts(lower) + volumeParts(upper);
-
-  // Line position when the lower layer holds `x` parts and the upper `pair - x`.
-  const amounts = (x: number): [Amount, Amount] => [withVolume(lower, x), withVolume(upper, pair - x)];
-  const lineAt = (x: number) => {
-    const [a, b] = amounts(x);
-    const trial = lines.map((l, i) =>
-      i === lowerKey ? { ...l, amount: a } : i === upperKey ? { ...l, amount: b } : l,
-    );
-    const ordered = orderLines(trial);
-    const heights = layerHeights(ordered, total);
-    const idx = ordered.findIndex((l) => l.key === lowerKey);
-    return heights.slice(0, idx + 1).reduce((s, h) => s + h, 0);
-  };
-
-  // The line only moves up as x grows. Find the largest x whose line is at or
-  // below `target` (minimum heights make flat stretches at both ends).
-  const largestAtOrBelow = (target: number) => {
-    let lo = 0;
-    let hi = pair;
-    for (let i = 0; i < 24; i++) {
-      const mid = (lo + hi) / 2;
-      if (lineAt(mid) <= target) lo = mid;
-      else hi = mid;
-    }
-    return lo;
-  };
-
-  const lowest = lineAt(0);
-  const highest = lineAt(pair);
-  const DEAD_ZONE = 12; // px of overshoot before a layer is emptied
-
-  if (edge <= lowest) {
-    // Lower layer is at its minimum height: empty it only on a clear overshoot.
-    return amounts(edge < lowest - DEAD_ZONE ? 0 : largestAtOrBelow(lowest + 0.5));
-  }
-  if (edge >= highest) {
-    // Upper layer is at its minimum height: empty it only on a clear overshoot.
-    return amounts(edge > highest + DEAD_ZONE ? pair : largestAtOrBelow(highest - 0.5));
-  }
-  return amounts(largestAtOrBelow(edge));
-}
-
-/**
- * Snap both sides of a trade to their notches (¼ part, or whole dashes) while
- * keeping the pair's combined volume as close to unchanged as possible.
- */
-export function snapTrade(lower: Amount, upper: Amount): [Amount, Amount] {
-  const pair = volumeParts(lower) + volumeParts(upper);
-  const a = snapAmount(lower);
-  const b = snapAmount(withVolume(upper, Math.max(0, pair - volumeParts(a))));
-  return [a, b];
-}
-
 /** Round an amount to its notch: ¼ part, or a whole dash. */
 export function snapAmount(amount: Amount): Amount {
   switch (amount.kind) {
@@ -244,49 +154,6 @@ export function stepAmount(amount: Amount, steps: number): Amount {
     case "parts":
       return { kind: "parts", parts: clamp(Math.round(amount.parts * 4) / 4 + steps * 0.25, 0, 12) };
   }
-}
-
-/**
- * "Add" drag (prototype): change only the dragged line's amount; every other
- * line keeps its parts. The stack has a fixed height, so the others re-share
- * it in proportion on their own.
- *
- * Returns the amount of line `key` that puts one of its edges at `edge` px
- * above the stack bottom: its bottom edge (so dragging down adds), or its top
- * edge when `edgeOf` is "top" (the base layer, which has nothing below it, so
- * dragging down shrinks it). Not snapped; call `snapAmount` on release.
- * The edge moves steadily as the amount grows, so we search for the amount.
- */
-export function amountForEdge(
-  lines: RecipeLine[],
-  key: number,
-  edge: number,
-  total: number,
-  edgeOf: "bottom" | "top",
-): Amount {
-  const amount = lines[key].amount;
-  if (amount.kind === "garnish") return amount;
-  const max = amount.kind === "dash" ? MAX_DASHES * DASH_PARTS : 12;
-
-  const edgeAt = (v: number) => {
-    const trial = lines.map((l, i) => (i === key ? { ...l, amount: withVolume(amount, v) } : l));
-    const ordered = orderLines(trial);
-    const heights = layerHeights(ordered, total);
-    const idx = ordered.findIndex((l) => l.key === key);
-    const below = heights.slice(0, idx).reduce((s, h) => s + h, 0);
-    return edgeOf === "bottom" ? below : below + heights[idx];
-  };
-
-  // Bottom edge falls as the amount grows; top edge rises.
-  const wantMore = (v: number) => (edgeOf === "bottom" ? edgeAt(v) > edge : edgeAt(v) < edge);
-  let lo = 0;
-  let hi = max;
-  for (let i = 0; i < 24; i++) {
-    const mid = (lo + hi) / 2;
-    if (wantMore(mid)) lo = mid;
-    else hi = mid;
-  }
-  return withVolume(amount, (lo + hi) / 2);
 }
 
 /** Sum of all liquid parts in a drink (dashes and garnishes sit outside the ratio). */

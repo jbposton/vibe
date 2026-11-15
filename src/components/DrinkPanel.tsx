@@ -12,19 +12,14 @@ import {
 import { DRINKS, type RecipeLine } from "@/data/drinks";
 import { INGREDIENTS } from "@/data/ingredients";
 import { DEFAULT_UNIT, formatTotal, orderLines, totalParts } from "@/lib/stack";
-import { DrinkCard, type DragMode } from "./DrinkCard";
-
-const N = DRINKS.length;
+import { flavorProfile } from "@/lib/flavor";
+import { DrinkCard } from "./DrinkCard";
+import { CLASSICS_ID, FILTERS, filterList } from "@/data/finder";
+import { FilterBar } from "./FilterBar";
+import { FlavorReadout } from "./FlavorReadout";
 
 /** Servings buttons (the "+" for a custom amount comes later). */
 const SERVING_CHOICES = [1, 2, 4];
-
-/** The drag versions being compared (prototype). */
-const DRAG_VERSIONS: { mode: DragMode; label: string; hint: string }[] = [
-  { mode: "share", label: "Share", hint: "Total stays fixed; all the others rescale" },
-  { mode: "add", label: "Add", hint: "Only this ingredient changes; the drink grows or shrinks" },
-  { mode: "trade", label: "Trade", hint: "Trades volume with the neighbor across the line" },
-];
 
 // OPEN: which drink a visitor sees first (brief §1 flow). Placeholder: Negroni.
 const START_DRINK = Math.max(0, DRINKS.findIndex((d) => d.id === "negroni"));
@@ -41,19 +36,9 @@ const SIDE_DIM = 0.6; // how dark a card at the side gets (black overlay opacity
 const SLOP = 6;
 /** A swipe this fast (px/ms) flips to the next drink even if it was short. */
 const FLICK = 0.4;
-/** Auto-scroll: how long each drink stays in the middle, and how long the glide to the next takes. */
-const AUTO_DWELL = 6000;
-const AUTO_GLIDE = 900;
 
 const DESKTOP = "(min-width: 768px)";
 const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
-
-function subscribeReducedMotion(onChange: () => void) {
-  const query = window.matchMedia(REDUCED_MOTION);
-  query.addEventListener("change", onChange);
-  return () => query.removeEventListener("change", onChange);
-}
-const getReducedMotion = () => window.matchMedia(REDUCED_MOTION).matches;
 
 function subscribeDesktop(onChange: () => void) {
   const query = window.matchMedia(DESKTOP);
@@ -69,6 +54,14 @@ export function DrinkPanel() {
   // phone the cards sit in a row and you swipe through them.
   const isDesktop = useSyncExternalStore(subscribeDesktop, getDesktop, () => false);
 
+  // Which quick filter is picked, and so which drinks are in the row. `list`
+  // holds positions in DRINKS. `index` and `infoIndex` below are places in
+  // this list; edits and servings stay filed under the drink's own position in
+  // DRINKS, so they survive changing filters.
+  const [filterId, setFilterId] = useState(CLASSICS_ID);
+  const list = useMemo(() => filterList(filterId), [filterId]);
+  const N = list.length;
+
   const [index, setIndex] = useState(START_DRINK); // the drink in the middle
   const [infoIndex, setInfoIndex] = useState(START_DRINK); // the drink nearest the middle (while swiping)
   const [busy, setBusy] = useState(false); // swiping, or settling after a swipe
@@ -76,14 +69,8 @@ export function DrinkPanel() {
   // card keeps its edits when you swipe away and back.
   const [edits, setEdits] = useState<Record<number, RecipeLine[]>>({});
   const [trackWidth, setTrackWidth] = useState(0);
-  const [autoPlay, setAutoPlay] = useState(true); // the Pause / Play button
-  // OPEN: gesture map (brief §6). Prototype switch between two drag behaviors.
-  const [dragMode, setDragMode] = useState<DragMode>("share");
   // How many drinks each recipe makes (default 1). Scales the oz, never the parts.
   const [servings, setServings] = useState<Record<number, number>>({});
-  const reducedMotion = useSyncExternalStore(subscribeReducedMotion, getReducedMotion, () => false);
-  // Whether the row moves on by itself. See the effect further down.
-  const autoScrolling = !isDesktop && autoPlay && !reducedMotion && !(index in edits) && (servings[index] ?? 1) === 1;
 
   const trackRef = useCallback((el: HTMLDivElement | null) => {
     if (!el) return;
@@ -102,6 +89,7 @@ export function DrinkPanel() {
   // frame). `p` is how far the row has moved, in cards: +1 means the previous
   // drink has come all the way to the middle, -1 the next one.
   const ctl = useRef({
+    n: DRINKS.length, // how many drinks are in the row
     index: START_DRINK,
     info: START_DRINK,
     p: 0,
@@ -121,7 +109,8 @@ export function DrinkPanel() {
   const applyTransforms = useCallback(() => {
     const c = ctl.current;
     cardEls.current.forEach((el, j) => {
-      const r = mod(j - c.index + N / 2, N) - N / 2; // card's place relative to the middle one
+      const h = Math.floor((c.n - 1) / 2);
+      const r = mod(j - c.index + h, c.n) - h; // card's place relative to the middle one
       const t = r + c.p; // 0 = in the middle, ±1 = one card over
       const scale = c.desktop ? 1 : 1 - (1 - SIDE_SCALE) * Math.min(Math.abs(t), 1);
       const x = c.desktop ? 0 : t * c.step;
@@ -137,6 +126,7 @@ export function DrinkPanel() {
   // Keep every card's position in step with the latest layout and drink order.
   useLayoutEffect(() => {
     const c = ctl.current;
+    c.n = N;
     c.desktop = isDesktop;
     c.cardWidth = cardWidth;
     c.step = step;
@@ -149,7 +139,7 @@ export function DrinkPanel() {
       c.p = p;
       applyTransforms();
       // The info (name, counter) follows whichever drink is nearest the middle.
-      const near = mod(c.index - Math.round(p), N);
+      const near = mod(c.index - Math.round(p), c.n);
       if (near !== c.info) {
         c.info = near;
         setInfoIndex(near);
@@ -158,21 +148,21 @@ export function DrinkPanel() {
     [applyTransforms],
   );
 
-  /** Glide the row to `target` (-1 next, 0 stay, +1 previous), then commit. `slow` is the gentle auto-scroll glide. */
+  /** Glide the row to `target` (-1 next, 0 stay, +1 previous), then commit. */
   const settleTo = useCallback(
-    (target: number, slow = false) => {
+    (target: number) => {
       const c = ctl.current;
       cancelAnimationFrame(c.raf);
       c.animating = true;
       setBusy(true);
       const from = c.p;
       const distance = Math.abs(target - from);
-      const duration = window.matchMedia(REDUCED_MOTION).matches || distance === 0 ? 0 : slow ? AUTO_GLIDE : 240 + 160 * distance;
+      const duration = window.matchMedia(REDUCED_MOTION).matches || distance === 0 ? 0 : 240 + 160 * distance;
       const t0 = performance.now();
 
       const finish = () => {
         if (target !== 0) {
-          c.index = mod(c.index - target, N);
+          c.index = mod(c.index - target, c.n);
           setIndex(c.index);
         }
         // The cards stay exactly where they are: positions are now measured
@@ -188,8 +178,7 @@ export function DrinkPanel() {
       };
       const tick = (now: number) => {
         const k = duration === 0 ? 1 : Math.min(1, (now - t0) / duration);
-        // Quick swipes ease out; the auto-scroll glide eases in and out.
-        const eased = slow ? (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2) : 1 - Math.pow(1 - k, 3);
+        const eased = 1 - Math.pow(1 - k, 3); // quick swipes ease out
         setP(from + (target - from) * eased);
         if (k < 1) c.raf = requestAnimationFrame(tick);
         else finish();
@@ -245,38 +234,21 @@ export function DrinkPanel() {
 
   /** Go to the next (+1) or previous (-1) drink. */
   const goBy = useCallback(
-    (delta: number, slow = false) => {
+    (delta: number) => {
       const c = ctl.current;
+      if (c.n < 2) return;
       if (c.desktop) {
-        c.index = mod(c.index + delta, N);
+        c.index = mod(c.index + delta, c.n);
         c.info = c.index;
         setIndex(c.index);
         setInfoIndex(c.index);
         return;
       }
       if (c.swiping || c.animating) return;
-      settleTo(delta > 0 ? -1 : 1, slow);
+      settleTo(delta > 0 ? -1 : 1);
     },
     [settleTo],
   );
-
-  // Auto-scroll (phones): each drink stays in the middle for a few seconds,
-  // then the row glides to the next. It waits while you're touching the
-  // screen, and it's off when the drink in the middle has been edited, the tab
-  // is hidden, "reduce motion" is on, or it's been paused.
-  useEffect(() => {
-    if (!autoScrolling) return;
-    let timer = 0;
-    const schedule = (ms: number) => {
-      timer = window.setTimeout(() => {
-        const c = ctl.current;
-        if (document.hidden || c.pointer || c.swiping || c.animating) schedule(1000);
-        else goBy(1, true);
-      }, ms);
-    };
-    schedule(AUTO_DWELL); // starts over whenever the middle drink changes
-    return () => window.clearTimeout(timer);
-  }, [autoScrolling, index, goBy]);
 
   // ← / → switch drinks.
   useEffect(() => {
@@ -355,22 +327,47 @@ export function DrinkPanel() {
   );
 
   // ── Info for the drink nearest the middle ────────────────────────────────
-  const infoDrink = DRINKS[infoIndex];
-  const infoLines = edits[infoIndex] ?? infoDrink.lines;
-  const infoServings = servings[infoIndex] ?? 1;
-  const modified = infoIndex in edits || infoServings !== 1;
+  const infoD = list[infoIndex] ?? list[0]; // the info drink's place in DRINKS
+  const infoDrink = DRINKS[infoD];
+  const infoLines = edits[infoD] ?? infoDrink.lines;
+  const infoServings = servings[infoD] ?? 1;
+  const modified = infoD in edits || infoServings !== 1;
   const reset = () => {
     setEdits((all) => {
       const next = { ...all };
-      delete next[infoIndex];
+      delete next[infoD];
       return next;
     });
     setServings((all) => {
       const next = { ...all };
-      delete next[infoIndex];
+      delete next[infoD];
       return next;
     });
   };
+
+  // Picking a quick filter swaps the row to that curated list. If the drink in
+  // the middle is also in the new list we stay on it, otherwise we start at the top.
+  const selectFilter = (id: string) => {
+    const filter = FILTERS.find((f) => f.id === id);
+    if (!filter || filter.placeholder || id === filterId) return;
+    const next = filterList(id);
+    const c = ctl.current;
+    const pos = Math.max(0, next.indexOf(list[c.index]));
+    cancelAnimationFrame(c.raf);
+    c.animating = false;
+    c.swiping = false;
+    c.n = next.length;
+    c.index = pos;
+    c.info = pos;
+    c.p = 0;
+    setFilterId(id);
+    setIndex(pos);
+    setInfoIndex(pos);
+    setBusy(false);
+  };
+
+  const profile = useMemo(() => flavorProfile(infoLines), [infoLines]);
+  const baseline = useMemo(() => flavorProfile(infoDrink.lines), [infoDrink]);
 
   const caption = orderLines(infoLines)
     .slice()
@@ -383,40 +380,25 @@ export function DrinkPanel() {
 
   // The cards in the row: two either side of the middle one, so the next
   // card is already in place while you swipe.
-  const offsets = isDesktop ? [0] : [-2, -1, 0, 1, 2];
+  // With a short list (a filter with few drinks) fewer cards are shown, so the
+  // same drink never appears twice.
+  const spread = Math.floor((N - 1) / 2);
+  const offsets = isDesktop
+    ? [0]
+    : N >= 5
+      ? [-2, -1, 0, 1, 2]
+      : Array.from({ length: N }, (_, k) => k - spread);
 
   // Nothing on this screen is meant to be copied, and a drag that strays onto
   // the text would otherwise highlight it, so text selection is off everywhere.
   return (
-    <main className="fixed inset-0 flex flex-col gap-4 bg-[#1A1612] p-4 text-[#F7F7F7] select-none [-webkit-touch-callout:none] md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] md:gap-8">
-      {/* ── Information ───────────────────────────────────────────── */}
-      <section aria-label="Drink information" className="flex flex-col">
-        <div className="flex items-center gap-1 md:-mr-3">
-          {/* Reset is always shown (phone and web); it's dimmed until something has changed. */}
-          <button
-            type="button"
-            onClick={reset}
-            disabled={!modified}
-            className="h-8 rounded-full border border-[#F7F7F7]/25 px-3 text-xs text-[#F7F7F7]/80 transition-opacity hover:border-[#F7F7F7]/60 hover:text-[#F7F7F7] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] disabled:pointer-events-none disabled:opacity-35"
-          >
-            Reset
-          </button>
-          <span className="ml-auto text-xs tabular-nums text-[#F7F7F7]/45" aria-live="polite">
-            {infoIndex + 1} / {N}
-          </span>
-          {/* Phones only: stop or restart the auto-advance. */}
-          {!isDesktop && !reducedMotion && (
-            <button
-              type="button"
-              onClick={() => setAutoPlay((on) => !on)}
-              aria-pressed={!autoPlay}
-              aria-label={autoPlay ? "Pause automatic scrolling" : "Play automatic scrolling"}
-              className="h-8 rounded-full px-3 text-xs text-[#F7F7F7]/60 hover:text-[#F7F7F7] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7]"
-            >
-              {autoPlay ? "Pause" : "Play"}
-            </button>
-          )}
-          {/* On a phone you swipe; these stay for screen readers and wide screens. */}
+    <main className="fixed inset-0 flex flex-col gap-4 bg-[#1A1612] p-4 text-[#F7F7F7] select-none [-webkit-touch-callout:none] md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] md:grid-rows-[auto_auto_minmax(0,1fr)] md:gap-x-8 md:gap-y-4">
+      <FilterBar active={filterId} onSelect={selectFilter} />
+
+      {/* ── Controls ──────────────────────────────────────────────── */}
+      <header className="flex flex-col md:col-start-1 md:row-start-2">
+        {/* On a phone you swipe; these stay for screen readers and wide screens. */}
+        <div className="flex justify-end md:-mr-3">
           <button type="button" onClick={() => goBy(-1)} aria-label="Previous drink" className={navButton}>
             ‹
           </button>
@@ -425,26 +407,7 @@ export function DrinkPanel() {
           </button>
         </div>
 
-        {/* Prototype: tabs to compare the drag versions. */}
-        <div role="tablist" aria-label="Drag version" className="mt-3 flex gap-1 rounded-full border border-[#F7F7F7]/20 p-1 md:self-start">
-          {DRAG_VERSIONS.map((v) => (
-            <button
-              key={v.mode}
-              type="button"
-              role="tab"
-              aria-selected={dragMode === v.mode}
-              onClick={() => setDragMode(v.mode)}
-              title={v.hint}
-              className={`h-8 flex-1 rounded-full px-4 text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] md:flex-none ${
-                dragMode === v.mode ? "bg-[#F7F7F7] font-semibold text-[#1A1612]" : "text-[#F7F7F7]/60 hover:text-[#F7F7F7]"
-              }`}
-            >
-              {v.label}
-            </button>
-          ))}
-        </div>
-
-        <h1 className="mt-4 text-[22px] font-semibold leading-7">{infoDrink.name}</h1>
+        <h1 className="text-[22px] font-semibold leading-7">{infoDrink.name}</h1>
         <p className="mt-1 text-xs opacity-55">{infoDrink.family}</p>
         <p className="mt-3 text-[11px] leading-4 text-[#F7F7F7]/45">{caption}</p>
         {/* Servings scale the oz only; the parts (the ratio) never change. */}
@@ -456,7 +419,7 @@ export function DrinkPanel() {
                 key={n}
                 type="button"
                 aria-pressed={infoServings === n}
-                onClick={() => setServings((all) => ({ ...all, [infoIndex]: n }))}
+                onClick={() => setServings((all) => ({ ...all, [infoD]: n }))}
                 className={`h-9 w-9 rounded-full border text-sm tabular-nums focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] ${
                   infoServings === n
                     ? "border-[#F7F7F7] bg-[#F7F7F7] font-semibold text-[#1A1612]"
@@ -484,20 +447,7 @@ export function DrinkPanel() {
             </span>
           </p>
         </div>
-
-        {/* OPEN: gesture hints (brief §6). Placeholder: one line of text until the first change. */}
-        <p
-          className={`mt-3 text-[11px] text-[#F7F7F7]/45 ${modified ? "invisible" : ""}`}
-          aria-hidden={modified}
-        >
-          {dragMode === "share"
-            ? "Drag a layer down to give it a bigger share, up to give it less. The others adjust so the glass stays full."
-            : dragMode === "add"
-              ? "Drag a layer down to add more of it, up to take some out. The rest stay the same."
-              : "Drag a layer down to expand it, up to shrink it. It trades with its neighbor."}
-          <span className="md:hidden"> Swipe sideways for other drinks.</span>
-        </p>
-      </section>
+      </header>
 
       {/* ── The row of drinks ─────────────────────────────────────── */}
       <div
@@ -505,14 +455,15 @@ export function DrinkPanel() {
         role="group"
         aria-roledescription="carousel"
         aria-label="Drinks"
-        className="relative -mx-4 min-h-0 flex-1 touch-none overflow-hidden select-none md:mx-0 md:h-full"
+        className="relative -mx-4 min-h-0 flex-1 touch-none overflow-hidden select-none md:col-start-2 md:row-span-2 md:row-start-2 md:mx-0 md:h-full"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerEnd}
         onPointerCancel={onPointerEnd}
       >
         {offsets.map((r) => {
-          const j = mod(index + r, N);
+          const j = mod(index + r, N); // place in the list
+          const d = list[j]; // place in DRINKS
           return (
             <div
               key={j}
@@ -525,14 +476,13 @@ export function DrinkPanel() {
               style={{ width: cardWidth }}
             >
               <DrinkCard
-                drink={DRINKS[j]}
-                drinkIndex={j}
-                lines={edits[j] ?? DRINKS[j].lines}
+                drink={DRINKS[d]}
+                drinkIndex={d}
+                lines={edits[d] ?? DRINKS[d].lines}
                 onEdit={onEdit}
                 interactive={j === infoIndex && !busy}
                 onHorizontal={onHorizontal}
-                dragMode={dragMode}
-                servings={servings[j] ?? 1}
+                servings={servings[d] ?? 1}
               />
               {/* Dims the card when it's at the side; its opacity is set as the row moves. */}
               <div aria-hidden data-dim className="pointer-events-none absolute inset-0 rounded-[28px] bg-black opacity-0" />
@@ -540,6 +490,36 @@ export function DrinkPanel() {
           );
         })}
       </div>
+
+      {/* ── Flavor profile, under the drink ────────────────────────── */}
+      <section
+        aria-label="Flavor details"
+        className="flex shrink-0 flex-col md:col-start-1 md:row-start-3 md:min-h-0 md:overflow-y-auto"
+      >
+        <div>
+          <FlavorReadout profile={profile} baseline={baseline} />
+        </div>
+
+        {/* OPEN: gesture hints (brief §6). Placeholder: one line of text until the first change. */}
+        <div className="mt-3 flex items-end justify-between gap-3">
+          <p
+            className={`text-[11px] text-[#F7F7F7]/45 ${modified ? "invisible" : ""}`}
+            aria-hidden={modified}
+          >
+            Drag a layer down to give it a bigger share, up to give it less. The others adjust so the glass stays full.
+            <span className="md:hidden"> Swipe sideways for other drinks.</span>
+          </p>
+          {/* Reset is always there; it's dimmed until something has changed. */}
+          <button
+            type="button"
+            onClick={reset}
+            disabled={!modified}
+            className="h-7 shrink-0 rounded-full border border-[#F7F7F7]/25 px-3 text-[11px] text-[#F7F7F7]/80 transition-opacity hover:border-[#F7F7F7]/60 hover:text-[#F7F7F7] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] disabled:pointer-events-none disabled:opacity-35"
+          >
+            Reset
+          </button>
+        </div>
+      </section>
     </main>
   );
 }

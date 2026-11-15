@@ -32,9 +32,8 @@ type DragCallbacks = {
  * collected and applied once per animation frame.
  *
  * OPEN: gesture map (brief §7). Placeholder (JP's choices): drag anywhere on a
- * section and the line it shares with a neighbor follows the finger (the
- * neighbor below if it can trade, else the one above). So down expands a
- * section, except the base layer, whose top line moves down and shrinks it.
+ * section and its share of the glass follows the finger (down gives it more,
+ * except the base layer, whose top line moves down and shrinks it).
  */
 export function useLayerDrag({ onStart, onMove, onEnd, onHorizontal }: DragCallbacks) {
   const active = useRef<{
