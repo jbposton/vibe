@@ -40,9 +40,6 @@ function tradePartner(ordered: StackLine[], key: number): Pair | null {
 /** The page's warm black, also shown by the shader above and below the drink. */
 const PAGE_BACKGROUND = "#1A1612";
 
-/** How dark a layer gets while you drag it (opacity of a solid black veil). */
-const SELECTED_DARKEN = 0.05;
-
 /** How far each fallback color band runs past the card's sides (the card clips it). */
 const BAND_BLEED = 128;
 
@@ -214,21 +211,22 @@ export const DrinkCard = memo(function DrinkCard({
           {/* Film grain over the whole drink, under the labels. */}
           <div aria-hidden className="pointer-events-none absolute inset-0" style={GRAIN_STYLE} />
 
-          {/* While you drag a layer it eases slightly darker, then eases back
-              to its own color when you let go. A solid black veil at 5% over
-              the layer: only its opacity animates, which is cheap. */}
+          {/* While you drag a layer it eases to its ingredient's flat color (hard
+              edges, no blur, no gradient, no grain), then eases back to the
+              soft look when you let go. Only the opacity animates, which is cheap. */}
           {ordered.map((line, i) => {
             if (line.amount.kind === "garnish") return null;
             const selected = draggingKey === line.key;
             return (
               <div
-                key={`shade-${drink.id}-${line.key}`}
+                key={`flat-${drink.id}-${line.key}`}
                 aria-hidden
-                className="layer-anim pointer-events-none absolute inset-x-0 bg-black"
+                className="layer-anim pointer-events-none absolute inset-x-0"
                 style={{
                   bottom: bottoms[i],
                   height: heights[i],
-                  opacity: selected ? SELECTED_DARKEN : 0,
+                  background: INGREDIENTS[line.ingredient].color,
+                  opacity: selected ? 1 : 0,
                   transition: selected
                     ? "opacity 220ms ease-in"
                     : "opacity 380ms ease-out, bottom 180ms ease-out, height 180ms ease-out",

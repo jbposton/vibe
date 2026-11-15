@@ -2,6 +2,11 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-15: Dragged layer shows its flat color
+- **Before:** the layer you were dragging got a solid 5% black tint.
+- **After:** while you drag, the layer eases (220ms) to its ingredient's flat color: hard edges, no blur, no gradient and no film grain. When you let go it eases back (380ms) to the soft blurred look. The other layers are unchanged, and the labels stay on top.
+- I read "blue" in the request as "blur". Easy to change if you meant something else.
+
 ## 2026-11-15: Fix: layers couldn't be dragged after a small swipe back
 - **Problem:** start a swipe on a layer, move a little sideways, and come back to the same drink: after that, dragging that drink's layers did nothing.
 - **Cause:** when a touch on a layer turned into a sideways swipe, the layer handed the gesture to the carousel but kept its own "a drag is in progress" flag. The carousel then paused the card, so the layer never saw the finger lift and the flag stayed set. Every later drag on that card was ignored as a second finger.
