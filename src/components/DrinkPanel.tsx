@@ -449,7 +449,6 @@ export function DrinkPanel() {
                 lines={edits[j] ?? DRINKS[j].lines}
                 onEdit={onEdit}
                 interactive={j === infoIndex && !busy}
-                active={j === infoIndex}
                 onHorizontal={onHorizontal}
               />
               {/* Dims the card when it's at the side; its opacity is set as the row moves. */}

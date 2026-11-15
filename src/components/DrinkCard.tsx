@@ -64,8 +64,6 @@ type Props = {
   onEdit: (drinkIndex: number, update: (prev: RecipeLine[]) => RecipeLine[]) => void;
   /** True for the card in the middle, while nothing is swiping or settling. */
   interactive: boolean;
-  /** True for the drink in view: its colors mix. Other cards sit still. */
-  active: boolean;
   /** A drag on a section turned out to be a sideways swipe. */
   onHorizontal: (clientX: number, pointerId: number) => void;
 };
@@ -81,7 +79,6 @@ export const DrinkCard = memo(function DrinkCard({
   lines,
   onEdit,
   interactive,
-  active,
   onHorizontal,
 }: Props) {
   // Measure the card: the stack fills its full inner height.
@@ -179,7 +176,6 @@ export const DrinkCard = memo(function DrinkCard({
             layers={liquidLayers}
             resetKey={`${drink.id}-${ordered.length}`}
             dragging={draggingKey !== null}
-            active={active}
             background={PAGE_BACKGROUND}
             onReady={setShaderReady}
           />

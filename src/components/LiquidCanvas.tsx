@@ -29,8 +29,6 @@ type Props = {
   resetKey: string;
   /** True while a finger is dragging: bands follow it with no easing. */
   dragging: boolean;
-  /** True for the drink in view: its colors mix. Others sit still and idle. */
-  active: boolean;
   /** Page color shown above and below the drink. */
   background: string;
   onReady: (ok: boolean) => void;
@@ -43,12 +41,10 @@ const WAVE_AMPLITUDE = 28;
 /** Animation speed (1 = default). Lower is slower. */
 const WAVE_SPEED = 1.6;
 /**
- * The drink in view starts unmixed (still, straight boundaries) and the mixing
- * eases in over MIX_RAMP seconds. When it's no longer the drink in view, the
- * mixing eases back out over MIX_FADE seconds.
+ * Every drink starts unmixed (still, straight boundaries) when it appears and
+ * the mixing eases in over MIX_RAMP seconds. After that it keeps mixing.
  */
 const MIX_RAMP = 4;
-const MIX_FADE = 0.8;
 
 const VERTEX = `
 attribute vec2 aPos;
@@ -147,12 +143,12 @@ function compile(gl: WebGLRenderingContext, type: number, src: string) {
   return shader;
 }
 
-export function LiquidCanvas({ layers, resetKey, dragging, background, active, onReady }: Props) {
+export function LiquidCanvas({ layers, resetKey, dragging, background, onReady }: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   // Latest props, read by the animation loop without restarting it.
-  const latest = useRef({ layers, resetKey, dragging, background, active });
+  const latest = useRef({ layers, resetKey, dragging, background });
   useEffect(() => {
-    latest.current = { layers, resetKey, dragging, background, active };
+    latest.current = { layers, resetKey, dragging, background };
   });
 
   const onReadyRef = useRef(onReady);
@@ -213,6 +209,15 @@ export function LiquidCanvas({ layers, resetKey, dragging, background, active, o
     const bands = new Float32Array(MAX_LAYERS * 4);
     const colors = new Float32Array(MAX_LAYERS * 3);
 
+    // Skip drawing while the canvas is completely off-screen (a card two places
+    // away in the carousel). Time keeps running, so it's already mixing when
+    // it slides into view.
+    let onScreen = true;
+    const visibility = new IntersectionObserver(([entry]) => {
+      onScreen = entry.isIntersecting;
+    });
+    visibility.observe(canvas);
+
     let frame = 0;
     let last = performance.now();
     let clock = 0;
@@ -232,7 +237,7 @@ export function LiquidCanvas({ layers, resetKey, dragging, background, active, o
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const w = Math.round(canvas.clientWidth * dpr);
       const h = Math.round(canvas.clientHeight * dpr);
-      if (w === 0 || h === 0) return;
+      if (w === 0 || h === 0 || !onScreen) return;
       let resized = false;
       if (canvas.width !== w || canvas.height !== h) {
         canvas.width = w;
@@ -241,11 +246,10 @@ export function LiquidCanvas({ layers, resetKey, dragging, background, active, o
         resized = true;
       }
 
-      const { layers: target, resetKey: key, dragging: drag, background: bg, active } = latest.current;
+      const { layers: target, resetKey: key, dragging: drag, background: bg } = latest.current;
 
-      // Mixing eases in while this is the drink in view and eases out when
-      // it isn't, so a card waiting at the side of the carousel stays still.
-      level = Math.min(1, Math.max(0, level + (active && !reduce ? dt / MIX_RAMP : -dt / MIX_FADE)));
+      // Mixing eases in from unmixed, then carries on (reduced motion: stays still).
+      level = Math.min(1, Math.max(0, level + (reduce ? -dt / MIX_RAMP : dt / MIX_RAMP)));
       const mix = level * level * (3 - 2 * level);
       const amp = WAVE_AMPLITUDE * mix;
 
@@ -296,6 +300,7 @@ export function LiquidCanvas({ layers, resetKey, dragging, background, active, o
 
     return () => {
       cancelAnimationFrame(frame);
+      visibility.disconnect();
       gl.deleteProgram(program);
       gl.deleteShader(vs);
       gl.deleteShader(fs);

@@ -2,6 +2,15 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-15: Every card mixes (no more waiting for the middle)
+- **Before:** only the drink in the middle mixed. The cards at the sides sat still and only started once they reached the middle (and went still again when they left).
+- **After:**
+  - Every card mixes, including the ones peeking at the sides. Each drink starts unmixed when it first appears, eases into mixing over 4 seconds, and then keeps going, whether or not it's in the middle.
+  - Cards that are completely off-screen skip drawing, which nobody can see and saves battery. They're already mixing by the time they slide in, because their clock keeps running.
+  - "Reduce motion" still keeps everything still.
+- **Tested:** both peeking cards and the middle card changed visibly over 2.5 seconds; the two off-screen cards did not redraw.
+- **Cost to watch on a real phone:** three shaders now animate at once instead of one (they were idle before). If it gets warm, lowering the frame rate on the side cards is the easy fix.
+
 ## 2026-11-15: Fix: description text highlighting during drags
 - **Problem:** sometimes dragging highlighted the text in the description (the caption and hint above or beside the drink).
 - **Cause:** only the drink panel had text selection turned off. The description text was still selectable, so a drag or press that strayed onto it (or a browser starting a selection near it) highlighted it.
