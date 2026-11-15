@@ -166,10 +166,10 @@ export function DrinkPanel() {
 
   const animate = draggingKey === null ? undefined : "none";
   const navButton =
-    "grid size-11 place-items-center rounded-full text-lg text-[#141414]/60 hover:text-[#141414] focus-visible:outline-2 focus-visible:outline-[#141414]";
+    "grid size-11 place-items-center rounded-full text-lg text-[#F7F7F7]/60 hover:text-[#F7F7F7] focus-visible:outline-2 focus-visible:outline-[#F7F7F7]";
 
   return (
-    <main className="fixed inset-0 flex flex-col gap-4 bg-[#F7F7F7] p-4 text-[#141414] md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] md:gap-8">
+    <main className="fixed inset-0 flex flex-col gap-4 bg-[#141414] p-4 text-[#F7F7F7] md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] md:gap-8">
       {/* ── Information ───────────────────────────────────────────── */}
       <section aria-label="Drink information" className="flex flex-col">
         {/* Drink switcher (placeholder until the Finder exists) */}
@@ -179,11 +179,11 @@ export function DrinkPanel() {
             type="button"
             onClick={reset}
             disabled={!modified}
-            className="h-8 rounded-full border border-[#141414]/25 px-3 text-xs text-[#141414]/80 transition-opacity hover:border-[#141414]/60 hover:text-[#141414] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141414] disabled:pointer-events-none disabled:opacity-35"
+            className="h-8 rounded-full border border-[#F7F7F7]/25 px-3 text-xs text-[#F7F7F7]/80 transition-opacity hover:border-[#F7F7F7]/60 hover:text-[#F7F7F7] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] disabled:pointer-events-none disabled:opacity-35"
           >
             Reset
           </button>
-          <span className="ml-auto text-xs tabular-nums text-[#141414]/45" aria-live="polite">
+          <span className="ml-auto text-xs tabular-nums text-[#F7F7F7]/45" aria-live="polite">
             {state.index + 1} / {DRINKS.length}
           </span>
           <button type="button" onClick={() => goTo(-1)} aria-label="Previous drink" className={navButton}>
@@ -196,11 +196,11 @@ export function DrinkPanel() {
 
         <h1 className="mt-2 text-[22px] font-semibold leading-7">{drink.name}</h1>
         <p className="mt-1 text-xs opacity-55">{drink.family}</p>
-        <p className="mt-3 text-[11px] leading-4 text-[#141414]/45">{caption}</p>
+        <p className="mt-3 text-[11px] leading-4 text-[#F7F7F7]/45">{caption}</p>
 
         {/* OPEN: gesture hints (brief §6). Placeholder: one line of text until the first change. */}
         <p
-          className={`mt-3 text-[11px] text-[#141414]/45 ${modified ? "invisible" : ""}`}
+          className={`mt-3 text-[11px] text-[#F7F7F7]/45 ${modified ? "invisible" : ""}`}
           aria-hidden={modified}
         >
           Drag a line to move volume between the two layers it separates.
@@ -211,7 +211,7 @@ export function DrinkPanel() {
       <section
         ref={panelRef}
         aria-label={`${drink.name} layers`}
-        className="relative min-h-0 flex-1 touch-manipulation overflow-hidden border border-[#141414] select-none [-webkit-touch-callout:none] md:h-full"
+        className="relative min-h-0 flex-1 touch-manipulation overflow-hidden border border-white select-none [-webkit-touch-callout:none] md:h-full"
       >
         {panelHeight > 0 && (
           <>
@@ -285,7 +285,7 @@ export function DrinkPanel() {
                   aria-valuenow={Math.round(volumeOz(line.amount) * 100) / 100}
                   aria-valuetext={amountText}
                   aria-orientation="vertical"
-                  className="layer-anim absolute inset-x-0 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#141414]"
+                  className="layer-anim absolute inset-x-0 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white"
                   style={box}
                   onKeyDown={(e) => {
                     const steps =
@@ -320,7 +320,7 @@ export function DrinkPanel() {
                   {...(draggable ? handlers(below.key) : {})}
                 >
                   <div
-                    className={`absolute inset-x-0 top-1/2 -translate-y-1/2 bg-[#141414] transition-[height,opacity] ${
+                    className={`absolute inset-x-0 top-1/2 -translate-y-1/2 bg-white transition-[height,opacity] ${
                       active
                         ? "h-0.5 opacity-80"
                         : draggable

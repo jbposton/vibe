@@ -2,6 +2,12 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-14: Dark mode trial
+- **Before:** light page (`#F7F7F7`) with dark text (`#141414`), and a dark panel border and lines.
+- **After:**
+  - The page is inverted to a dark background (`#141414`) with light text (`#F7F7F7`), including the Reset button and the drink switcher.
+  - The drink panel's colors, blur and grain are unchanged. The panel border is white, and the divider lines and keyboard focus ring are white too, with the lines at the same opacities as before.
+
 ## 2026-11-14: Reset always visible, film grain
 - **Before:**
   - Reset was faint grey text that appeared only after a change, so it was easy to miss, especially on phones.

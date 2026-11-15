@@ -2,6 +2,10 @@
 
 Design and build judgments, newest first. **Placeholder** means a stand-in for an open decision (CLAUDE.md §7). It's marked `// OPEN:` in the code and waits for JP to decide.
 
+## 2026-11-14: Dark mode trial (JP's direction)
+- JP is trying the app inverted: a dark page with light text, a white panel border and white divider lines. The drink itself is unchanged.
+- This departs from the brief's visual direction (§2: light `#F7F7F7` background, dark `#141414` text). It's a trial, and the brief isn't updated until JP decides. The two colors simply swap roles, so going back is a quick change.
+
 ## 2026-11-14: Dragging a line trades between neighbors (JP's choice)
 - **Problem:** a line "belonged" to the layer below it while the stack always fills the panel. The line under a garnish could never move (the garnish keeps 60px), so dragging it shot the amount below up to the 12 oz cap. JP saw this as the drag "getting stuck" and acting weird near the top.
 - **Options shown to JP:**
