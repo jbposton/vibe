@@ -2,6 +2,16 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-14: Liquid shader
+- **Before:** the drink was drawn as CSS-blurred strips with still boundaries.
+- **After:** a WebGL shader draws the whole drink on the graphics chip (`src/components/LiquidCanvas.tsx`).
+  - **Same still look:** each layer is the same Gaussian-blurred band as the v4 recipe.
+  - **Motion:** the boundaries are pushed by slowly drifting, self-warping noise (±40px), so the colors continuously blend into each other like liquids mixing at a slow pace.
+  - **Dragging** just updates a few numbers, and amount changes glide over about 0.2s.
+  - **Fallbacks:** reduced motion freezes the movement, the animation pauses when the tab is hidden, and devices without WebGL fall back to the CSS strips.
+- **Tuning during the build:** a ±12px drift was too subtle to notice, so it's now ±40px at 1.6× speed. The first noise showed blocky square patches; smoother, rotated noise layers fixed that.
+- **Measured:** 61 frames per second in the preview.
+
 ## 2026-11-14: White lines removed
 - **Before:** a white line showed the boundary being moved while you dragged (and on hover with a mouse).
 - **After:** no lines at all. The layer you're dragging is shown only by its 5% darker tint and by the color boundary moving.

@@ -15,6 +15,7 @@ import {
   tradeForEdge,
   volumeOz,
 } from "@/lib/stack";
+import { LiquidCanvas, type LiquidLayer } from "./LiquidCanvas";
 import { GRAIN_STYLE } from "./surfaceEffects";
 import { useLayerDrag } from "./useLayerDrag";
 
@@ -38,6 +39,9 @@ function tradePartner(ordered: StackLine[], key: number): Pair | null {
   if (liquid(ordered[i + 1])) return { lowerKey: key, upperKey: ordered[i + 1].key };
   return null;
 }
+
+/** The page's warm black, also shown by the shader above and below the drink. */
+const PAGE_BACKGROUND = "#1A1612";
 
 /** How dark a layer gets while you drag it (opacity of a solid black veil). */
 const SELECTED_DARKEN = 0.05;
@@ -85,6 +89,21 @@ export function DrinkPanel() {
   const ordered = orderLines(state.lines);
   const heights = layerHeights(ordered, panelHeight);
   const bottoms = layerBottoms(heights);
+
+  // The drink for the liquid shader: each layer's band (with the v4 overlap)
+  // and blur, in px above the stack bottom.
+  const liquidLayers: LiquidLayer[] = ordered.map((line, i) => {
+    const g = layerGeometry(heights[i]);
+    return {
+      lo: bottoms[i] - g.overlap,
+      hi: bottoms[i] + heights[i] + g.overlap,
+      blur: g.blur,
+      color: INGREDIENTS[line.ingredient].color,
+    };
+  });
+  // null until the shader has drawn (true) or failed (false). Until it's
+  // drawing, the CSS bands below show the drink.
+  const [shaderReady, setShaderReady] = useState<boolean | null>(null);
 
   // Geometry the bands were drawn at (same layers, same order).
   const baseHeights = layerHeights(orderLines(state.baseLines), panelHeight);
@@ -237,9 +256,20 @@ export function DrinkPanel() {
       >
         {panelHeight > 0 && (
           <>
-            {/* The blurred color bands (Figma v4 recipe). Later layers paint on top.
-                Bands run past the sides; the panel's border clips the extra blur. */}
-            {ordered.map((line, i) => {
+            {/* The drink, drawn by the liquid shader: v4 blurred bands whose
+                boundaries drift slowly, like liquids mixing. */}
+            <LiquidCanvas
+              layers={liquidLayers}
+              resetKey={`${drink.id}-${ordered.length}`}
+              dragging={draggingKey !== null}
+              background={PAGE_BACKGROUND}
+              onReady={setShaderReady}
+            />
+
+            {/* Fallback (and first paint): the blurred color bands as CSS
+                (Figma v4 recipe). Later layers paint on top. Bands run past
+                the sides; the panel clips the extra blur. */}
+            {shaderReady !== true && ordered.map((line, i) => {
               // Drawn (and blurred) once at the base size, then stretched and
               // moved to the current size with a transform.
               const base = layerGeometry(baseHeights[i]);
