@@ -11,8 +11,8 @@ import {
 } from "react";
 import { DRINKS, type RecipeLine } from "@/data/drinks";
 import { INGREDIENTS } from "@/data/ingredients";
-import { orderLines } from "@/lib/stack";
-import { DrinkCard } from "./DrinkCard";
+import { formatTotal, orderLines, totalParts } from "@/lib/stack";
+import { DrinkCard, type DragMode } from "./DrinkCard";
 
 const N = DRINKS.length;
 
@@ -67,6 +67,8 @@ export function DrinkPanel() {
   const [edits, setEdits] = useState<Record<number, RecipeLine[]>>({});
   const [trackWidth, setTrackWidth] = useState(0);
   const [autoPlay, setAutoPlay] = useState(true); // the Pause / Play button
+  // OPEN: gesture map (brief §6). Prototype switch between two drag behaviors.
+  const [dragMode, setDragMode] = useState<DragMode>("add");
   const reducedMotion = useSyncExternalStore(subscribeReducedMotion, getReducedMotion, () => false);
   // Whether the row moves on by itself. See the effect further down.
   const autoScrolling = !isDesktop && autoPlay && !reducedMotion && !(index in edits);
@@ -383,6 +385,15 @@ export function DrinkPanel() {
           <span className="ml-auto text-xs tabular-nums text-[#F7F7F7]/45" aria-live="polite">
             {infoIndex + 1} / {N}
           </span>
+          {/* Prototype: compare the two drag behaviors. */}
+          <button
+            type="button"
+            onClick={() => setDragMode((m) => (m === "add" ? "trade" : "add"))}
+            aria-label={`Drag behavior: ${dragMode === "add" ? "add" : "trade with neighbor"}. Switch.`}
+            className="h-8 rounded-full px-3 text-xs text-[#F7F7F7]/60 hover:text-[#F7F7F7] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7]"
+          >
+            Drag: {dragMode === "add" ? "Add" : "Trade"}
+          </button>
           {/* Phones only: stop or restart the auto-advance. */}
           {!isDesktop && !reducedMotion && (
             <button
@@ -407,13 +418,19 @@ export function DrinkPanel() {
         <h1 className="mt-2 text-[22px] font-semibold leading-7">{infoDrink.name}</h1>
         <p className="mt-1 text-xs opacity-55">{infoDrink.family}</p>
         <p className="mt-3 text-[11px] leading-4 text-[#F7F7F7]/45">{caption}</p>
+        <p className="mt-2 flex items-baseline gap-2 tabular-nums">
+          <span className="text-base text-[#F7F7F7]/55">Total</span>
+          <span className="text-[22px] font-semibold leading-7">{formatTotal(totalParts(infoLines))}</span>
+        </p>
 
         {/* OPEN: gesture hints (brief §6). Placeholder: one line of text until the first change. */}
         <p
           className={`mt-3 text-[11px] text-[#F7F7F7]/45 ${modified ? "invisible" : ""}`}
           aria-hidden={modified}
         >
-          Drag a layer down to expand it, up to shrink it.
+          {dragMode === "add"
+            ? "Drag a layer down to add more of it, up to take some out. The rest stay the same."
+            : "Drag a layer down to expand it, up to shrink it. It trades with its neighbor."}
           <span className="md:hidden"> Swipe sideways for other drinks.</span>
         </p>
       </section>
@@ -450,6 +467,7 @@ export function DrinkPanel() {
                 onEdit={onEdit}
                 interactive={j === infoIndex && !busy}
                 onHorizontal={onHorizontal}
+                dragMode={dragMode}
               />
               {/* Dims the card when it's at the side; its opacity is set as the row moves. */}
               <div aria-hidden data-dim className="pointer-events-none absolute inset-0 rounded-[28px] bg-black opacity-0" />

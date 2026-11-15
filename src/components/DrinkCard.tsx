@@ -4,16 +4,18 @@ import { memo, useCallback, useRef, useState } from "react";
 import type { Drink, RecipeLine } from "@/data/drinks";
 import { INGREDIENTS } from "@/data/ingredients";
 import {
+  amountForEdge,
   formatAmount,
   layerBottoms,
   layerGeometry,
   layerHeights,
   orderLines,
+  snapAmount,
   snapTrade,
   type StackLine,
   stepAmount,
   tradeForEdge,
-  volumeOz,
+  volumeParts,
 } from "@/lib/stack";
 import { LiquidCanvas, type LiquidLayer } from "./LiquidCanvas";
 import { GRAIN_STYLE } from "./surfaceEffects";
@@ -36,6 +38,15 @@ function tradePartner(ordered: StackLine[], key: number): Pair | null {
   if (liquid(ordered[i + 1])) return { lowerKey: key, upperKey: ordered[i + 1].key };
   return null;
 }
+
+/**
+ * How dragging a layer changes the drink.
+ * "add": only the dragged ingredient changes; the others keep their parts and
+ * the stack re-shares its height (the drink grows or shrinks).
+ * "trade": volume moves between the layer and a neighbor; total stays fixed.
+ * OPEN: gesture map (brief §6, §7). Prototype of both, to compare.
+ */
+export type DragMode = "add" | "trade";
 
 /** The page's warm black, also shown by the shader above and below the drink. */
 const PAGE_BACKGROUND = "#1A1612";
@@ -66,6 +77,8 @@ type Props = {
   interactive: boolean;
   /** A drag on a section turned out to be a sideways swipe. */
   onHorizontal: (clientX: number, pointerId: number) => void;
+  /** What dragging a layer does (prototype switch). */
+  dragMode: DragMode;
 };
 
 /**
@@ -80,6 +93,7 @@ export const DrinkCard = memo(function DrinkCard({
   onEdit,
   interactive,
   onHorizontal,
+  dragMode,
 }: Props) {
   // Measure the card: the stack fills its full inner height.
   const panelEl = useRef<HTMLElement | null>(null);
@@ -119,8 +133,10 @@ export const DrinkCard = memo(function DrinkCard({
   // Dragging a section trades volume with a neighbor: down expands it (more
   // of this ingredient), up shrinks it (less). The line shared with that
   // neighbor follows the finger and the rest of the drink stays put. Amounts
-  // follow the finger smoothly and snap to ¼ oz (or whole dashes) on release.
+  // follow the finger smoothly and snap to ¼ part (or whole dashes) on release.
   const drag = useRef<{ pair: Pair; startY: number; startEdge: number; scale: number } | null>(null);
+  // "add" mode: the one line being changed, and which of its edges follows the finger.
+  const addDrag = useRef<{ key: number; edgeOf: "bottom" | "top"; startY: number; startEdge: number; scale: number } | null>(null);
 
   const setPair = (lowerKey: number, upperKey: number, pick: (prev: RecipeLine[]) => [RecipeLine["amount"], RecipeLine["amount"]]) =>
     onEdit(drinkIndex, (prev) => {
@@ -130,6 +146,18 @@ export const DrinkCard = memo(function DrinkCard({
 
   const { handlers, draggingKey } = useLayerDrag({
     onStart: (key, clientY) => {
+      if (dragMode === "add") {
+        const i = ordered.findIndex((l) => l.key === key);
+        if (i < 0 || ordered[i].amount.kind === "garnish") return;
+        const el = panelEl.current;
+        const scale = el && el.offsetHeight > 0 ? el.getBoundingClientRect().height / el.offsetHeight : 1;
+        // The bottom line follows the finger (down adds). The base layer has
+        // nothing below it, so its top line follows instead (down shrinks it).
+        const edgeOf = i === 0 ? "top" : "bottom";
+        const startEdge = bottoms[i] + (edgeOf === "top" ? heights[i] : 0);
+        addDrag.current = { key, edgeOf, startY: clientY, startEdge, scale };
+        return;
+      }
       const pair = tradePartner(ordered, key);
       if (!pair) return;
       // Where the shared line is now, in px above the stack bottom.
@@ -140,6 +168,16 @@ export const DrinkCard = memo(function DrinkCard({
       drag.current = { pair, startY: clientY, startEdge: bottoms[idx] + heights[idx], scale };
     },
     onMove: (_key, clientY) => {
+      const a = addDrag.current;
+      if (a) {
+        const edge = Math.min(panelHeight, Math.max(0, a.startEdge - (clientY - a.startY) / a.scale));
+        onEdit(drinkIndex, (prev) =>
+          prev.map((l, i) =>
+            i === a.key ? { ...l, amount: amountForEdge(prev, a.key, edge, panelHeight, a.edgeOf) } : l,
+          ),
+        );
+        return;
+      }
       const d = drag.current;
       if (!d) return;
       const down = (clientY - d.startY) / d.scale; // px moved down
@@ -151,6 +189,12 @@ export const DrinkCard = memo(function DrinkCard({
       setPair(lowerKey, upperKey, (prev) => tradeForEdge(prev, lowerKey, upperKey, edge, panelHeight));
     },
     onEnd: () => {
+      const a = addDrag.current;
+      addDrag.current = null;
+      if (a) {
+        setLine(a.key, (l) => ({ ...l, amount: snapAmount(l.amount) }));
+        return;
+      }
       const d = drag.current;
       drag.current = null;
       if (!d) return;
@@ -260,7 +304,8 @@ export const DrinkCard = memo(function DrinkCard({
 
             // The whole section is the touch target: drag down to expand it,
             // up to shrink it. Only the card in the middle takes drags.
-            const canDrag = interactive && tradePartner(ordered, line.key) !== null;
+            const canDrag =
+              interactive && (dragMode === "add" ? !isGarnish : tradePartner(ordered, line.key) !== null);
 
             return (
               <div
@@ -270,7 +315,7 @@ export const DrinkCard = memo(function DrinkCard({
                 aria-label={`${ingredient.name}, ${line.role}`}
                 aria-valuemin={0}
                 aria-valuemax={12}
-                aria-valuenow={Math.round(volumeOz(line.amount) * 100) / 100}
+                aria-valuenow={Math.round(volumeParts(line.amount) * 100) / 100}
                 aria-valuetext={amountText}
                 aria-orientation="vertical"
                 data-layer-drag={canDrag ? "" : undefined}

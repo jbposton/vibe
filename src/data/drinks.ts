@@ -1,5 +1,5 @@
 /**
- * The 18 test drinks (brief §5). Amounts are in oz. Lines are listed base
+ * The 18 test drinks (brief §5). Amounts are in parts (1 part = 1 oz, see PART_OZ in stack.ts). Lines are listed base
  * first, in recipe order; the stack order comes from each line's role.
  */
 import type { IngredientId } from "./ingredients";
@@ -19,7 +19,7 @@ export const FAMILIES = [
 export type Family = (typeof FAMILIES)[number];
 
 export type Amount =
-  | { kind: "oz"; oz: number }
+  | { kind: "parts"; parts: number }
   | { kind: "dash"; count: number }
   | { kind: "garnish" };
 
@@ -36,7 +36,7 @@ export type Drink = {
   lines: RecipeLine[];
 };
 
-const oz = (n: number): Amount => ({ kind: "oz", oz: n });
+const parts = (n: number): Amount => ({ kind: "parts", parts: n });
 const dashes = (count: number): Amount => ({ kind: "dash", count });
 const garnish: Amount = { kind: "garnish" };
 
@@ -52,9 +52,9 @@ export const DRINKS: Drink[] = [
     name: "Gimlet",
     family: "Sour",
     lines: [
-      line("gin", "base", oz(2)),
-      line("lime-juice", "sour", oz(0.75)),
-      line("simple-syrup", "sweet", oz(0.75)),
+      line("gin", "base", parts(2)),
+      line("lime-juice", "sour", parts(0.75)),
+      line("simple-syrup", "sweet", parts(0.75)),
       line("lime-wheel", "aromatic", garnish),
     ],
   },
@@ -63,9 +63,9 @@ export const DRINKS: Drink[] = [
     name: "Daiquiri",
     family: "Sour",
     lines: [
-      line("white-rum", "base", oz(2)),
-      line("lime-juice", "sour", oz(1)),
-      line("simple-syrup", "sweet", oz(0.75)),
+      line("white-rum", "base", parts(2)),
+      line("lime-juice", "sour", parts(1)),
+      line("simple-syrup", "sweet", parts(0.75)),
     ],
   },
   {
@@ -73,9 +73,9 @@ export const DRINKS: Drink[] = [
     name: "Whiskey sour",
     family: "Sour",
     lines: [
-      line("bourbon", "base", oz(2)),
-      line("lemon-juice", "sour", oz(0.75)),
-      line("simple-syrup", "sweet", oz(0.75)),
+      line("bourbon", "base", parts(2)),
+      line("lemon-juice", "sour", parts(0.75)),
+      line("simple-syrup", "sweet", parts(0.75)),
       line("cherry", "aromatic", garnish),
     ],
   },
@@ -84,9 +84,9 @@ export const DRINKS: Drink[] = [
     name: "Margarita",
     family: "Sour",
     lines: [
-      line("tequila", "base", oz(2)),
-      line("orange-liqueur", "modifier", oz(0.75)),
-      line("lime-juice", "sour", oz(1)),
+      line("tequila", "base", parts(2)),
+      line("orange-liqueur", "modifier", parts(0.75)),
+      line("lime-juice", "sour", parts(1)),
       line("salt-rim", "aromatic", garnish),
     ],
   },
@@ -95,11 +95,11 @@ export const DRINKS: Drink[] = [
     name: "Cosmopolitan",
     family: "Sour",
     lines: [
-      line("vodka", "base", oz(1.5)),
-      line("orange-liqueur", "modifier", oz(1)),
+      line("vodka", "base", parts(1.5)),
+      line("orange-liqueur", "modifier", parts(1)),
       // OPEN: Cranberry juice as modifier is a guess to confirm with JP.
-      line("cranberry-juice", "modifier", oz(1)),
-      line("lime-juice", "sour", oz(0.5)),
+      line("cranberry-juice", "modifier", parts(1)),
+      line("lime-juice", "sour", parts(0.5)),
     ],
   },
   {
@@ -107,10 +107,10 @@ export const DRINKS: Drink[] = [
     name: "Tom Collins",
     family: "Long sour",
     lines: [
-      line("gin", "base", oz(2)),
-      line("simple-syrup", "sweet", oz(0.5)),
-      line("lemon-juice", "sour", oz(1)),
-      line("soda-water", "lengthener", oz(2)),
+      line("gin", "base", parts(2)),
+      line("simple-syrup", "sweet", parts(0.5)),
+      line("lemon-juice", "sour", parts(1)),
+      line("soda-water", "lengthener", parts(2)),
     ],
   },
   {
@@ -118,11 +118,11 @@ export const DRINKS: Drink[] = [
     name: "Mojito",
     family: "Long sour",
     lines: [
-      line("white-rum", "base", oz(2)),
-      line("simple-syrup", "sweet", oz(0.75)),
-      line("lime-juice", "sour", oz(1)),
-      // OPEN: 2 oz soda water is assumed.
-      line("soda-water", "lengthener", oz(2)),
+      line("white-rum", "base", parts(2)),
+      line("simple-syrup", "sweet", parts(0.75)),
+      line("lime-juice", "sour", parts(1)),
+      // OPEN: 2 parts soda water is assumed.
+      line("soda-water", "lengthener", parts(2)),
       line("mint", "aromatic", garnish),
     ],
   },
@@ -131,8 +131,8 @@ export const DRINKS: Drink[] = [
     name: "Old fashioned",
     family: "Spirit-forward",
     lines: [
-      line("bourbon", "base", oz(2)),
-      line("simple-syrup", "sweet", oz(0.25)),
+      line("bourbon", "base", parts(2)),
+      line("simple-syrup", "sweet", parts(0.25)),
       line("angostura", "bitter", dashes(2)),
       line("orange-peel", "aromatic", garnish),
     ],
@@ -142,8 +142,8 @@ export const DRINKS: Drink[] = [
     name: "Manhattan",
     family: "Spirit-forward",
     lines: [
-      line("rye", "base", oz(2)),
-      line("sweet-vermouth", "modifier", oz(1)),
+      line("rye", "base", parts(2)),
+      line("sweet-vermouth", "modifier", parts(1)),
       line("angostura", "bitter", dashes(2)),
       line("cherry", "aromatic", garnish),
     ],
@@ -153,9 +153,9 @@ export const DRINKS: Drink[] = [
     name: "Negroni",
     family: "Spirit-forward",
     lines: [
-      line("gin", "base", oz(1)),
-      line("sweet-vermouth", "modifier", oz(1)),
-      line("campari", "bitter", oz(1)),
+      line("gin", "base", parts(1)),
+      line("sweet-vermouth", "modifier", parts(1)),
+      line("campari", "bitter", parts(1)),
       line("orange-peel", "aromatic", garnish),
     ],
   },
@@ -164,8 +164,8 @@ export const DRINKS: Drink[] = [
     name: "Martini",
     family: "Spirit-forward",
     lines: [
-      line("gin", "base", oz(2.5)),
-      line("dry-vermouth", "modifier", oz(0.5)),
+      line("gin", "base", parts(2.5)),
+      line("dry-vermouth", "modifier", parts(0.5)),
       line("lemon-twist", "aromatic", garnish),
     ],
   },
@@ -174,8 +174,8 @@ export const DRINKS: Drink[] = [
     name: "Gin and tonic",
     family: "Highball",
     lines: [
-      line("gin", "base", oz(2)),
-      line("tonic-water", "lengthener", oz(4)),
+      line("gin", "base", parts(2)),
+      line("tonic-water", "lengthener", parts(4)),
       line("lime-wedge", "aromatic", garnish),
     ],
   },
@@ -184,9 +184,9 @@ export const DRINKS: Drink[] = [
     name: "Moscow mule",
     family: "Highball",
     lines: [
-      line("vodka", "base", oz(2)),
-      line("lime-juice", "sour", oz(0.5)),
-      line("ginger-beer", "lengthener", oz(4)),
+      line("vodka", "base", parts(2)),
+      line("lime-juice", "sour", parts(0.5)),
+      line("ginger-beer", "lengthener", parts(4)),
       line("lime-wedge", "aromatic", garnish),
     ],
   },
@@ -196,9 +196,9 @@ export const DRINKS: Drink[] = [
     family: "Spritz",
     lines: [
       // OPEN: Prosecco as base and Aperol as bitter are guesses to confirm with JP.
-      line("prosecco", "base", oz(3)),
-      line("aperol", "bitter", oz(2)),
-      line("soda-water", "lengthener", oz(1)),
+      line("prosecco", "base", parts(3)),
+      line("aperol", "bitter", parts(2)),
+      line("soda-water", "lengthener", parts(1)),
       line("orange-slice", "aromatic", garnish),
     ],
   },
@@ -207,10 +207,10 @@ export const DRINKS: Drink[] = [
     name: "Hot toddy",
     family: "Hot",
     lines: [
-      line("whiskey", "base", oz(2)),
-      line("honey", "sweet", oz(0.5)),
-      line("lemon-juice", "sour", oz(0.5)),
-      line("hot-water", "lengthener", oz(4)),
+      line("whiskey", "base", parts(2)),
+      line("honey", "sweet", parts(0.5)),
+      line("lemon-juice", "sour", parts(0.5)),
+      line("hot-water", "lengthener", parts(4)),
       line("cinnamon-stick", "aromatic", garnish),
     ],
   },
@@ -219,9 +219,9 @@ export const DRINKS: Drink[] = [
     name: "Arnold Palmer",
     family: "Non-alcoholic",
     lines: [
-      line("iced-tea", "base", oz(4)),
+      line("iced-tea", "base", parts(4)),
       // OPEN: Lemonade as modifier is a guess to confirm with JP.
-      line("lemonade", "modifier", oz(4)),
+      line("lemonade", "modifier", parts(4)),
       line("lemon-wheel", "aromatic", garnish),
     ],
   },
@@ -231,8 +231,8 @@ export const DRINKS: Drink[] = [
     family: "Non-alcoholic",
     lines: [
       // OPEN: Ginger ale as base is a guess to confirm with JP.
-      line("ginger-ale", "base", oz(6)),
-      line("grenadine", "sweet", oz(0.5)),
+      line("ginger-ale", "base", parts(6)),
+      line("grenadine", "sweet", parts(0.5)),
       line("cherry", "aromatic", garnish),
     ],
   },
@@ -242,10 +242,10 @@ export const DRINKS: Drink[] = [
     // OPEN: which family the Espresso martini belongs to is undecided.
     family: "Unplaced",
     lines: [
-      line("vodka", "base", oz(2)),
-      line("coffee-liqueur", "modifier", oz(1)),
+      line("vodka", "base", parts(2)),
+      line("coffee-liqueur", "modifier", parts(1)),
       // OPEN: Espresso as bitter is a guess to confirm with JP.
-      line("espresso", "bitter", oz(1)),
+      line("espresso", "bitter", parts(1)),
       line("coffee-beans", "aromatic", garnish),
     ],
   },

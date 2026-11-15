@@ -2,6 +2,24 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-15: Drag changes only the ingredient you touch (prototype, beside the old drag)
+- **Before:** dragging a layer traded volume with a neighbor, so adding lime also cut whatever sat next to it, and the drink's total never changed.
+- **After:**
+  - New default "Add" drag: only the layer you drag changes. The other ingredients keep their amounts, and the stack re-shares its fixed height, so they shrink in proportion. Dragging down adds, up takes out; the base layer is still the exception (down shrinks it).
+  - A "Total" line under the ingredient list shows the drink's size in oz.
+  - A "Drag: Add / Trade" button at the top switches between the new drag and the old trade drag, so the two can be compared. The hint text follows the mode.
+  - Still snaps to ¼ on release; arrow keys step only the focused layer in both modes.
+- **Tested:** in the Martini, dragging Dry vermouth down went ½ → 1 oz with Gin unchanged (total 3 → 3½), dragging it back up returned it; dragging Gin (base) down shrank it (2½ → 1¼ oz).
+- **Open:** keep Add as the only drag and remove Trade, then update brief §6 (JP to decide).
+
+## 2026-11-15: Parts are the base amount, shown in oz (prototype)
+- **Before:** drinks stored amounts in oz and the labels read "2 oz", "¾ oz".
+- **After:**
+  - Every amount is stored in parts. The labels show the same oz as before, worked out from parts (1 part = 1 oz for now). The screen looks the same.
+  - Adding ml or cup later means adding one line to `UNITS` in `src/lib/stack.ts`; labels follow. oz is the only choice for the MVP (JP's call).
+  - Quarter part is the smallest step. Dashes and garnishes stay outside the ratio.
+- **Open:** a simplified ratio (e.g. 1:1:1) beside the standard one-drink recipe, since the Arnold Palmer's 1:1 isn't a 1 oz + 1 oz drink. Marked `// OPEN: parts model` in `formatAmount`.
+
 ## 2026-11-15: Every card mixes (no more waiting for the middle)
 - **Before:** only the drink in the middle mixed. The cards at the sides sat still and only started once they reached the middle (and went still again when they left).
 - **After:**

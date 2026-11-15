@@ -4,25 +4,37 @@
 import type { Amount, RecipeLine } from "@/data/drinks";
 import { roleRank } from "@/data/roles";
 
-/** Volume we count for one dash of bitters (brief §4: "about 0.1 oz"). */
-export const DASH_OZ = 0.1;
+/**
+ * Parts are the base unit for every amount. The user sees them in a chosen
+ * unit; for now only oz, where 1 part = 1 oz (JP, 2026-11-15). To add ml or
+ * cup later, add an entry here and the labels follow.
+ * OPEN: unit choice UI (brief §7).
+ */
+export const UNITS = {
+  oz: { label: "oz", perPart: 1 },
+} as const;
+export type UnitId = keyof typeof UNITS;
+export const DEFAULT_UNIT: UnitId = "oz";
+
+/** Parts we count for one dash of bitters (brief §4: "about 0.1 oz"). */
+export const DASH_PARTS = 0.1;
 
 /** Minimum layer height in px (brief §4). */
 export const MIN_LAYER = 60;
 
-/** Largest amount a layer can hold: 12 oz, or 12 dashes. */
-const MAX_STEPS_OZ = 48; // 12 oz in ¼ oz steps
+/** Largest amount a layer can hold: 12 parts, or 12 dashes. */
+const MAX_STEPS_PARTS = 48; // 12 parts in ¼ part steps
 const MAX_DASHES = 12;
 
 /** A recipe line plus its position in the original recipe (stable identity). */
 export type StackLine = RecipeLine & { key: number };
 
-export function volumeOz(amount: Amount): number {
+export function volumeParts(amount: Amount): number {
   switch (amount.kind) {
-    case "oz":
-      return amount.oz;
+    case "parts":
+      return amount.parts;
     case "dash":
-      return amount.count * DASH_OZ;
+      return amount.count * DASH_PARTS;
     case "garnish":
       return 0;
   }
@@ -49,7 +61,7 @@ export function orderLines(lines: RecipeLine[]): StackLine[] {
  * layer gets an equal share.
  *
  * OPEN: what a missing role looks like (brief §7). Placeholder: a layer at
- * 0 oz keeps the minimum height so it can be dragged back up.
+ * 0 parts keeps the minimum height so it can be dragged back up.
  */
 export function layerHeights(
   lines: { amount: Amount }[],
@@ -60,7 +72,7 @@ export function layerHeights(
   if (n === 0 || total <= 0) return lines.map(() => 0);
   if (min * n >= total) return lines.map(() => total / n);
 
-  const vol = lines.map((l) => volumeOz(l.amount));
+  const vol = lines.map((l) => volumeParts(l.amount));
   const fixed = vol.map((v) => v <= 0);
 
   for (;;) {
@@ -96,21 +108,21 @@ export function layerGeometry(height: number) {
   return { overlap, totalHeight, blur: Math.min(84, Math.round(totalHeight * 0.3)) };
 }
 
-/** An amount of the same kind holding `value` (oz, or dashes). Not snapped. */
+/** An amount of the same kind holding `value` (parts, or dashes). Not snapped. */
 function withValue(amount: Amount, value: number): Amount {
   switch (amount.kind) {
     case "garnish":
       return amount;
     case "dash":
       return { kind: "dash", count: value };
-    case "oz":
-      return { kind: "oz", oz: value };
+    case "parts":
+      return { kind: "parts", parts: value };
   }
 }
 
-/** An amount of the same kind as `amount` holding `oz` of volume. Not snapped. */
-function withVolume(amount: Amount, oz: number): Amount {
-  return amount.kind === "dash" ? withValue(amount, oz / DASH_OZ) : withValue(amount, oz);
+/** An amount of the same kind as `amount` holding `parts` of volume. Not snapped. */
+function withVolume(amount: Amount, parts: number): Amount {
+  return amount.kind === "dash" ? withValue(amount, parts / DASH_PARTS) : withValue(amount, parts);
 }
 
 /**
@@ -132,9 +144,9 @@ export function tradeForEdge(
   const lower = lines[lowerKey].amount;
   const upper = lines[upperKey].amount;
   if (lower.kind === "garnish" || upper.kind === "garnish") return [lower, upper];
-  const pair = volumeOz(lower) + volumeOz(upper);
+  const pair = volumeParts(lower) + volumeParts(upper);
 
-  // Line position when the lower layer holds `x` oz and the upper `pair - x`.
+  // Line position when the lower layer holds `x` parts and the upper `pair - x`.
   const amounts = (x: number): [Amount, Amount] => [withVolume(lower, x), withVolume(upper, pair - x)];
   const lineAt = (x: number) => {
     const [a, b] = amounts(x);
@@ -176,30 +188,35 @@ export function tradeForEdge(
 }
 
 /**
- * Snap both sides of a trade to their notches (¼ oz, or whole dashes) while
+ * Snap both sides of a trade to their notches (¼ part, or whole dashes) while
  * keeping the pair's combined volume as close to unchanged as possible.
  */
 export function snapTrade(lower: Amount, upper: Amount): [Amount, Amount] {
-  const pair = volumeOz(lower) + volumeOz(upper);
+  const pair = volumeParts(lower) + volumeParts(upper);
   const a = snapAmount(lower);
-  const b = snapAmount(withVolume(upper, Math.max(0, pair - volumeOz(a))));
+  const b = snapAmount(withVolume(upper, Math.max(0, pair - volumeParts(a))));
   return [a, b];
 }
 
-/** Round an amount to its notch: ¼ oz, or a whole dash. */
+/** Round an amount to its notch: ¼ part, or a whole dash. */
 export function snapAmount(amount: Amount): Amount {
   switch (amount.kind) {
     case "garnish":
       return amount;
     case "dash":
       return { kind: "dash", count: clamp(Math.round(amount.count), 0, MAX_DASHES) };
-    case "oz":
-      return { kind: "oz", oz: clamp(Math.round(amount.oz * 4) / 4, 0, MAX_STEPS_OZ / 4) };
+    case "parts":
+      return { kind: "parts", parts: clamp(Math.round(amount.parts * 4) / 4, 0, MAX_STEPS_PARTS / 4) };
   }
 }
 
-/** Human-readable amount, e.g. "2 oz", "¾ oz", "2 dashes", "garnish". */
-export function formatAmount(amount: Amount): string {
+/**
+ * Human-readable amount in the chosen unit: "2 oz", "¾ oz", "2 dashes",
+ * "garnish". Parts times the unit's size, shown in ¼ steps. Dashes and
+ * garnishes sit outside the ratio, so units don't touch them.
+ * OPEN: parts model. For ml or cup, steps may need a different rounding.
+ */
+export function formatAmount(amount: Amount, unit: UnitId = DEFAULT_UNIT): string {
   switch (amount.kind) {
     case "garnish":
       return "garnish";
@@ -207,27 +224,79 @@ export function formatAmount(amount: Amount): string {
       const count = Math.round(amount.count);
       return `${count} ${count === 1 ? "dash" : "dashes"}`;
     }
-    case "oz": {
-      const whole = Math.floor(amount.oz);
-      const frac = Math.round((amount.oz - whole) * 4);
-      const fracText = ["", "¼", "½", "¾"][frac] ?? "";
-      if (frac === 4) return `${whole + 1} oz`;
-      if (whole === 0 && !fracText) return "0 oz";
-      return `${whole || ""}${fracText} oz`;
+    case "parts": {
+      const quarters = Math.round(amount.parts * UNITS[unit].perPart * 4);
+      if (quarters === 0) return `0 ${UNITS[unit].label}`;
+      const whole = Math.floor(quarters / 4);
+      const fracText = ["", "¼", "½", "¾"][quarters % 4];
+      return `${whole || ""}${fracText} ${UNITS[unit].label}`;
     }
   }
 }
 
-/** Step an amount up or down by one notch (¼ oz, or one dash). */
+/** Step an amount up or down by one notch (¼ part, or one dash). */
 export function stepAmount(amount: Amount, steps: number): Amount {
   switch (amount.kind) {
     case "garnish":
       return amount;
     case "dash":
       return { kind: "dash", count: clamp(Math.round(amount.count) + steps, 0, MAX_DASHES) };
-    case "oz":
-      return { kind: "oz", oz: clamp(Math.round(amount.oz * 4) / 4 + steps * 0.25, 0, 12) };
+    case "parts":
+      return { kind: "parts", parts: clamp(Math.round(amount.parts * 4) / 4 + steps * 0.25, 0, 12) };
   }
+}
+
+/**
+ * "Add" drag (prototype): change only the dragged line's amount; every other
+ * line keeps its parts. The stack has a fixed height, so the others re-share
+ * it in proportion on their own.
+ *
+ * Returns the amount of line `key` that puts one of its edges at `edge` px
+ * above the stack bottom: its bottom edge (so dragging down adds), or its top
+ * edge when `edgeOf` is "top" (the base layer, which has nothing below it, so
+ * dragging down shrinks it). Not snapped; call `snapAmount` on release.
+ * The edge moves steadily as the amount grows, so we search for the amount.
+ */
+export function amountForEdge(
+  lines: RecipeLine[],
+  key: number,
+  edge: number,
+  total: number,
+  edgeOf: "bottom" | "top",
+): Amount {
+  const amount = lines[key].amount;
+  if (amount.kind === "garnish") return amount;
+  const max = amount.kind === "dash" ? MAX_DASHES * DASH_PARTS : 12;
+
+  const edgeAt = (v: number) => {
+    const trial = lines.map((l, i) => (i === key ? { ...l, amount: withVolume(amount, v) } : l));
+    const ordered = orderLines(trial);
+    const heights = layerHeights(ordered, total);
+    const idx = ordered.findIndex((l) => l.key === key);
+    const below = heights.slice(0, idx).reduce((s, h) => s + h, 0);
+    return edgeOf === "bottom" ? below : below + heights[idx];
+  };
+
+  // Bottom edge falls as the amount grows; top edge rises.
+  const wantMore = (v: number) => (edgeOf === "bottom" ? edgeAt(v) > edge : edgeAt(v) < edge);
+  let lo = 0;
+  let hi = max;
+  for (let i = 0; i < 24; i++) {
+    const mid = (lo + hi) / 2;
+    if (wantMore(mid)) lo = mid;
+    else hi = mid;
+  }
+  return withVolume(amount, (lo + hi) / 2);
+}
+
+/** Sum of all liquid parts in a drink (dashes and garnishes sit outside the ratio). */
+export function totalParts(lines: RecipeLine[]): number {
+  return lines.reduce((s, l) => (l.amount.kind === "parts" ? s + l.amount.parts : s), 0);
+}
+
+/** A number of parts as a label in the chosen unit, e.g. "4½ oz". */
+export function formatTotal(parts: number, unit: UnitId = DEFAULT_UNIT): string {
+  return formatAmount({ kind: "parts", parts }, unit);
 }
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
