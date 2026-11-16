@@ -29,6 +29,42 @@ Visible before-and-after changes, newest first.
 - **After:** about 15px of space, and about 9px of each side card showing. The middle card is still exactly 24px from each side of the screen (that is now its own setting, `CARD_MARGIN`, separate from `GAP`, the extra space between cards; both at the top of `src/components/DrinkPanel.tsx`).
 - **Tested:** measured on a 375 x 812 phone: middle card 24 to 351, left card ending at 8.8, right card starting at 366.2.
 
+## 2026-11-17: Edit panel in a frame, and swipe up to focus on editing (Figma 117:975 and 118:1044)
+- **Before:** the flavor profile and the edit buttons sat loose under the drink, with a "Make edits" divider.
+- **After:**
+  - **Frame:** the flavor profile and the four edit buttons sit in a rounded dark frame (30px corners, `#2b2b2b`) at the bottom of the screen, as in the design. The "Make edits" divider is gone (the design has none). The flavor labels are 11px with a 2px dot (the design's new sizes). To make room for the frame under the drink, the drink card's shape is now 0.9 (the Figma panel, 370 x 410), so it is 343 x 381 on a 375 x 812 phone.
+  - **Swipe up (phones):** swiping the edit panel up moves everything on the z-axis: the browse filters move back and disappear, the drink name moves up and shrinks (40px to 24px), the drink moves back and shrinks to 78% with the cards beside it fading away, and the edit panel rises until it fills the bottom of the screen, partly over the drink, like your diagram. Swiping down on the panel puts it all back. While it is up, the drink's layers can't be dragged and the carousel doesn't swipe, so you only focus on that drink; the edit buttons work and the drink updates behind the panel.
+  - **How it moves (the apple-design skill):** the panel follows the finger 1:1; on release the finger's speed is handed to a spring (about 0.35s, no overshoot for a slow release and a little for a flick), a flick is projected forward to decide whether it lands open or closed, going past either end rubber-bands, and it can be grabbed or reversed at any moment without a jump. Only transform and opacity animate. With "reduce motion" on it just switches with no spring.
+  - **Without swiping:** a small grip at the top of the panel opens and closes it (it is a real button), Escape closes it, and tapping the shrunken drink above the panel closes it.
+  - **Wide screens:** no swipe; the framed panel just sits in the left column.
+- **Tested** on a 375 x 812 phone preview with scripted touches: a slow drag held at half way showed everything half moved (finger 122px of 244px gave exactly 50%); releasing past half settled open from a rubber-banded 1.06 without wobble; a quick flick down closed in about 0.2s and a flick up opened; the edit buttons worked while open (Add Sweet took the vermouth to 1¼ oz); the grip, Escape and tap-away all closed it; reversing 120ms into an opening carried on smoothly from where it was; and the carousel swipes again after closing.
+- **Open for JP:** the five gray bars in your diagram's open panel are placeholders, so the lower part of the open panel is empty for now; the Ice, Long and Stirred icons beside the header (in the diagram) aren't built; I added the grip, since the design has none and a gesture needs a non-swipe way in; the distances (`SHEET` in `src/components/DrinkPanel.tsx`) are set for a phone about 375 x 812; the drink moves back with a scale rather than true depth (the filters use real depth).
+
+## 2026-11-17: Flavor labels centered over their bars
+- **Before:** each label had a fixed-width slot for its value, so a short value like "High" left blank space after it and the "Sweet · High" label sat a little left of the center of its bars.
+- **After:** each label is exactly as wide as its words and centered on the same line as its bars, so "Strength · 27% ABV", "Sweet · High" and "Bitter · High" all line up with their bars. The bars never move; when a value changes (for example "High" to "Medium") only the label's words re-center around the same point, a few pixels at most.
+- **Tested:** the label center and bar center matched to the pixel for all three stats on the Negroni (81.2, 187.5, 293.8) and on the Arnold Palmer ("0% ABV", "Medium", "Low"), and the bars stayed at the same x positions when the drink changed.
+- **Trade-off:** this replaces the fixed-width slot that stopped label words from shifting, so the words now recenter slightly when a value changes.
+
+## 2026-11-17: Closed drawer has no extra space at the bottom
+- **Before:** the closed edit drawer was 226px tall, with about 86px of empty space under the buttons.
+- **After:** it is 166px tall: 26px of padding under the buttons, the same as the 26px above the flavor stats. The open drawer is unchanged (470px), so it now travels 304px instead of 244px, and the drink card has more room above the drawer (the card is still 343 x 381, centered). The drink's move up when the drawer opens was re-tuned from 55px to 78px so it still ends in the same place (title at 16px, card top at about 99px).
+- **Tested:** measured on a 375 x 812 phone: closed drawer 630 to 796 (166px) with exactly 26px under the buttons; open card top 99 and title top 16; closing returns to the same positions.
+
+## 2026-11-17: The background fades when the edit drawer is open
+- **Before:** the header and the drink only moved and shrank behind the drawer.
+- **After:** they also fade, to 55% opacity when the drawer is fully up (growing and easing back with the swipe, like everything else). This is the one place I'm departing from the apple-design skill, which says not to dim behind a non-blocking panel; it's JP's call. The drawer itself is untouched.
+- **Tuning:** `SHEET.dim` (0.45) in `src/components/DrinkPanel.tsx`; 0 turns it off.
+
+## 2026-11-17: The edit drawer is a glass material with a top shadow (replaces the faint blur)
+- **Before:** I had blurred the header and the drink (1px) while the edit panel was up. The apple-design skill says to animate only transform and opacity (blurring a moving element is re-done every frame) and to get this look from the *material* of the panel on top, not by blurring what's under it.
+- **After:** the blur on the header and the drink is gone. Instead the drawer itself is frosted glass: a dark, see-through fill (`#2b2b2b` at 72%) with `backdrop-filter: blur(20px) saturate(180%)`, so whatever is behind it (the lower part of the drink when it's open) is blurred through it, a thin light edge, and a soft shadow (`0 -10px 40px` at 50% black) that shows around its top and sides. The skill's rule for non-blocking panels is not to dim the background, so nothing else dims.
+- **Fallbacks:** with "reduce transparency" on, or where backdrop blur isn't supported, the drawer is a solid `#2b2b2b` with no blur (the shadow stays).
+- **How it grows now:** to keep the shadow and blur on one element, the drawer's height changes (226px to 470px, anchored at the bottom) instead of clipping a taller panel. It is a small absolutely positioned box, so it stays cheap. The finger and the spring work exactly as before.
+- **Where:** `.glass-sheet` in `src/app/globals.css`; `src/components/EditPanel.tsx`.
+- **Tested:** the page's styles and the computed backdrop blur, fill and shadow on the panel; open and closed screenshots on a phone-size preview (the pale gin layer glows softly through the top of the open drawer, and the shadow darkens the drink just above it); the panel is 226px tall closed and 470px open.
+- **Heads up:** a dev server restart was needed to pick up the new stylesheet while testing (a caching quirk of the dev server only).
+
 ## 2026-11-16: Cards 8px apart
 - **Before:** 10px between the middle card and the side cards (about 6px of each side card showing).
 - **After:** exactly 8px between the middle card and each side card, so about 8px of each side card shows next to the 16px margin. `GAP` is 8 at the top of `src/components/DrinkPanel.tsx`.

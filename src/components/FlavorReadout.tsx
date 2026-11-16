@@ -32,12 +32,12 @@ function Stat({ label, axis, value, valueText }: StatProps) {
       aria-valuetext={text}
       className="flex flex-col items-center gap-4"
     >
-      {/* The value sits in a slot of fixed width, so the label keeps one size
-          (and nothing around it moves) when the words or numbers change. */}
-      <p className="flex items-center gap-[3px] whitespace-nowrap text-[10px] leading-3">
+      {/* The label is as wide as its words and centered over the bars, so it lines up with
+          them exactly. The bars never move; only the words recenter when the value changes. */}
+      <p className="flex items-center gap-[3px] whitespace-nowrap text-[11px] leading-[13px]">
         <span className="text-[#F7F7F7]/45">{label}</span>
-        <span aria-hidden className="size-px rounded-full bg-[#7f7f7f]" />
-        <span className="inline-block w-11 text-left text-[#F7F7F7]">{text}</span>
+        <span aria-hidden className="size-0.5 rounded-full bg-[#7f7f7f]" />
+        <span className="text-[#F7F7F7]">{text}</span>
       </p>
       <div aria-hidden className="flex flex-col gap-[3px]">
         {Array.from({ length: LEVELS }, (_, i) => (
@@ -66,7 +66,7 @@ type Props = {
  */
 export function FlavorReadout({ profile }: Props) {
   return (
-    <div aria-label="Flavor profile" role="group" className="grid grid-cols-3 items-start justify-items-center px-2">
+    <div aria-label="Flavor profile" role="group" className="grid grid-cols-3 items-start justify-items-center">
       <Stat
         label="Strength"
         axis="strength"

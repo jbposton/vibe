@@ -13,7 +13,7 @@ type Props = {
 };
 
 const BUTTON =
-  "h-9 min-w-0 flex-1 truncate rounded-[9px] bg-white/[0.09] px-2 text-[11px] text-white transition-colors hover:bg-white/[0.16] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] disabled:pointer-events-none disabled:opacity-35";
+  "h-9 min-w-0 flex-1 truncate rounded-[9px] bg-white/[0.09] px-1 text-[11px] text-white transition-colors hover:bg-white/[0.16] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] disabled:pointer-events-none disabled:opacity-35";
 
 /**
  * "Make edits" (Figma 110:581): Add Sweet, Add Bitter, Less Strong and More
@@ -23,12 +23,7 @@ const BUTTON =
 export function MakeEdits({ edits, lines, onAdjust }: Props) {
   if (edits.length === 0) return null;
   return (
-    <section aria-label="Make edits" className="flex flex-col gap-3">
-      <div className="flex items-center gap-3 text-[11px] text-white">
-        <span aria-hidden className="h-px flex-1 bg-white/30" />
-        <h2 className="font-normal">Make edits</h2>
-        <span aria-hidden className="h-px flex-1 bg-white/30" />
-      </div>
+    <section aria-label="Make edits">
       <div className="flex gap-2">
         {edits.map((edit) => (
           <button

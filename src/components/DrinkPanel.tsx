@@ -14,8 +14,8 @@ import { flavorProfile } from "@/lib/flavor";
 import { DrinkCard } from "./DrinkCard";
 import { CLASSICS_ID, FILTERS, filterList } from "@/data/finder";
 import { FilterBar } from "./FilterBar";
-import { FlavorReadout } from "./FlavorReadout";
-import { MakeEdits } from "./MakeEdits";
+import { EditPanel, PANEL_CLOSED_HEIGHT, PANEL_TRAVEL } from "./EditPanel";
+import { useSheet } from "./useSheet";
 import { adjustLine, traitEdits } from "@/lib/edits";
 
 // OPEN: which drink a visitor sees first (brief §1 flow). Placeholder: Negroni.
@@ -25,12 +25,28 @@ const mod = (a: number, n: number) => ((a % n) + n) % n;
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
 /**
- * The drink card's fixed shape: width divided by height. With a 24px margin on
- * each side (CARD_MARGIN = 16), 0.77 gives 343 x 445 on a 375 x 812 phone.
- * OPEN: the exact proportion (JP, 2026-11-16: "fixed proportion, scales down a bit",
- * then "scale it up a bit again").
+ * The drink card's fixed shape: width divided by height. 0.9 is the Figma panel
+ * (370 x 410), which leaves room for the edit panel under it: 343 x 381 on a
+ * 375 x 812 phone with the 16px margin (CARD_MARGIN).
+ * OPEN: the exact proportion (JP, 2026-11-16: "fixed proportion, scales down a bit").
  */
-const CARD_ASPECT = 0.77;
+const CARD_ASPECT = 0.9;
+
+/**
+ * The swipe-up sheet (JP's diagram, Figma 118:1044). At --p = 1 the browse
+ * filters have moved back and gone, the header is up and smaller, the drink has
+ * moved back (smaller) and the edit panel fills the bottom of the screen.
+ * These are how far each part moves for a phone about 375 x 812.
+ */
+const SHEET = {
+  filtersBack: 260, // px the filters move back (z) before they fade out
+  headerUp: 48, // px the header moves up (into the space the filters leave)
+  titleScale: 0.6, // the drink name shrinks from 40px to 24px
+  titleGap: 21, // px the family label follows the shrinking name up
+  drinkUp: 78, // px the drink moves up (it starts lower now that the closed drawer is shorter)
+  drinkScale: 0.78, // the drink shrinks to 78% (290 of 370 in the diagram)
+  dim: 0.45, // how much the header and the drink fade (0 to 1) when the edit panel is fully up
+};
 
 /** Phone layout: the middle card with its neighbors peeking in at the sides. */
 const SIDE_SCALE = 0.86; // size of the cards beside the middle one
@@ -58,6 +74,11 @@ export function DrinkPanel() {
   // On a wide screen there's one big card and ‹ › buttons, as before. On a
   // phone the cards sit in a row and you swipe through them.
   const isDesktop = useSyncExternalStore(subscribeDesktop, getDesktop, () => false);
+
+  // The swipe-up edit sheet. It drives `--p` (0 closed, 1 open) on <main>; the CSS
+  // below reads it, so nothing re-renders while it moves.
+  const mainRef = useRef<HTMLElement | null>(null);
+  const sheet = useSheet({ distance: PANEL_TRAVEL, rootRef: mainRef, enabled: !isDesktop });
 
   // Which quick filter is picked, and so which drinks are in the row. `list`
   // holds positions in DRINKS. `index` and `infoIndex` below are places in
@@ -126,7 +147,9 @@ export function DrinkPanel() {
       const scale = c.desktop ? 1 : 1 - (1 - SIDE_SCALE) * Math.min(Math.abs(t), 1);
       const x = c.desktop ? 0 : t * c.step;
       el.style.transform = `translate3d(${(x - c.cardWidth / 2).toFixed(2)}px,0,0) scale(${scale.toFixed(4)})`;
-      // Cards fade to dark the further they are from the middle, and back up as they arrive.
+      // The cards beside the middle one fade out as the edit sheet comes up (--p), so only
+      // the drink in view stays.
+      el.style.opacity = c.desktop || Math.abs(t) < 0.5 ? "1" : "calc(1 - var(--p, 0))";
       // Cards fade to dark the further they are from the middle, and back up as they arrive.
       const dim = el.querySelector<HTMLElement>("[data-dim]");
       if (dim) dim.style.opacity = c.desktop ? "0" : String((SIDE_DIM * Math.min(Math.abs(t), 1)).toFixed(3));
@@ -265,14 +288,16 @@ export function DrinkPanel() {
   // ← / → switch drinks.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null;
+      const target = e.target instanceof HTMLElement ? e.target : null;
       if (target?.getAttribute("role") === "slider") return;
+      if (e.key === "Escape") sheet.closeSheet();
+      if (sheet.open) return; // arrows don't switch drinks with the edit panel up
       if (e.key === "ArrowLeft") goBy(-1);
       if (e.key === "ArrowRight") goBy(1);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [goBy]);
+  }, [goBy, sheet]);
 
   // ── Pointer handling on the row ──────────────────────────────────────────
   // A drag that starts on a layer is decided by the layer itself (vertical =
@@ -281,6 +306,7 @@ export function DrinkPanel() {
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     const c = ctl.current;
     if (c.desktop || (e.pointerType === "mouse" && e.button !== 0)) return;
+    if (sheet.open) return; // with the edit panel up, only the one drink is in focus
     // The reset button handles its own taps.
     if ((e.target as Element).closest("[data-no-swipe]")) return;
     // One finger at a time. A new first finger replaces a touch whose lift was never seen.
@@ -399,12 +425,48 @@ export function DrinkPanel() {
 
   // Nothing on this screen is meant to be copied, and a drag that strays onto
   // the text would otherwise highlight it, so text selection is off everywhere.
+  // Parts of the screen that move with the sheet (phones only): CSS reads --p, which
+  // the sheet drives. Only transform and opacity change, so it stays smooth.
+  const phone = !isDesktop;
+  const zFilters: React.CSSProperties | undefined = phone
+    ? {
+        transform: `translate3d(0, calc(var(--p, 0) * -14px), calc(var(--p, 0) * -${SHEET.filtersBack}px))`,
+        transformOrigin: "50% 0",
+        opacity: "calc(1 - var(--p, 0) * 1.6)",
+      }
+    : undefined;
+  const zHeader: React.CSSProperties | undefined = phone
+    ? { transform: `translateY(calc(var(--p, 0) * -${SHEET.headerUp}px))`, opacity: `calc(1 - var(--p, 0) * ${SHEET.dim})` }
+    : undefined;
+  const zTitle: React.CSSProperties | undefined = phone
+    ? { transform: `scale(calc(1 - var(--p, 0) * ${1 - SHEET.titleScale}))`, transformOrigin: "0 0" }
+    : undefined;
+  const zFamily: React.CSSProperties | undefined = phone
+    ? { transform: `translateY(calc(var(--p, 0) * -${SHEET.titleGap}px))` }
+    : undefined;
+  const zDrink: React.CSSProperties | undefined = phone
+    ? {
+        transform: `translateY(calc(var(--p, 0) * -${SHEET.drinkUp}px)) scale(calc(1 - var(--p, 0) * ${1 - SHEET.drinkScale}))`,
+        transformOrigin: "50% 0",
+        opacity: `calc(1 - var(--p, 0) * ${SHEET.dim})`,
+      }
+    : undefined;
+
+  // Nothing on this screen is meant to be copied, and a drag that strays onto
+  // the text would otherwise highlight it, so text selection is off everywhere.
   return (
-    <main className="fixed inset-0 flex flex-col gap-4 bg-[#1A1612] p-4 text-[#F7F7F7] select-none [-webkit-touch-callout:none] md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] md:grid-rows-[auto_auto_minmax(0,1fr)] md:gap-x-8 md:gap-y-4">
-      <FilterBar active={filterId} onSelect={selectFilter} />
+    <main
+      ref={mainRef}
+      className="fixed inset-0 flex flex-col gap-4 overflow-hidden bg-[#1A1612] p-4 text-[#F7F7F7] select-none [-webkit-touch-callout:none] md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] md:grid-rows-[auto_auto_minmax(0,1fr)] md:gap-x-8 md:gap-y-4"
+      style={phone ? { perspective: 1000, perspectiveOrigin: "50% 30%" } : undefined}
+    >
+      {/* The browse filters: they move back (z) and disappear when the edit panel comes up. */}
+      <div className="md:col-span-2 md:row-start-1" style={zFilters} inert={phone && sheet.open}>
+        <FilterBar active={filterId} onSelect={selectFilter} />
+      </div>
 
       {/* ── Controls ──────────────────────────────────────────────── */}
-      <header className="flex flex-col md:col-start-1 md:row-start-2">
+      <header className="flex flex-col md:col-start-1 md:row-start-2" style={zHeader}>
         {/* On a phone you swipe; these stay for screen readers and wide screens. */}
         <div className="flex justify-end md:-mr-3">
           <button type="button" onClick={() => goBy(-1)} aria-label="Previous drink" className={navButton}>
@@ -415,12 +477,19 @@ export function DrinkPanel() {
           </button>
         </div>
 
-        <h1 className="font-serif text-[40px] leading-[52px]">{infoDrink.name}</h1>
-        <p className="mt-1 text-xs opacity-55">{infoDrink.family}</p>
+        <h1 className="font-serif text-[40px] leading-[52px]" style={zTitle}>
+          {infoDrink.name}
+        </h1>
+        <p className="mt-1 text-xs opacity-55" style={zFamily}>
+          {infoDrink.family}
+        </p>
       </header>
 
-      {/* ── The row of drinks ─────────────────────────────────────── */}
-      <div className="flex min-h-0 flex-1 flex-col md:col-start-2 md:row-span-2 md:row-start-2 md:h-full">
+      {/* ── The row of drinks (it moves back and shrinks when the edit panel is up) ── */}
+      <div
+        className="flex min-h-0 flex-1 flex-col md:col-start-2 md:row-span-2 md:row-start-2 md:h-full"
+        style={zDrink}
+      >
       <div
         ref={trackRef}
         role="group"
@@ -451,7 +520,7 @@ export function DrinkPanel() {
                 drinkIndex={d}
                 lines={edits[d] ?? DRINKS[d].lines}
                 onEdit={onEdit}
-                interactive={j === infoIndex && !busy}
+                interactive={j === infoIndex && !busy && !sheet.open}
                 onHorizontal={onHorizontal}
                 servings={servings[d] ?? 1}
                 modified={d in edits || (servings[d] ?? 1) !== 1}
@@ -466,25 +535,33 @@ export function DrinkPanel() {
 
       </div>
 
-      {/* ── Flavor profile, under the drink ────────────────────────── */}
-      <section
-        aria-label="Flavor details"
-        className="flex shrink-0 flex-col md:col-start-1 md:row-start-3 md:min-h-0 md:overflow-y-auto"
-      >
-        <div>
-          <FlavorReadout profile={profile} />
-        </div>
+      {/* On a phone the edit panel floats above this space (it is pulled up from here). */}
+      <div aria-hidden className="shrink-0 md:hidden" style={{ height: PANEL_CLOSED_HEIGHT }} />
 
-        <div className="mt-5">
-          <MakeEdits
-            edits={editsForDrink}
-            lines={infoLines}
-            onAdjust={(key, direction) => onEdit(infoD, (prev) => adjustLine(prev, key, direction))}
-          />
-        </div>
+      {/* While the panel is up, a tap on the shrunken drink above it closes it. */}
+      {phone && sheet.open && (
+        <button
+          type="button"
+          aria-label="Close the edit panel"
+          tabIndex={-1}
+          className="absolute inset-0 z-10 cursor-default"
+          onClick={sheet.closeSheet}
+        />
+      )}
 
-        {/* OPEN: gesture hints (brief §6). The helper text under the drink was removed (JP, 2026-11-15); the brief still wants hints for gestures. */}
-      </section>
+      {/* ── The edit panel: flavor profile and the edit buttons, in a frame ── */}
+      <div className="md:col-start-1 md:row-start-3 md:min-h-0 md:overflow-y-auto">
+        <EditPanel
+          profile={profile}
+          edits={editsForDrink}
+          lines={infoLines}
+          onAdjust={(key, direction) => onEdit(infoD, (prev) => adjustLine(prev, key, direction))}
+          floating={phone}
+          open={sheet.open}
+          onToggle={sheet.toggle}
+          bind={sheet.bind}
+        />
+      </div>
     </main>
   );
 }

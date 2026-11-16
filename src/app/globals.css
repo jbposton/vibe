@@ -39,3 +39,31 @@ body {
     transition: none !important;
   }
 }
+
+/*
+ * The edit drawer as a material (apple-design skill): a dark, see-through fill
+ * that blurs and slightly saturates whatever is behind it, a thin light edge,
+ * and a soft shadow that shows around its top and sides.
+ */
+.glass-sheet {
+  background: rgba(43, 43, 43, 0.72);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  box-shadow:
+    0 -10px 40px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.07);
+}
+
+/* No backdrop blur available, or "reduce transparency" is on: a solid panel. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass-sheet {
+    background: #2b2b2b;
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .glass-sheet {
+    background: #2b2b2b;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
