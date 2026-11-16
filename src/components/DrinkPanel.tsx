@@ -11,14 +11,14 @@ import {
 } from "react";
 import { DRINKS, type RecipeLine } from "@/data/drinks";
 import { INGREDIENTS } from "@/data/ingredients";
-import { DEFAULT_UNIT, formatTotal, orderLines, totalParts } from "@/lib/stack";
+import { orderLines } from "@/lib/stack";
 import { flavorProfile } from "@/lib/flavor";
 import { DrinkCard } from "./DrinkCard";
 import { CLASSICS_ID, FILTERS, filterList } from "@/data/finder";
 import { FilterBar } from "./FilterBar";
 import { FlavorReadout } from "./FlavorReadout";
 import { MakeEdits } from "./MakeEdits";
-import { adjustLine, noteEdits } from "@/lib/edits";
+import { adjustLine, traitEdits } from "@/lib/edits";
 
 // OPEN: which drink a visitor sees first (brief §1 flow). Placeholder: Negroni.
 const START_DRINK = Math.max(0, DRINKS.findIndex((d) => d.id === "negroni"));
@@ -331,7 +331,6 @@ export function DrinkPanel() {
   const infoD = list[infoIndex] ?? list[0]; // the info drink's place in DRINKS
   const infoDrink = DRINKS[infoD];
   const infoLines = edits[infoD] ?? infoDrink.lines;
-  const infoServings = servings[infoD] ?? 1;
   // Put a drink back to its classic recipe and one serving.
   const resetDrink = useCallback((d: number) => {
     setEdits((all) => {
@@ -367,8 +366,8 @@ export function DrinkPanel() {
     setBusy(false);
   };
 
-  // The flavor notes this drink offers for editing, from its classic recipe (so they stay put while you edit).
-  const noteEditsForDrink = useMemo(() => noteEdits(infoDrink.lines), [infoDrink]);
+  // The edit buttons this drink offers (sweeter, more bitter, stronger...), from its classic recipe so they stay put while you edit.
+  const editsForDrink = useMemo(() => traitEdits(infoDrink.lines), [infoDrink]);
   const profile = useMemo(() => flavorProfile(infoLines), [infoLines]);
 
   const caption = orderLines(infoLines)
@@ -410,8 +409,7 @@ export function DrinkPanel() {
         </div>
 
         <h1 className="font-serif text-[40px] leading-[52px]">{infoDrink.name}</h1>
-        <p className="mt-1 text-[11px] leading-4 text-[#F7F7F7]/45">{caption}</p>
-        <p className="mt-1.5 text-xs opacity-55">{infoDrink.family}</p>
+        <p className="mt-1 text-xs opacity-55">{caption}</p>
       </header>
 
       {/* ── The row of drinks ─────────────────────────────────────── */}
@@ -459,14 +457,6 @@ export function DrinkPanel() {
         })}
       </div>
 
-      {/* The drink's total, flush with the right edge of the drink panel, 16px below it. */}
-      <p
-        className="mt-4 flex shrink-0 items-baseline justify-end gap-1.5 whitespace-nowrap text-xs tabular-nums"
-        style={{ paddingRight: isDesktop ? 0 : PEEK + GAP - 16 }}
-      >
-        <span className="text-[#F7F7F7]/55">Total</span>
-        <span className="font-semibold">{formatTotal(totalParts(infoLines), DEFAULT_UNIT, infoServings)}</span>
-      </p>
       </div>
 
       {/* ── Flavor profile, under the drink ────────────────────────── */}
@@ -480,7 +470,7 @@ export function DrinkPanel() {
 
         <div className="mt-5">
           <MakeEdits
-            edits={noteEditsForDrink}
+            edits={editsForDrink}
             lines={infoLines}
             onAdjust={(key, direction) => onEdit(infoD, (prev) => adjustLine(prev, key, direction))}
           />

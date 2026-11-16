@@ -1,58 +1,81 @@
 /**
- * "Make edits" (JP's design, 2026-11-16): the buttons depend on the drink.
- * Each drink gets up to three of its own flavor notes (citrus, botanical,
- * herbal...), and each note has a less / more pair. "More citrus" puts a
- * little more of the ingredient that gives the drink most of its citrus;
- * "less citrus" takes a little out of it.
+ * "Make edits" (JP's design, Figma 110:581): the buttons are about taste, and
+ * only the ones that make sense for the drink are shown.
  *
- * The notes and the ingredient behind each one are worked out from the
- * classic recipe, so the buttons stay put while you edit.
+ *  - Add Sweet:   shown if the drink has a sweet ingredient.
+ *  - Add Bitter:  shown if the drink has a bitter ingredient.
+ *  - Less / More Strong: shown if the drink has alcohol.
  *
- * OPEN: first-pass rules. The step is ¼ part (¼ oz at one serving; one dash for
- * bitters); a line never goes below ¼ part or above 12. Garnishes can't be
- * changed, so a note that only comes from a garnish gets no buttons.
+ * Every ingredient already carries the three numbers this needs (sugar,
+ * bitterness and ABV, in data/flavor.ts), so nothing new is stored. For each
+ * button we pick the ingredient in this drink that does the job best, from the
+ * classic recipe (so the buttons stay put while you edit):
+ *  - sweet:  the ingredient with the most sugar, counting bitterness against it
+ *            (so a Negroni sweetens with vermouth, not Campari);
+ *  - bitter: the most bitter ingredient, counting sugar against it;
+ *  - strong: the ingredient with the highest ABV.
+ * Add and More put a little more of that ingredient in; Less Strong takes a
+ * little out of the strongest one.
+ *
+ * OPEN: first-pass rules and thresholds. The step is ¼ part (¼ oz at one
+ * serving; one dash for bitters); a line never goes below ¼ part or above 12.
  */
 import type { RecipeLine } from "@/data/drinks";
-import { FLAVORS, type Note } from "@/data/flavor";
-import { MAX_DASHES, SHARE_FLOOR, volumeParts } from "./stack";
+import { FLAVORS } from "@/data/flavor";
+import { MAX_DASHES, SHARE_FLOOR } from "./stack";
 
 export const EDIT_STEP = 0.25;
 const MAX_PARTS = 12;
-/** Bitters dashes are tiny in volume but strong in flavor (same boost as the flavor notes). */
-const DASH_NOTE_BOOST = 5;
-const MAX_NOTES = 3;
 
-export type NoteEdit = {
-  note: Note;
-  /** Position, in the drink's lines, of the ingredient this note's buttons change. */
+/** What counts as a sweet / bitter / alcoholic ingredient (g per 100 ml, potency, % ABV). */
+const SWEET_MIN = 8;
+const BITTER_MIN = 1.5;
+const ALCOHOL_MIN = 11;
+
+export type TraitEdit = {
+  id: "add-sweet" | "add-bitter" | "less-strong" | "more-strong";
+  label: string;
+  /** Position, in the drink's lines, of the ingredient this button changes. */
   key: number;
+  /** +1 puts more of it in, -1 takes some out. */
+  direction: 1 | -1;
 };
 
-/** The drink's top flavor notes, each with the ingredient that carries it most. */
-export function noteEdits(original: RecipeLine[]): NoteEdit[] {
-  const total = original.reduce((s, l) => s + volumeParts(l.amount), 0);
-  if (total <= 0) return [];
-  const score = new Map<Note, { sum: number; best: number; key: number }>();
-  original.forEach((l, key) => {
-    if (l.amount.kind === "garnish") return; // garnishes can't be changed
-    const share = volumeParts(l.amount) / total;
-    const weight = l.amount.kind === "dash" ? share * DASH_NOTE_BOOST : share;
-    for (const [note, intensity] of FLAVORS[l.ingredient].notes) {
-      const part = weight * intensity;
-      const s = score.get(note) ?? { sum: 0, best: 0, key };
-      s.sum += part;
-      if (part > s.best) {
-        s.best = part;
-        s.key = key;
-      }
-      score.set(note, s);
-    }
+/** The index of the line with the best score (at or above `min` on the raw value), or null. */
+function best(
+  lines: RecipeLine[],
+  allow: (l: RecipeLine) => boolean,
+  raw: (l: RecipeLine) => number,
+  min: number,
+  score: (l: RecipeLine) => number,
+): number | null {
+  let pick: number | null = null;
+  lines.forEach((l, i) => {
+    if (!allow(l) || raw(l) < min) return;
+    if (pick === null || score(l) > score(lines[pick])) pick = i;
   });
-  return [...score.entries()]
-    .filter(([, s]) => s.sum >= 0.15)
-    .sort((a, b) => b[1].sum - a[1].sum)
-    .slice(0, MAX_NOTES)
-    .map(([note, s]) => ({ note, key: s.key }));
+  return pick;
+}
+
+/** The buttons for a drink, in order (Add Sweet, Add Bitter, Less Strong, More Strong). */
+export function traitEdits(original: RecipeLine[]): TraitEdit[] {
+  const f = (l: RecipeLine) => FLAVORS[l.ingredient];
+  const adjustable = (l: RecipeLine) => l.amount.kind !== "garnish";
+  const liquid = (l: RecipeLine) => l.amount.kind === "parts";
+  const edits: TraitEdit[] = [];
+
+  const sweet = best(original, liquid, (l) => f(l).sugar, SWEET_MIN, (l) => f(l).sugar - 2 * f(l).bitter);
+  if (sweet !== null) edits.push({ id: "add-sweet", label: "Add Sweet", key: sweet, direction: 1 });
+
+  const bitter = best(original, adjustable, (l) => f(l).bitter, BITTER_MIN, (l) => f(l).bitter - f(l).sugar / 8);
+  if (bitter !== null) edits.push({ id: "add-bitter", label: "Add Bitter", key: bitter, direction: 1 });
+
+  const strong = best(original, liquid, (l) => f(l).abv, ALCOHOL_MIN, (l) => f(l).abv);
+  if (strong !== null) {
+    edits.push({ id: "less-strong", label: "Less Strong", key: strong, direction: -1 });
+    edits.push({ id: "more-strong", label: "More Strong", key: strong, direction: 1 });
+  }
+  return edits;
 }
 
 /** Whether a tap in this direction (+1 more, -1 less) would change anything. */

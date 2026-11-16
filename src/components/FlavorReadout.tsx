@@ -1,56 +1,53 @@
 import { barFraction, SCALE, type Profile } from "@/lib/flavor";
 
-/** Plain words for how full a ring is, for people who don't think in grams. */
-const level = (f: number) => (f < 0.34 ? "Low" : f < 0.67 ? "Medium" : "High");
+/** Each stat is shown as a stack of this many bars, filled from the bottom (Figma 110:731). */
+const LEVELS = 5;
 
-const SIZE = 44;
-const STROKE = 1.8;
-const R = (SIZE - STROKE) / 2;
-const CIRCUMFERENCE = 2 * Math.PI * R;
+/** How many bars are filled for a value on a stat's scale (0 to 5). */
+const filledBars = (axis: keyof typeof SCALE, value: number) =>
+  Math.min(LEVELS, Math.max(0, Math.round(barFraction(axis, value) * LEVELS)));
 
-type RingProps = {
+/** Plain words for the bars, for people who don't think in grams: 0 to 1 Low, 2 to 3 Medium, 4 to 5 High. */
+const word = (filled: number) => (filled <= 1 ? "Low" : filled <= 3 ? "Medium" : "High");
+
+type StatProps = {
   label: string;
   axis: keyof typeof SCALE;
   value: number;
-  /** Text shown beside the label; defaults to Low / Medium / High. */
+  /** Text shown after the label; defaults to Low / Medium / High. */
   valueText?: string;
 };
 
-/** A thin ring that fills clockwise from the top. */
-function Ring({ label, axis, value, valueText }: RingProps) {
-  const f = barFraction(axis, value);
-  const text = valueText ?? level(f);
+/** A label ("Sweet · High") over a stack of five short bars. */
+function Stat({ label, axis, value, valueText }: StatProps) {
+  const filled = filledBars(axis, value);
+  const text = valueText ?? word(filled);
   return (
     <div
       role="meter"
       aria-label={label}
       aria-valuemin={0}
-      aria-valuemax={1}
-      aria-valuenow={Math.round(f * 100) / 100}
+      aria-valuemax={LEVELS}
+      aria-valuenow={filled}
       aria-valuetext={text}
-      className="flex flex-col items-center gap-2.5"
+      className="flex flex-col items-center gap-4"
     >
-      {/* The value has a fixed width, so the label never changes size when the
-          words change (Low / Medium / High, or 9% / 27%) and nothing around it moves. */}
-      <p className="whitespace-nowrap text-[10px] leading-[13px] text-[#F7F7F7]/50">
-        {label} · <span className="inline-block w-[38px] text-left text-white">{text}</span>
+      {/* The value sits in a slot of fixed width, so the label keeps one size
+          (and nothing around it moves) when the words or numbers change. */}
+      <p className="flex items-center gap-[3px] whitespace-nowrap text-[10px] leading-3">
+        <span className="text-[#F7F7F7]/45">{label}</span>
+        <span aria-hidden className="size-px rounded-full bg-[#7f7f7f]" />
+        <span className="inline-block w-11 text-left text-[#F7F7F7]">{text}</span>
       </p>
-      <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} fill="none" aria-hidden>
-        <circle cx={SIZE / 2} cy={SIZE / 2} r={R} stroke="white" strokeOpacity="0.3" strokeWidth={STROKE} />
-        {f > 0.005 && (
-          <circle
-            cx={SIZE / 2}
-            cy={SIZE / 2}
-            r={R}
-            stroke="white"
-            strokeWidth={STROKE}
-            strokeLinecap="round"
-            strokeDasharray={`${f * CIRCUMFERENCE} ${CIRCUMFERENCE}`}
-            transform={`rotate(-90 ${SIZE / 2} ${SIZE / 2})`}
-            className="transition-[stroke-dasharray] duration-150"
+      <div aria-hidden className="flex flex-col gap-[3px]">
+        {Array.from({ length: LEVELS }, (_, i) => (
+          // i = 0 is the top bar; the bottom `filled` bars are lit.
+          <span
+            key={i}
+            className={`h-[3px] w-[39px] rounded-full transition-colors duration-150 ${i >= LEVELS - filled ? "bg-white" : "bg-white/20"}`}
           />
-        )}
-      </svg>
+        ))}
+      </div>
     </div>
   );
 }
@@ -60,10 +57,9 @@ type Props = {
 };
 
 /**
- * The flavor profile as three rings: ABV, Sweet and Bitter (JP, 2026-11-16).
- * The three columns are equal and the labels keep one size, so the rings stay
- * put while the numbers change. The ABV ring is the real percentage (a full
- * circle is 100%); Sweet and Bitter are Low / Medium / High on a fixed scale.
+ * The flavor profile (Figma 110:731): Strength, Sweet and Bitter, each a label
+ * over a stack of five bars filled from the bottom. The three columns are
+ * equal, so the bars stay put while the labels change.
  * OPEN: the brief (§3) wants calculated and hand-set values kept visibly
  * apart; for now they share one row.
  * OPEN: where this sits on the screen (brief §7).
@@ -71,14 +67,14 @@ type Props = {
 export function FlavorReadout({ profile }: Props) {
   return (
     <div aria-label="Flavor profile" role="group" className="grid grid-cols-3 items-start justify-items-center px-2">
-      <Ring
-        label="ABV"
+      <Stat
+        label="Strength"
         axis="strength"
         value={profile.strength}
-        valueText={`${Math.round(profile.strength)}%`}
+        valueText={`${Math.round(profile.strength)}% ABV`}
       />
-      <Ring label="Sweet" axis="sweetness" value={profile.sweetness} />
-      <Ring label="Bitter" axis="bitterness" value={profile.bitterness} />
+      <Stat label="Sweet" axis="sweetness" value={profile.sweetness} />
+      <Stat label="Bitter" axis="bitterness" value={profile.bitterness} />
     </div>
   );
 }

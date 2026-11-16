@@ -1,27 +1,27 @@
 "use client";
 
 import type { RecipeLine } from "@/data/drinks";
-import { canAdjust, type NoteEdit } from "@/lib/edits";
+import { canAdjust, type TraitEdit } from "@/lib/edits";
 
 type Props = {
-  /** The notes (and their ingredients) this drink offers, from its classic recipe. */
-  edits: NoteEdit[];
+  /** The buttons this drink offers (from its classic recipe). */
+  edits: TraitEdit[];
   /** The recipe as currently edited. */
   lines: RecipeLine[];
-  /** A tap on a note's less (-1) or more (+1) button. */
+  /** A tap on a button: change the ingredient at `key` a little more (+1) or less (-1). */
   onAdjust: (key: number, direction: 1 | -1) => void;
 };
 
-const SIDE =
-  "grid h-9 w-7 shrink-0 place-items-center text-sm text-white transition-colors hover:bg-white/[0.12] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#F7F7F7] disabled:pointer-events-none disabled:opacity-30";
-
-const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+const BUTTON =
+  "h-9 min-w-0 flex-1 truncate rounded-[9px] bg-white/[0.09] px-2 text-[11px] text-white transition-colors hover:bg-white/[0.16] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] disabled:pointer-events-none disabled:opacity-35";
 
 /**
- * "Make edits": one control per flavor note of this drink, with a button on
- * each side to get a little less or a little more of that note (see lib/edits.ts).
+ * "Make edits" (Figma 110:581): Add Sweet, Add Bitter, Less Strong and More
+ * Strong, but only the ones that fit the drink: a drink with no alcohol has no
+ * strength buttons, and a single button fills the row (see lib/edits.ts).
  */
 export function MakeEdits({ edits, lines, onAdjust }: Props) {
+  if (edits.length === 0) return null;
   return (
     <section aria-label="Make edits" className="flex flex-col gap-3">
       <div className="flex items-center gap-3 text-[11px] text-white">
@@ -30,33 +30,16 @@ export function MakeEdits({ edits, lines, onAdjust }: Props) {
         <span aria-hidden className="h-px flex-1 bg-white/30" />
       </div>
       <div className="flex gap-2">
-        {edits.map(({ note, key }) => (
-          <div
-            key={note}
-            role="group"
-            aria-label={capitalize(note)}
-            className="flex h-9 min-w-0 flex-1 items-center justify-between overflow-hidden rounded-[9px] bg-white/[0.09] text-[11px] text-white"
+        {edits.map((edit) => (
+          <button
+            key={edit.id}
+            type="button"
+            className={BUTTON}
+            disabled={!canAdjust(lines, edit.key, edit.direction)}
+            onClick={() => onAdjust(edit.key, edit.direction)}
           >
-            <button
-              type="button"
-              className={SIDE}
-              aria-label={`Less ${note}`}
-              disabled={!canAdjust(lines, key, -1)}
-              onClick={() => onAdjust(key, -1)}
-            >
-              −
-            </button>
-            <span className="truncate">{capitalize(note)}</span>
-            <button
-              type="button"
-              className={SIDE}
-              aria-label={`More ${note}`}
-              disabled={!canAdjust(lines, key, 1)}
-              onClick={() => onAdjust(key, 1)}
-            >
-              +
-            </button>
-          </div>
+            {edit.label}
+          </button>
         ))}
       </div>
     </section>

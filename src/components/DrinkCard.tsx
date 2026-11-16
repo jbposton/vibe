@@ -28,11 +28,14 @@ import { useLayerDrag } from "./useLayerDrag";
  * layers) or light (on dark layers) fill with a touch of background blur. Its
  * only outline is the 0.5px highlight along the top edge (see GlassTopEdge).
  */
-function amountButtonStyle(lightLayer: boolean): React.CSSProperties {
+function amountButtonStyle(lightLayer: boolean, shown = true): React.CSSProperties {
+  const fill = lightLayer ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.07)";
+  const blur = shown ? "blur(4px)" : "blur(0px)";
   return {
-    background: lightLayer ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.07)",
-    backdropFilter: "blur(4px)",
-    WebkitBackdropFilter: "blur(4px)",
+    background: shown ? fill : "rgba(0,0,0,0)",
+    backdropFilter: blur,
+    WebkitBackdropFilter: blur,
+    transition: "background-color 180ms ease-out, backdrop-filter 180ms ease-out, -webkit-backdrop-filter 180ms ease-out",
   };
 }
 
@@ -41,12 +44,13 @@ function amountButtonStyle(lightLayer: boolean): React.CSSProperties {
  * left and fades to 20% about halfway across, following the rounded corners.
  * It sits inside its (relatively positioned) parent and takes the parent's radius.
  */
-function GlassTopEdge() {
+function GlassTopEdge({ shown = true }: { shown?: boolean }) {
   return (
     <span
       aria-hidden
-      className="pointer-events-none absolute inset-0 rounded-[inherit]"
+      className="pointer-events-none absolute inset-0 rounded-[inherit] transition-opacity duration-200"
       style={{
+        opacity: shown ? 1 : 0,
         padding: "0.5px 0 0 0",
         background: "linear-gradient(105deg, #fff 0%, rgba(255,255,255,0.2) 46%)",
         mask: "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
@@ -287,6 +291,8 @@ export const DrinkCard = memo(function DrinkCard({
             const box = { bottom: bottoms[i], height: heights[i], transition: animate };
             // Ingredient name on the left edge; on the right, the amount in a
             // small button (it will be clickable one day) or "Garnish".
+            // The button around the amount only shows while you press or drag (JP, 2026-11-16).
+            const pressing = draggingKey !== null;
             const ink = labelColor(ingredient.color);
             const lightLayer = ink === "#000";
             const [amountNumber, ...amountUnit] = amountText.split(" ");
@@ -301,9 +307,9 @@ export const DrinkCard = memo(function DrinkCard({
                 ) : (
                   <span
                     className="relative flex h-8 items-center gap-1 rounded-lg px-2 text-[11px] tabular-nums"
-                    style={amountButtonStyle(lightLayer)}
+                    style={amountButtonStyle(lightLayer, pressing)}
                   >
-                    <GlassTopEdge />
+                    <GlassTopEdge shown={pressing} />
                     <span className="text-[13px]">{amountNumber}</span>
                     <span className="opacity-60">{amountUnit.join(" ")}</span>
                   </span>

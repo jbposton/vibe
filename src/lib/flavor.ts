@@ -15,8 +15,8 @@ import { FLAVORS, type Note } from "@/data/flavor";
 import { volumeParts } from "./stack";
 
 /** What a full bar means on each axis (fixed, so bars compare across drinks). */
-// Strength is the real percentage: a full circle is 100% ABV, so 21% fills about a fifth of the ring.
-export const SCALE = { strength: 100, sweetness: 15, bitterness: 4 } as const;
+// Strength: five bars cover 0 to 50% ABV, so each bar is 10% (20% ABV lights 2 bars).
+export const SCALE = { strength: 50, sweetness: 15, bitterness: 4 } as const;
 
 /** How much a garnish counts toward notes, as a share of the glass. */
 const GARNISH_NOTE_SHARE = 0.25;

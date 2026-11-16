@@ -16,6 +16,32 @@ Visible before-and-after changes, newest first.
 - **Open for JP:** the Ice / Long / Stirred row in the mock isn't built (it needs data and icons); Substitution needs a curated swap list; the edit rules and ¼ oz step are a first pass (see `src/lib/edits.ts`); the mock's stats used DM Sans and I used Instrument Sans; "Subsitution" in the mock is spelled "Substitution" here; filter chips stay 32px tall (the mock shows 36px).
 - **Tested:** Daiquiri: Less Sour added syrup (¾ to 1 oz, total 3¾ to 4 oz), Less Sweet added lime; Gin and tonic and Negroni show the right buttons dimmed; a drag that starts on an amount button still moves the layer; wide screen layout checked.
 
+## 2026-11-16: Amount buttons only show while you press or drag
+- **Before:** the button around each "1 oz" (faint fill, top-edge highlight and blur) was always visible.
+- **After:** at rest each amount is just text ("1 oz") in the same place. The button appears around every amount as soon as you press a layer, stays while you drag, and fades away when you let go (about 0.2s). Garnishes and the reset icon are unchanged.
+
+## 2026-11-16: Make edits is about taste (Figma 110:581); family label removed
+- **Before:** each drink had up to three flavor-note controls (Herbal, Botanical, Citrus...) with a "−" and a "+". Under the drink name there was an ingredient list, then a family label.
+- **After:**
+  - **Make edits** uses four plain buttons, shown only when they fit the drink: **Add Sweet** (if it has a sweet ingredient), **Add Bitter** (if it has a bitter one), and **Less Strong** and **More Strong** (if it has alcohol). One button fills the whole row. Examples: Negroni has all four; Shirley Temple has just Add Sweet; Martini has just the two strength buttons; Arnold Palmer has Add Sweet and Add Bitter.
+  - **How an ingredient gets mapped:** no new data. Every ingredient already carries sugar, bitterness and ABV (the three numbers the flavor bars use). For each button the drink's best ingredient is chosen from the classic recipe: the sweetest ingredient, counting bitterness against it (so a Negroni sweetens with vermouth, not Campari); the most bitter ingredient, counting sugar against it (Campari, or the bitters in an Old fashioned); the highest-ABV ingredient (the spirit).
+  - **What a tap does:** Add Sweet, Add Bitter and More Strong put ¼ oz more of that ingredient in (one more dash for bitters); Less Strong takes ¼ oz out of the strongest ingredient. A line never drops below ¼ oz, and a button dims when it can't go further.
+  - **Top of the screen:** the ingredient list now has the family label's style (12px, 55% white) and the family label is gone.
+  - The flavor-note controls are replaced (the note data is still in `src/data/flavor.ts`).
+- **Tested:** Negroni: Add Sweet took the vermouth to 1¼ oz, Add Bitter took Campari to 1¼ oz, More Strong twice took gin to 1½ oz, and fourteen taps of Less Strong stopped at ¼ oz of gin with the button dimmed; Shirley Temple shows one full-width Add Sweet. All 18 drinks were listed with their buttons.
+- **Open for JP:** the cut-offs for "sweet" (8 g sugar), "bitter" (1.5) and "alcohol" (11% ABV) and the ¼ oz step are first-pass numbers in `src/lib/edits.ts`; Gin and tonic and Aperol spritz can end up with Add Sweet and Add Bitter changing the same ingredient (tonic water, Aperol); Less Strong takes the spirit out rather than adding something non-alcoholic.
+
+## 2026-11-16: Total removed for now
+- **Before:** a "Total 3 oz" line sat under the drink panel, flush right.
+- **After:** gone. The drink's total is still worked out (`totalParts` / `formatTotal` in `src/lib/stack.ts`), so it can come back; Servings is still hidden too.
+
+## 2026-11-16: Flavor profile as stacks of bars (Figma 110:731)
+- **Before:** three thin rings with the label above each.
+- **After:** three stats, each a 10px label over a stack of five short bars (39px wide, 3px high, 3px apart) that fill from the bottom up: lit bars are white and unlit ones are white at 20%. The labels read "Strength · 27% ABV", "Sweet · High" and "Bitter · High", with a gray name at 45%, a tiny gray dot and a white value, 16px above the bars.
+- **How the bars are worked out:** Strength lights one bar per 10% ABV (0 to 50%), so 20% ABV lights 2 bars as in the design. Sweet and Bitter use the same fixed scales as before, rounded to the nearest of five bars. The words follow the bars: 0 to 1 bars Low, 2 to 3 Medium, 4 to 5 High.
+- **No jumping:** the three columns are equal and the value has a fixed-width slot, so the bars and labels don't move when the numbers change (checked across seven drinks and several edits).
+- **Open for JP:** with the fixed value slot, short words like "High" leave a little empty space after them, so the label looks a few pixels left of center over its bars; Strength used to be a real-percentage ring (full at 100%), and is now 0 to 50% across five bars.
+
 ## 2026-11-16: Flavor rings: nothing jumps, and ABV shows the real percentage
 - **Before:** when a label changed ("Low" to "Medium", "9%" to "27%") its width changed, and the three rings were spread by their contents, so rings slid sideways. The ABV ring was scaled to 40%, so 21% filled more than half the circle.
 - **After:** the three rings sit in three equal columns and each label keeps one fixed size (the value has a fixed-width slot), so the rings and labels stay exactly where they are while the words and numbers change. The ABV ring is the real percentage: a full circle is 100% ABV, so 21% fills about a fifth and 27% a bit over a quarter. A 0% drink shows an empty ring (no dot). Sweet and Bitter are unchanged (Low / Medium / High on a fixed scale).
