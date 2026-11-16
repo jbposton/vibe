@@ -45,10 +45,10 @@ const f = (abv: number, sugar: number, bitter: number, ...notes: [Note, 1 | 2 | 
 export const FLAVORS: Record<IngredientId, Flavor> = {
   // Spirit
   gin: f(40, 0, 0.5, ["botanical", 3], ["citrus", 1]),
-  "white-rum": f(40, 0, 0, ["honeyed", 1]),
+  "white-rum": f(40, 0, 0),
   vodka: f(40, 0, 0),
   tequila: f(40, 0, 0.3, ["herbal", 2], ["citrus", 1]),
-  bourbon: f(45, 0, 0.3, ["oaky", 3], ["honeyed", 1]),
+  bourbon: f(45, 0, 0.3, ["oaky", 3]),
   rye: f(45, 0, 0.5, ["oaky", 2], ["spiced", 2]),
   whiskey: f(40, 0, 0.3, ["oaky", 2], ["spiced", 1]),
   // Liqueur

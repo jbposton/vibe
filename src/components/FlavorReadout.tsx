@@ -1,72 +1,84 @@
 import { barFraction, SCALE, type Profile } from "@/lib/flavor";
 
-/** Plain words for how full a bar is, for people who don't think in grams. */
-const level = (f: number) => (f < 0.34 ? "low" : f < 0.67 ? "medium" : "high");
+/** Plain words for how full a ring is, for people who don't think in grams. */
+const level = (f: number) => (f < 0.34 ? "Low" : f < 0.67 ? "Medium" : "High");
 
-type BarProps = {
+const SIZE = 44;
+const STROKE = 1.8;
+const R = (SIZE - STROKE) / 2;
+const CIRCUMFERENCE = 2 * Math.PI * R;
+
+type RingProps = {
   label: string;
   axis: keyof typeof SCALE;
   value: number;
-  /** The same value for the recipe as it was before any edits. */
-  baseline: number;
-  /** Text shown at the right; defaults to low / medium / high. */
+  /** Text shown beside the label; defaults to Low / Medium / High. */
   valueText?: string;
 };
 
-function Bar({ label, axis, value, baseline, valueText }: BarProps) {
+/** A thin ring that fills clockwise from the top. */
+function Ring({ label, axis, value, valueText }: RingProps) {
   const f = barFraction(axis, value);
-  const base = barFraction(axis, baseline);
   const text = valueText ?? level(f);
   return (
-    <div className="grid grid-cols-[4.5rem_minmax(0,1fr)_4.5rem] items-center gap-3 text-[11px] leading-4">
-      <span className="text-[#F7F7F7]/70">{label}</span>
-      <div
-        role="meter"
-        aria-label={label}
-        aria-valuemin={0}
-        aria-valuemax={1}
-        aria-valuenow={Math.round(f * 100) / 100}
-        aria-valuetext={text}
-        className="relative h-1 rounded-full bg-[#F7F7F7]/15"
-      >
-        <div className="h-full rounded-full bg-[#F7F7F7]/85 transition-[width] duration-150" style={{ width: `${f * 100}%` }} />
-        {/* Where this bar started, so you can see what your edit moved. */}
-        <div
-          aria-hidden
-          className="absolute top-1/2 h-3 w-0.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#F7F7F7]/55"
-          style={{ left: `${base * 100}%` }}
-        />
-      </div>
-      <span className="text-right tabular-nums text-[#F7F7F7]/55">{text}</span>
+    <div
+      role="meter"
+      aria-label={label}
+      aria-valuemin={0}
+      aria-valuemax={1}
+      aria-valuenow={Math.round(f * 100) / 100}
+      aria-valuetext={text}
+      className="flex flex-col items-center gap-2.5"
+    >
+      {/* The value has a fixed width, so the label never changes size when the
+          words change (Low / Medium / High, or 9% / 27%) and nothing around it moves. */}
+      <p className="whitespace-nowrap text-[10px] leading-[13px] text-[#F7F7F7]/50">
+        {label} · <span className="inline-block w-[38px] text-left text-white">{text}</span>
+      </p>
+      <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} fill="none" aria-hidden>
+        <circle cx={SIZE / 2} cy={SIZE / 2} r={R} stroke="white" strokeOpacity="0.3" strokeWidth={STROKE} />
+        {f > 0.005 && (
+          <circle
+            cx={SIZE / 2}
+            cy={SIZE / 2}
+            r={R}
+            stroke="white"
+            strokeWidth={STROKE}
+            strokeLinecap="round"
+            strokeDasharray={`${f * CIRCUMFERENCE} ${CIRCUMFERENCE}`}
+            transform={`rotate(-90 ${SIZE / 2} ${SIZE / 2})`}
+            className="transition-[stroke-dasharray] duration-150"
+          />
+        )}
+      </svg>
     </div>
   );
 }
 
 type Props = {
   profile: Profile;
-  /** The profile of the unedited recipe. */
-  baseline: Profile;
 };
 
 /**
- * The flavor profile as a readout: three bars. (The flavor note tags are not
- * shown for now; they are still worked out in lib/flavor.ts.)
+ * The flavor profile as three rings: ABV, Sweet and Bitter (JP, 2026-11-16).
+ * The three columns are equal and the labels keep one size, so the rings stay
+ * put while the numbers change. The ABV ring is the real percentage (a full
+ * circle is 100%); Sweet and Bitter are Low / Medium / High on a fixed scale.
  * OPEN: the brief (§3) wants calculated and hand-set values kept visibly
- * apart; for now they share one list (JP asked to simplify).
+ * apart; for now they share one row.
  * OPEN: where this sits on the screen (brief §7).
  */
-export function FlavorReadout({ profile, baseline }: Props) {
+export function FlavorReadout({ profile }: Props) {
   return (
-    <div aria-label="Flavor profile" role="group" className="flex flex-col gap-1.5">
-      <Bar
-        label="Strength"
+    <div aria-label="Flavor profile" role="group" className="grid grid-cols-3 items-start justify-items-center px-2">
+      <Ring
+        label="ABV"
         axis="strength"
         value={profile.strength}
-        baseline={baseline.strength}
-        valueText={`${Math.round(profile.strength)}% ABV`}
+        valueText={`${Math.round(profile.strength)}%`}
       />
-      <Bar label="Sweetness" axis="sweetness" value={profile.sweetness} baseline={baseline.sweetness} />
-      <Bar label="Bitterness" axis="bitterness" value={profile.bitterness} baseline={baseline.bitterness} />
+      <Ring label="Sweet" axis="sweetness" value={profile.sweetness} />
+      <Ring label="Bitter" axis="bitterness" value={profile.bitterness} />
     </div>
   );
 }

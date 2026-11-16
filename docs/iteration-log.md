@@ -2,6 +2,44 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-16: New design pass (from JP's Figma "Hack", frame 91:5)
+- **Before:** Inter type, pill buttons, plain "1 oz" text on each layer, no handles, three flavor bars, and no way to fix a drink with a button.
+- **After:**
+  - **Fonts:** Instrument Serif (drink name, 40px) and Instrument Sans (everything else), loaded with `next/font/google`.
+  - **Buttons:** rounded rectangles with a 9px radius (not pills): the filter chips (selected is white with dark text, the rest a faint white fill) and the new edit buttons. The drink card's corners are rounder (38px).
+  - **Amounts:** each liquid layer has its amount in a small button at the right: a 14px number and a 12px "oz" at 60%, a faint fill, a 0.5px highlight along the top edge only (bright at the left, fading out about halfway across) and a little background blur. The button is as wide as its content (Figma 93:378), then made a bit smaller at JP's request: 32px tall with an 8px radius, a 13px number and an 11px "oz" (the design has 37.5px, 14px and 12px). It isn't clickable yet. Garnishes read "Garnish".
+  - **Handles:** a small light bar on each line between layers that can be moved, as a hint only (you can still drag anywhere on a layer). None sit next to a garnish; they are 2px thick and 25% white (first drawn 4px and 40%).
+  - **Flavor rings:** ABV, Sweet and Bitter as three thin rings that fill clockwise, with "ABV · 27%" / "Sweet · High" labels above. A small dot appears on a ring once an edit moves it away from where it started.
+  - **Make edits:** a divider with three buttons under the rings. Less Sour adds a little of the sweetest non-sour ingredient already in the recipe; Less Sweet adds the sour ingredient (or the base spirit if there isn't one). Each tap adds ¼ oz and the drink grows (the Add model); dragging layers still uses Share. A button is dimmed when the drink has nothing for it (for example Less Sour on a Negroni). Substitution is a dimmed placeholder.
+  - **Reset icon:** restyled to match the design: a 45px glass circle with the same top-edge highlight and blur as the amount buttons.
+  - Servings cups and the oz Total stay, above the rings.
+- **Open for JP:** the Ice / Long / Stirred row in the mock isn't built (it needs data and icons); Substitution needs a curated swap list; the edit rules and ¼ oz step are a first pass (see `src/lib/edits.ts`); the mock's stats used DM Sans and I used Instrument Sans; "Subsitution" in the mock is spelled "Substitution" here; filter chips stay 32px tall (the mock shows 36px).
+- **Tested:** Daiquiri: Less Sour added syrup (¾ to 1 oz, total 3¾ to 4 oz), Less Sweet added lime; Gin and tonic and Negroni show the right buttons dimmed; a drag that starts on an amount button still moves the layer; wide screen layout checked.
+
+## 2026-11-16: Flavor rings: nothing jumps, and ABV shows the real percentage
+- **Before:** when a label changed ("Low" to "Medium", "9%" to "27%") its width changed, and the three rings were spread by their contents, so rings slid sideways. The ABV ring was scaled to 40%, so 21% filled more than half the circle.
+- **After:** the three rings sit in three equal columns and each label keeps one fixed size (the value has a fixed-width slot), so the rings and labels stay exactly where they are while the words and numbers change. The ABV ring is the real percentage: a full circle is 100% ABV, so 21% fills about a fifth and 27% a bit over a quarter. A 0% drink shows an empty ring (no dot). Sweet and Bitter are unchanged (Low / Medium / High on a fixed scale).
+- **Tested:** across Negroni, Daiquiri (edited with several big drags) and Arnold Palmer, the ring positions (56.5, 165.5, 274.5) and label widths never moved, and the ABV arc matched the percentage (21% gave 0.21 of the circle, 0% none).
+- **Open for JP:** with the real scale most drinks fill under half of the ABV ring (a straight spirit is about 40%); a different scale (for example full at 50%) is one number in `src/lib/flavor.ts`.
+
+## 2026-11-16: Make edits follows each drink's flavor notes
+- **Before:** three fixed buttons (Less Sweet, Less Sour, Substitution). Many drinks had Less Sour dimmed because they have no sour ingredient.
+- **After:** the buttons depend on the drink. Each drink shows up to three of its own flavor notes (for example Herbal, Botanical, Citrus for a Negroni; Oaky, Spiced, Herbal for an Old fashioned), each with a "−" on the left and a "+" on the right for a little less or more of that note. "More herbal" adds ¼ oz of the ingredient that carries most of the herbal note (sweet vermouth); "less citrus" takes ¼ oz out of the one behind the citrus (Campari). Bitters change one dash at a time. A line never drops below ¼ oz, and the matching button dims when it can't go further. The notes and ingredients are worked out from the classic recipe, so the buttons don't change while you edit. Garnishes can't be changed, so a note that only comes from a garnish gets no buttons.
+- **Also:** removed the "honeyed" note from white rum and bourbon (it only belongs to honey). The Substitution button is gone from the row for now.
+- **Tested:** Negroni: More herbal took the vermouth from 1 to 1¼ oz, Less citrus took Campari from 1 to ¾ oz, and four taps of Less botanical stopped at ¼ oz of gin with the button dimmed; Old fashioned: More spiced took the bitters from 2 to 4 dashes and Less spiced to 3. Labels fit on a phone-size screen.
+- **Open for JP:** the notes (and which ingredient carries each) are my first-pass numbers in `src/data/flavor.ts`; one ingredient can carry two notes (bitters carry spiced and herbal), so those buttons move the same ingredient; a drink with one note shows one control (Espresso martini); the step is ¼ oz, and "less" removes the ingredient instead of adding something opposite (this reverses the earlier "adds on top" idea for these buttons).
+
+## 2026-11-16: Tighter garnishes, no Servings, Total under the panel, flat colors while dragging
+- **Before:** garnish layers had the same wide blur as the drinks (a 60px garnish blurred out over about 108px), there was a Servings row, the Total sat above the rings, the family tag was under the name with the ingredient list below it, the rings had a small dark dot marking their start, and only the layer you dragged turned to its flat color.
+- **After:**
+  - **Garnish blur:** every garnish now blurs over a much smaller area (8px of overlap and a 12px blur, instead of about 24px and 32px), so they take up less of the drink.
+  - **Servings removed for now:** the cups and the "+" are gone from the screen. The Servings code is still in place (default 1, and the cups are in `src/components/ServingCups.tsx`) so it can come back.
+  - **Total:** both "Total" and "3 oz" are 12px and the line sits flush with the right edge of the drink panel, 16px below it (on a phone that's 34px in from the screen edge, lined up with the card).
+  - **Under the name:** the ingredient list now comes first, then the family tag (Spirit-forward).
+  - **Rings:** the dot is gone.
+  - **Dragging:** the moment you start dragging any ingredient, every layer, garnishes included, eases to its flat color, and they all ease back when you let go.
+- **Tested:** Negroni on a phone-size and a wide preview. The Total's text lines up with the card's right edge and sits 16px below it, both texts are 12px, and all four layers go flat during a drag and return after.
+
 ## 2026-11-15: Fix: layers no longer jump when dragged in busy drinks
 - **Before:** in drinks with four or more ingredients (Tom Collins, Mojito, Hot toddy and others), dragging one layer, usually the third from the bottom, made its amount jump by several parts in one small movement (for example 0.25 to 5 parts).
 - **Why:** the drag followed the layer's edge on screen. Once the layers below were squeezed down to the 60px minimum height, that edge stopped moving even though the amount could still change, so the math jumped across the gap.

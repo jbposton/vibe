@@ -23,11 +23,40 @@ import { LiquidCanvas, type LiquidLayer } from "./LiquidCanvas";
 import { GRAIN_STYLE } from "./surfaceEffects";
 import { useLayerDrag } from "./useLayerDrag";
 
-/** The reset button: a black disc at 80% opacity (the arrow stays solid) with a soft drop shadow. */
-const RESET_STYLE: React.CSSProperties = {
-  background: "rgba(0,0,0,0.8)",
-  boxShadow: "0 8px 20px rgba(0,0,0,0.28)",
-};
+/**
+ * The amount button on each layer (Figma 93:378): a faint dark (on light
+ * layers) or light (on dark layers) fill with a touch of background blur. Its
+ * only outline is the 0.5px highlight along the top edge (see GlassTopEdge).
+ */
+function amountButtonStyle(lightLayer: boolean): React.CSSProperties {
+  return {
+    background: lightLayer ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.07)",
+    backdropFilter: "blur(4px)",
+    WebkitBackdropFilter: "blur(4px)",
+  };
+}
+
+/**
+ * The glass highlight: a 0.5px line along the top edge that is bright at the
+ * left and fades to 20% about halfway across, following the rounded corners.
+ * It sits inside its (relatively positioned) parent and takes the parent's radius.
+ */
+function GlassTopEdge() {
+  return (
+    <span
+      aria-hidden
+      className="pointer-events-none absolute inset-0 rounded-[inherit]"
+      style={{
+        padding: "0.5px 0 0 0",
+        background: "linear-gradient(105deg, #fff 0%, rgba(255,255,255,0.2) 46%)",
+        mask: "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
+        maskComposite: "exclude",
+        WebkitMask: "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
+        WebkitMaskComposite: "xor",
+      }}
+    />
+  );
+}
 
 /** The page's warm black, also shown by the shader above and below the drink. */
 const PAGE_BACKGROUND = "#1A1612";
@@ -38,7 +67,7 @@ const DASH_DRAG_PX = 16;
 /** How far each fallback color band runs past the card's sides (the card clips it). */
 const BAND_BLEED = 128;
 
-/** Dark text on light colors, white text on dark ones, so labels stay readable. */
+/** Dark text on light colors, light text on dark ones, so labels stay readable. */
 function labelColor(hex: string): string {
   const n = parseInt(hex.slice(1), 16);
   const [r, g, b] = [n >> 16, (n >> 8) & 255, n & 255].map((c) => {
@@ -46,7 +75,7 @@ function labelColor(hex: string): string {
     return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
   });
   const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-  return luminance < 0.18 ? "rgba(255,255,255,0.9)" : "rgba(20,20,20,0.75)";
+  return luminance < 0.18 ? "#F7F7F7" : "#000";
 }
 
 type Props = {
@@ -104,7 +133,7 @@ export const DrinkCard = memo(function DrinkCard({
   // The drink for the liquid shader: each layer's band (with the v4 overlap)
   // and blur, in px above the stack bottom.
   const liquidLayers: LiquidLayer[] = ordered.map((line, i) => {
-    const g = layerGeometry(heights[i]);
+    const g = layerGeometry(heights[i], line.amount.kind === "garnish");
     return {
       lo: bottoms[i] - g.overlap,
       hi: bottoms[i] + heights[i] + g.overlap,
@@ -184,7 +213,7 @@ export const DrinkCard = memo(function DrinkCard({
     <section
       ref={panelRef}
       aria-label={`${drink.name} layers`}
-      className="absolute inset-0 isolate touch-manipulation overflow-hidden rounded-[28px] [clip-path:inset(0_round_28px)] select-none [-webkit-touch-callout:none]"
+      className="absolute inset-0 isolate touch-manipulation overflow-hidden rounded-[38px] [clip-path:inset(0_round_38px)] select-none [-webkit-touch-callout:none]"
     >
       {panelHeight > 0 && (
         <>
@@ -204,7 +233,7 @@ export const DrinkCard = memo(function DrinkCard({
               sides; the card clips the extra blur. */}
           {shaderReady !== true &&
             ordered.map((line, i) => {
-              const g = layerGeometry(heights[i]);
+              const g = layerGeometry(heights[i], line.amount.kind === "garnish");
               return (
                 <div
                   key={`band-${drink.id}-${line.key}`}
@@ -225,12 +254,11 @@ export const DrinkCard = memo(function DrinkCard({
           {/* Film grain over the whole drink, under the labels. */}
           <div aria-hidden className="pointer-events-none absolute inset-0" style={GRAIN_STYLE} />
 
-          {/* While you drag a layer it eases to its ingredient's flat color (hard
-              edges, no blur, no gradient, no grain), then eases back to the
-              soft look when you let go. Only the opacity animates, which is cheap. */}
+          {/* While you drag a layer, EVERY layer eases to its ingredient's flat color
+              (hard edges, no blur, no gradient, no grain), then they ease back to
+              the soft look when you let go. Only the opacity animates, which is cheap. */}
           {ordered.map((line, i) => {
-            if (line.amount.kind === "garnish") return null;
-            const selected = draggingKey === line.key;
+            const selected = draggingKey !== null;
             return (
               <div
                 key={`flat-${drink.id}-${line.key}`}
@@ -257,14 +285,29 @@ export const DrinkCard = memo(function DrinkCard({
             const amountText = formatAmount(line.amount, DEFAULT_UNIT, servings);
             const isGarnish = line.amount.kind === "garnish";
             const box = { bottom: bottoms[i], height: heights[i], transition: animate };
-            // Ingredient name on the left edge, amount on the right edge.
+            // Ingredient name on the left edge; on the right, the amount in a
+            // small button (it will be clickable one day) or "Garnish".
+            const ink = labelColor(ingredient.color);
+            const lightLayer = ink === "#000";
+            const [amountNumber, ...amountUnit] = amountText.split(" ");
             const label = (
               <span
-                className="pointer-events-none absolute inset-x-4 top-1/2 flex -translate-y-1/2 items-baseline justify-between gap-3 text-[11px] leading-4"
-                style={{ color: labelColor(ingredient.color) }}
+                className="pointer-events-none absolute left-6 right-[22px] top-1/2 flex -translate-y-1/2 items-center justify-between gap-3 text-xs leading-4"
+                style={{ color: ink }}
               >
                 <span>{ingredient.name}</span>
-                <span className="text-right opacity-70 tabular-nums">{amountText}</span>
+                {isGarnish ? (
+                  <span className="opacity-60">Garnish</span>
+                ) : (
+                  <span
+                    className="relative flex h-8 items-center gap-1 rounded-lg px-2 text-[11px] tabular-nums"
+                    style={amountButtonStyle(lightLayer)}
+                  >
+                    <GlassTopEdge />
+                    <span className="text-[13px]">{amountNumber}</span>
+                    <span className="opacity-60">{amountUnit.join(" ")}</span>
+                  </span>
+                )}
               </span>
             );
 
@@ -316,7 +359,20 @@ export const DrinkCard = memo(function DrinkCard({
             );
           })}
 
-          {/* Reset: a small black circle at the bottom center. It's only there
+          {/* Handles on the line between layers: a hint of where things can be moved.
+              None next to a garnish, which can't be moved. */}
+          {ordered.slice(0, -1).map((line, i) =>
+            line.amount.kind === "garnish" || ordered[i + 1].amount.kind === "garnish" ? null : (
+              <span
+                key={`handle-${drink.id}-${line.key}`}
+                aria-hidden
+                className="layer-anim pointer-events-none absolute left-1/2 z-10 h-0.5 w-5 -translate-x-1/2 rounded-full bg-white/25"
+                style={{ bottom: bottoms[i] + heights[i] - 1, transition: animate }}
+              />
+            ),
+          )}
+
+          {/* Reset: a small glass circle (same look as the amount buttons) at the bottom center. It's only there
               once the drink has been changed. data-no-swipe keeps the carousel
               from grabbing the tap. */}
           <button
@@ -326,12 +382,13 @@ export const DrinkCard = memo(function DrinkCard({
             aria-label={`Reset ${drink.name}`}
             tabIndex={modified && interactive ? 0 : -1}
             aria-hidden={!modified}
-            className={`absolute bottom-4 left-1/2 z-20 grid size-9 -translate-x-1/2 place-items-center rounded-full text-[#F7F7F7] transition-[opacity,transform] duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] ${
+            className={`absolute bottom-4 left-1/2 z-20 grid size-[45px] -translate-x-1/2 place-items-center rounded-full text-[#F7F7F7] transition-[opacity,transform] duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] ${
               modified ? "scale-100 opacity-100" : "pointer-events-none scale-75 opacity-0"
             }`}
-            style={RESET_STYLE}
+            style={amountButtonStyle(true)}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <GlassTopEdge />
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
               <path d="M3 12a9 9 0 1 0 3-6.7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               <path d="M3 4v5h5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>

@@ -55,10 +55,10 @@ export function FilterBar({ active, onSelect }: Props) {
                   className={`group flex h-11 shrink-0 items-center px-[3px] outline-none ${f.placeholder ? "cursor-default" : ""}`}
                 >
                   <span
-                    className={`flex h-8 items-center whitespace-nowrap rounded-full border px-3 text-xs transition-colors group-focus-visible:outline-2 group-focus-visible:outline-offset-2 group-focus-visible:outline-[#F7F7F7] ${
+                    className={`flex h-8 items-center whitespace-nowrap rounded-[9px] px-3 text-xs transition-colors group-focus-visible:outline-2 group-focus-visible:outline-offset-2 group-focus-visible:outline-[#F7F7F7] ${
                       selected
-                        ? "border-[#F7F7F7] bg-[#F7F7F7] font-semibold text-[#1A1612]"
-                        : "border-[#F7F7F7]/70 text-[#F7F7F7] group-hover:bg-[#F7F7F7]/10"
+                        ? "bg-white text-[#1A1612]"
+                        : "bg-white/[0.09] text-[#F7F7F7] group-hover:bg-white/[0.16]"
                     }`}
                   >
                     {f.id === "build-my-own" && <Sparkle />}

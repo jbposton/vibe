@@ -101,8 +101,14 @@ export function layerBottoms(heights: number[]): number[] {
 /**
  * Vertical part of the blurred band for one layer (Figma "v4" recipe).
  * Horizontally the band runs past both sides of the panel, which clips it.
+ * Garnishes get a much tighter band (JP, 2026-11-16): the blur of a 60px
+ * garnish layer was taking up too much of the drink.
  */
-export function layerGeometry(height: number) {
+export function layerGeometry(height: number, garnish = false) {
+  if (garnish) {
+    const overlap = 8;
+    return { overlap, totalHeight: height + 2 * overlap, blur: 12 };
+  }
   const overlap = 0.2 * height + 12;
   const totalHeight = height + 2 * overlap;
   return { overlap, totalHeight, blur: Math.min(84, Math.round(totalHeight * 0.3)) };

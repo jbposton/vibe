@@ -16,11 +16,9 @@ import { flavorProfile } from "@/lib/flavor";
 import { DrinkCard } from "./DrinkCard";
 import { CLASSICS_ID, FILTERS, filterList } from "@/data/finder";
 import { FilterBar } from "./FilterBar";
-import { ServingCups } from "./ServingCups";
 import { FlavorReadout } from "./FlavorReadout";
-
-/** Servings buttons (the "+" for a custom amount comes later). */
-const SERVING_CHOICES = [1, 2, 4];
+import { MakeEdits } from "./MakeEdits";
+import { adjustLine, noteEdits } from "@/lib/edits";
 
 // OPEN: which drink a visitor sees first (brief §1 flow). Placeholder: Negroni.
 const START_DRINK = Math.max(0, DRINKS.findIndex((d) => d.id === "negroni"));
@@ -369,8 +367,9 @@ export function DrinkPanel() {
     setBusy(false);
   };
 
+  // The flavor notes this drink offers for editing, from its classic recipe (so they stay put while you edit).
+  const noteEditsForDrink = useMemo(() => noteEdits(infoDrink.lines), [infoDrink]);
   const profile = useMemo(() => flavorProfile(infoLines), [infoLines]);
-  const baseline = useMemo(() => flavorProfile(infoDrink.lines), [infoDrink]);
 
   const caption = orderLines(infoLines)
     .slice()
@@ -410,18 +409,19 @@ export function DrinkPanel() {
           </button>
         </div>
 
-        <h1 className="text-[22px] font-semibold leading-7">{infoDrink.name}</h1>
-        <p className="mt-1 text-xs opacity-55">{infoDrink.family}</p>
-        <p className="mt-3 text-[11px] leading-4 text-[#F7F7F7]/45">{caption}</p>
+        <h1 className="font-serif text-[40px] leading-[52px]">{infoDrink.name}</h1>
+        <p className="mt-1 text-[11px] leading-4 text-[#F7F7F7]/45">{caption}</p>
+        <p className="mt-1.5 text-xs opacity-55">{infoDrink.family}</p>
       </header>
 
       {/* ── The row of drinks ─────────────────────────────────────── */}
+      <div className="flex min-h-0 flex-1 flex-col md:col-start-2 md:row-span-2 md:row-start-2 md:h-full">
       <div
         ref={trackRef}
         role="group"
         aria-roledescription="carousel"
         aria-label="Drinks"
-        className="relative -mx-4 min-h-0 flex-1 touch-none overflow-hidden select-none md:col-start-2 md:row-span-2 md:row-start-2 md:mx-0 md:h-full"
+        className="relative -mx-4 min-h-0 flex-1 touch-none overflow-hidden select-none md:mx-0"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerEnd}
@@ -453,10 +453,20 @@ export function DrinkPanel() {
                 onReset={resetDrink}
               />
               {/* Dims the card when it's at the side; its opacity is set as the row moves. */}
-              <div aria-hidden data-dim className="pointer-events-none absolute inset-0 rounded-[28px] bg-black opacity-0" />
+              <div aria-hidden data-dim className="pointer-events-none absolute inset-0 rounded-[38px] bg-black opacity-0" />
             </div>
           );
         })}
+      </div>
+
+      {/* The drink's total, flush with the right edge of the drink panel, 16px below it. */}
+      <p
+        className="mt-4 flex shrink-0 items-baseline justify-end gap-1.5 whitespace-nowrap text-xs tabular-nums"
+        style={{ paddingRight: isDesktop ? 0 : PEEK + GAP - 16 }}
+      >
+        <span className="text-[#F7F7F7]/55">Total</span>
+        <span className="font-semibold">{formatTotal(totalParts(infoLines), DEFAULT_UNIT, infoServings)}</span>
+      </p>
       </div>
 
       {/* ── Flavor profile, under the drink ────────────────────────── */}
@@ -464,45 +474,16 @@ export function DrinkPanel() {
         aria-label="Flavor details"
         className="flex shrink-0 flex-col md:col-start-1 md:row-start-3 md:min-h-0 md:overflow-y-auto"
       >
-        {/* Servings scale the oz only; the parts (the ratio) never change. */}
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-          <div role="group" aria-label="Servings" className="flex items-center">
-            <span className="mr-1 text-xs text-[#F7F7F7]/55">Servings:</span>
-            {SERVING_CHOICES.map((n) => (
-              <button
-                key={n}
-                type="button"
-                aria-pressed={infoServings === n}
-                aria-label={n === 1 ? "1 serving" : `${n} servings`}
-                onClick={() => setServings((all) => ({ ...all, [infoD]: n }))}
-                className={`grid h-11 w-11 place-items-center rounded-xl transition-opacity focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#F7F7F7] ${
-                  infoServings === n ? "text-[#F7F7F7] opacity-100" : "text-[#F7F7F7] opacity-40 hover:opacity-75"
-                }`}
-              >
-                <ServingCups count={n} />
-              </button>
-            ))}
-            {/* OPEN: custom amount (later): type a number and everything scales. */}
-            <button
-              type="button"
-              disabled
-              aria-label="Custom number of servings (coming later)"
-              title="Custom amount: coming later"
-              className="grid h-11 w-11 place-items-center text-lg text-[#F7F7F7]/35"
-            >
-              +
-            </button>
-          </div>
-          <p className="flex items-baseline gap-1.5 whitespace-nowrap tabular-nums">
-            <span className="text-xs text-[#F7F7F7]/55">Total</span>
-            <span className="text-base font-semibold leading-6">
-              {formatTotal(totalParts(infoLines), DEFAULT_UNIT, infoServings)}
-            </span>
-          </p>
+        <div>
+          <FlavorReadout profile={profile} />
         </div>
 
-        <div>
-          <FlavorReadout profile={profile} baseline={baseline} />
+        <div className="mt-5">
+          <MakeEdits
+            edits={noteEditsForDrink}
+            lines={infoLines}
+            onAdjust={(key, direction) => onEdit(infoD, (prev) => adjustLine(prev, key, direction))}
+          />
         </div>
 
         {/* OPEN: gesture hints (brief §6). The helper text under the drink was removed (JP, 2026-11-15); the brief still wants hints for gestures. */}
