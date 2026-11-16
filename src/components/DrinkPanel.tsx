@@ -25,8 +25,8 @@ const mod = (a: number, n: number) => ((a % n) + n) % n;
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
 /**
- * The drink card's fixed shape: width divided by height. 0.77 with the wider
- * card (smaller side peeks) is 331 x 430 on a 375 x 812 phone (0.68 was 307 x 451).
+ * The drink card's fixed shape: width divided by height. With a 24px margin on
+ * each side (PEEK + GAP), 0.77 gives 327 x 425 on a 375 x 812 phone.
  * OPEN: the exact proportion (JP, 2026-11-16: "fixed proportion, scales down a bit",
  * then "scale it up a bit again").
  */
@@ -34,7 +34,7 @@ const CARD_ASPECT = 0.77;
 
 /** Phone layout: the middle card with its neighbors peeking in at the sides. */
 const SIDE_SCALE = 0.86; // size of the cards beside the middle one
-const PEEK = 14; // px of each side card showing at the screen edge
+const PEEK = 16; // px of each side card showing at the screen edge (PEEK + GAP = the card's 24px margin from each side of the screen)
 const GAP = 8; // px between the middle card and a side card
 const SIDE_DIM = 0.6; // how dark a card at the side gets (black overlay opacity)
 /** How far a finger moves (px) before it counts as a swipe rather than a tap. */

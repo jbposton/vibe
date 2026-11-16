@@ -137,3 +137,4 @@ Name of the app; flavor dimensions and drink families; what "feeling and vibe" c
 - Commands: `npm run dev` (preview at http://localhost:3000), `npm run build` and `npm run lint` before pushing.
 - Placeholders for open decisions (§7) are marked `// OPEN:` in the code. JP asked on 2026-11-14 to stop writing in `docs/decision-log.md` (it stays as a record up to that date). Visible changes still go in `docs/iteration-log.md`.
 - Code map: data in `src/data/` (ingredients, drinks, roles), stack math in `src/lib/stack.ts`, the mixer in `src/components/DrinkPanel.tsx`.
+- Drawing: since 2026-11-16 each layer is a **flat block** of its ingredient color. The blurred "v4" liquid shader (`src/components/LiquidCanvas.tsx`) is kept but off: flip `USE_SHADER` in `src/components/DrinkCard.tsx` to bring it back.

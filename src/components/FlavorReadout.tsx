@@ -44,7 +44,7 @@ function Stat({ label, axis, value, valueText }: StatProps) {
           // i = 0 is the top bar; the bottom `filled` bars are lit.
           <span
             key={i}
-            className={`h-[3px] w-[39px] rounded-full transition-colors duration-150 ${i >= LEVELS - filled ? "bg-white" : "bg-white/20"}`}
+            className={`h-0.5 w-4 rounded-full transition-colors duration-150 ${i >= LEVELS - filled ? "bg-white" : "bg-white/20"}`}
           />
         ))}
       </div>

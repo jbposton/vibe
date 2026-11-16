@@ -62,6 +62,14 @@ function GlassTopEdge({ shown = true }: { shown?: boolean }) {
   );
 }
 
+/**
+ * How the drink is drawn. false (current, JP 2026-11-16): each layer is a flat
+ * block of its ingredient's color. true: the blurred, slowly mixing liquid
+ * shader (LiquidCanvas.tsx, with its CSS fallback bands and film grain), which
+ * is kept so we can go back by flipping this one switch.
+ */
+const USE_SHADER = false;
+
 /** The page's warm black, also shown by the shader above and below the drink. */
 const PAGE_BACKGROUND = "#1A1612";
 
@@ -221,21 +229,24 @@ export const DrinkCard = memo(function DrinkCard({
     >
       {panelHeight > 0 && (
         <>
-          {/* The drink, drawn by the liquid shader: v4 blurred bands whose
-              boundaries drift slowly, like liquids mixing. */}
-          <LiquidCanvas
-            layers={liquidLayers}
-            resetKey={`${drink.id}-${ordered.length}`}
-            dragging={draggingKey !== null}
-            background={PAGE_BACKGROUND}
-            onReady={setShaderReady}
-          />
+          {/* USE_SHADER only: the drink, drawn by the liquid shader: v4 blurred bands
+              whose boundaries drift slowly, like liquids mixing. */}
+          {USE_SHADER && (
+            <LiquidCanvas
+              layers={liquidLayers}
+              resetKey={`${drink.id}-${ordered.length}`}
+              dragging={draggingKey !== null}
+              background={PAGE_BACKGROUND}
+              onReady={setShaderReady}
+            />
+          )}
 
           {/* Fallback (and first paint): the blurred color bands as CSS (Figma
               v4 recipe), used only until the shader draws or when the device
               can't run it. Later layers paint on top. Bands run past the
               sides; the card clips the extra blur. */}
-          {shaderReady !== true &&
+          {USE_SHADER &&
+            shaderReady !== true &&
             ordered.map((line, i) => {
               const g = layerGeometry(heights[i], line.amount.kind === "garnish");
               return (
@@ -255,14 +266,15 @@ export const DrinkCard = memo(function DrinkCard({
               );
             })}
 
-          {/* Film grain over the whole drink, under the labels. */}
-          <div aria-hidden className="pointer-events-none absolute inset-0" style={GRAIN_STYLE} />
+          {/* USE_SHADER only: film grain over the whole drink, under the labels. */}
+          {USE_SHADER && <div aria-hidden className="pointer-events-none absolute inset-0" style={GRAIN_STYLE} />}
 
-          {/* While you drag a layer, EVERY layer eases to its ingredient's flat color
-              (hard edges, no blur, no gradient, no grain), then they ease back to
-              the soft look when you let go. Only the opacity animates, which is cheap. */}
+          {/* The flat colors: one block per layer in its ingredient's color (hard
+              edges, no blur, no gradient, no grain). Always shown now; with
+              USE_SHADER they only show while you drag, and fade back to the soft
+              look when you let go (only the opacity animates, which is cheap). */}
           {ordered.map((line, i) => {
-            const selected = draggingKey !== null;
+            const selected = !USE_SHADER || draggingKey !== null;
             return (
               <div
                 key={`flat-${drink.id}-${line.key}`}
@@ -273,9 +285,11 @@ export const DrinkCard = memo(function DrinkCard({
                   height: heights[i],
                   background: INGREDIENTS[line.ingredient].color,
                   opacity: selected ? 1 : 0,
-                  transition: selected
-                    ? "opacity 220ms ease-in"
-                    : "opacity 380ms ease-out, bottom 180ms ease-out, height 180ms ease-out",
+                  transition: !USE_SHADER
+                    ? animate ?? "bottom 180ms ease-out, height 180ms ease-out"
+                    : selected
+                      ? "opacity 220ms ease-in"
+                      : "opacity 380ms ease-out, bottom 180ms ease-out, height 180ms ease-out",
                 }}
               />
             );
@@ -296,19 +310,10 @@ export const DrinkCard = memo(function DrinkCard({
             const ink = labelColor(ingredient.color);
             const lightLayer = ink === "#000";
             const [amountNumber, ...amountUnit] = amountText.split(" ");
-            // A thin line along the top of each layer, with the label just below it
-            // (Figma, JP 2026-11-16). The top layer has no line (its label sits 15px down, clear of
-            // the rounded corners). The others are a dark or light see-through line (the label's
-            // color at 10%: dark on light layers, light on dark ones). They fade out while you drag.
-            const isTopLayer = i === ordered.length - 1;
-            const lineTop = isTopLayer ? 15 : 0;
-            const rule = isTopLayer ? null : (
-              <span
-                aria-hidden
-                className="pointer-events-none absolute left-[22px] right-[22px] h-px bg-current transition-opacity duration-200"
-                style={{ top: lineTop, color: ink, opacity: pressing ? 0 : 0.1 }}
-              />
-            );
+            // The label sits near the top of its layer; the top layer's label is 15px
+            // down, clear of the rounded corners. (The lines and edge ticks that were
+            // tried here are gone: JP, 2026-11-16.)
+            const lineTop = i === ordered.length - 1 ? 15 : 0;
             const label = (
               <span
                 className="pointer-events-none absolute left-[22px] right-[22px] flex items-center justify-between gap-3 text-xs leading-4"
@@ -319,7 +324,9 @@ export const DrinkCard = memo(function DrinkCard({
                   <span className="opacity-60">Garnish</span>
                 ) : (
                   <span
-                    className="relative flex h-8 items-center gap-1 rounded-lg px-2 text-[11px] tabular-nums"
+                    // -mr-2 cancels the button's right padding, so the "oz" text ends exactly where
+                    // "Garnish" does (the button's chrome, shown while you drag, reaches 8px past it).
+                    className="relative -mr-2 flex h-8 items-center gap-1 rounded-lg px-2 text-xs tabular-nums"
                     style={amountButtonStyle(lightLayer, pressing)}
                   >
                     <GlassTopEdge shown={pressing} />
@@ -335,7 +342,6 @@ export const DrinkCard = memo(function DrinkCard({
             if (isGarnish) {
               return (
                 <div key={`layer-${drink.id}-${line.key}`} className="layer-anim absolute inset-x-0" style={box}>
-                  {rule}
                   {label}
                 </div>
               );
@@ -374,7 +380,6 @@ export const DrinkCard = memo(function DrinkCard({
                   }
                 }}
               >
-                {rule}
                 {label}
               </div>
             );

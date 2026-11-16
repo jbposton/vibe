@@ -16,6 +16,31 @@ Visible before-and-after changes, newest first.
 - **Open for JP:** the Ice / Long / Stirred row in the mock isn't built (it needs data and icons); Substitution needs a curated swap list; the edit rules and ¼ oz step are a first pass (see `src/lib/edits.ts`); the mock's stats used DM Sans and I used Instrument Sans; "Subsitution" in the mock is spelled "Substitution" here; filter chips stay 32px tall (the mock shows 36px).
 - **Tested:** Daiquiri: Less Sour added syrup (¾ to 1 oz, total 3¾ to 4 oz), Less Sweet added lime; Gin and tonic and Negroni show the right buttons dimmed; a drag that starts on an amount button still moves the layer; wide screen layout checked.
 
+## 2026-11-16: Right-hand text sizes and alignment
+- **Before:** the amount number was 13px but "oz" was 11px, and the amount's text stopped 8px short of where "Garnish" ended (the amount's button padding pushed it in).
+- **After:** the amount number is 13px; "oz" (and "dashes") and "Garnish" are 12px. The right edge of every right-hand label now lines up exactly, "oz" with "Garnish". The button that shows while you press or drag extends 8px beyond that edge, around the text.
+- **Tested:** Negroni: the "oz" on all three liquids and "Garnish" end at the same x (329px on a 375px phone), sizes read 13px / 12px / 12px.
+
+## 2026-11-16: Flat colors instead of the shader; side ticks removed
+- **Before:** each layer was a blurred band drawn by the liquid shader (slowly mixing boundaries, film grain), with short ticks on the card's edges beside each label.
+- **After:** the ticks are gone, and each layer is a flat block of its ingredient's color with hard edges (no blur, no gradient, no grain, no movement). The labels, amount buttons and dragging are unchanged; the blocks resize smoothly when you change an amount and follow your finger during a drag.
+- **Shader kept:** nothing was deleted. The shader and its helpers are still in `src/components/LiquidCanvas.tsx` and `src/components/surfaceEffects.ts`, and `src/components/DrinkCard.tsx` has one switch, `USE_SHADER` (now `false`). Setting it to `true` brings back the blurred, mixing look exactly as it was (including the "every layer goes flat while you drag" effect), and the unused shader doesn't run while it's off.
+- **Open for JP:** the `layerGeometry` blur settings in `src/lib/stack.ts` (including the tighter garnish blur) are also kept for when the shader returns.
+- **Tested:** Negroni on a phone-size preview: no canvas or blurred bands on the page, four flat blocks that fill the card, a drag still moves Campari from 1 to 1½ oz, and the page shows no ticks.
+
+## 2026-11-16: Edge ticks instead of a line above each ingredient (Figma 110:659)
+- **Before:** a thin line ran across the card along the top of each layer.
+- **After:** the lines are gone. In their place, each layer below the top one has two short ticks (13px long, 1px thick) on the card's left and right edges, level with the middle of its label, so they point at the name on one side and the amount on the other. They are light gray (#d9d9d9) on dark layers and a dark 45% tick on light layers (the design only shows the light gray, which would vanish on pale layers like gin). The top layer has none, as in the design, and the ticks fade out while you press or drag.
+- **Open for JP:** the dark tick color for light layers is my addition; the card's reset icon already matches the design's glass circle.
+
+## 2026-11-16: Narrower flavor bars
+- **Before:** each bar in the three flavor stacks was 39px wide (Figma 110:731).
+- **After:** 16px wide and then 2px high (was 3px), with the 3px gaps unchanged. The labels above them are unchanged and the bars stay centered under them.
+
+## 2026-11-16: Card sits 24px from each side of the screen
+- **Before:** the card was 22px from each screen edge (331 x 430 on a 375 x 812 phone).
+- **After:** exactly 24px from each side, so it is 327 x 425 on the same phone. The cards peeking in at the sides now show 16px, with an 8px gap to the middle card (16 + 8 = 24). The shape is unchanged (`CARD_ASPECT = 0.77`).
+
 ## 2026-11-16: Wider, slightly shorter card
 - **Before:** the card was 307 x 451 on a 375 x 812 phone, with 34px between its edge and the screen edge.
 - **After:** 331 x 430 on the same phone: 24px wider and 21px shorter. The cards peeking in at the sides show 14px (was 24) with an 8px gap (was 10), which gives the middle card its extra width; the shape is now `CARD_ASPECT = 0.77` (was 0.68). Swiping to the next drink works as before.
