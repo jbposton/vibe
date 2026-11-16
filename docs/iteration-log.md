@@ -16,6 +16,39 @@ Visible before-and-after changes, newest first.
 - **Open for JP:** the Ice / Long / Stirred row in the mock isn't built (it needs data and icons); Substitution needs a curated swap list; the edit rules and ¼ oz step are a first pass (see `src/lib/edits.ts`); the mock's stats used DM Sans and I used Instrument Sans; "Subsitution" in the mock is spelled "Substitution" here; filter chips stay 32px tall (the mock shows 36px).
 - **Tested:** Daiquiri: Less Sour added syrup (¾ to 1 oz, total 3¾ to 4 oz), Less Sweet added lime; Gin and tonic and Negroni show the right buttons dimmed; a drag that starts on an amount button still moves the layer; wide screen layout checked.
 
+## 2026-11-16: Frosted-glass edges tried, then removed
+- **Tried:** making the cards at the sides look like frosted glass (blur up to 7px, then reduced to 3px, a faint white tint, a bright rim) after the "glassmorphism" skill.
+- **Result:** JP asked to remove it. The side cards are back to how they were: a black dimming layer that grows to 60% as a card moves away from the middle, with no blur. The wider ring perspective and card spacing from before are unchanged.
+
+## 2026-11-16: Main card 16px from the screen edge
+- **Before:** the middle card was 24px from each side of the screen (327 x 425 on a 375 x 812 phone), with about 15px between it and the side cards.
+- **After:** exactly 16px from each side, so 343 x 445 on the same phone (the shape is unchanged). To keep a sliver of each side card showing, the extra space between cards (`GAP`) went from 17 to 10, which leaves about 8px between the middle card and the side cards. `CARD_MARGIN` is 16 and `GAP` is 10, both at the top of `src/components/DrinkPanel.tsx`.
+
+## 2026-11-16: More space between the main card and the side cards
+- **Before:** about 7px of empty space between the middle card and each side card, and about 17px of each side card showing.
+- **After:** about 15px of space, and about 9px of each side card showing. The middle card is still exactly 24px from each side of the screen (that is now its own setting, `CARD_MARGIN`, separate from `GAP`, the extra space between cards; both at the top of `src/components/DrinkPanel.tsx`).
+- **Tested:** measured on a 375 x 812 phone: middle card 24 to 351, left card ending at 8.8, right card starting at 366.2.
+
+## 2026-11-16: Cards 8px apart
+- **Before:** 10px between the middle card and the side cards (about 6px of each side card showing).
+- **After:** exactly 8px between the middle card and each side card, so about 8px of each side card shows next to the 16px margin. `GAP` is 8 at the top of `src/components/DrinkPanel.tsx`.
+
+## 2026-11-16: Ring perspective tried, then removed
+- **Tried:** arranging the carousel cards like they were around a circle seen from outside: each card away from the middle turned 30 degrees and sat back in depth, with perspective.
+- **Result:** JP asked to remove it. The cards are back to the flat layout: the cards beside the middle one are 86% of its size and slide sideways with no turning or depth. The card margin (16px) and the spacing between cards are unchanged.
+
+## 2026-11-16: More space between the main card and the side cards
+- **Before:** about 7px of empty space between the middle card and each side card, and about 17px of each side card showing.
+- **After:** about 15px of space, and about 9px of each side card showing. The middle card is still exactly 24px from each side of the screen (that is now its own setting, `CARD_MARGIN`, separate from `GAP`, the extra space between cards; both at the top of `src/components/DrinkPanel.tsx`).
+- **Tested:** measured on a 375 x 812 phone: middle card 24 to 351, left card ending at 8.8, right card starting at 366.2.
+
+## 2026-11-16: Cards sit on a ring (perspective)
+- **Before:** the cards beside the middle one were just smaller and dimmed, sliding flat from side to side.
+- **After:** on a phone the cards are arranged like they're around a circle seen from outside. Each step away from the middle turns a card 30 degrees around a vertical axis and sets it back in depth, with perspective, so the cards at the sides are foreshortened, and during a swipe the card coming in tilts into place while the one leaving turns away. The dimming is unchanged. On wide screens (one card) nothing changes.
+- **Tuning:** `RING_DEGREES` (30) is the turn per card and `PERSPECTIVE` (1000px, smaller is stronger) is the viewing distance, both at the top of `src/components/DrinkPanel.tsx`.
+- **Tested:** a held mid-swipe screenshot on a 375 x 812 phone shows the tilted, shrinking cards; a short drag settles back; tapping the left card goes to the previous drink; the card in the middle still sits exactly 24px from each side.
+- **Open for JP:** at rest only a 16px sliver of each side card shows, so the ring is most visible while swiping; a bigger angle or a smaller perspective distance would make the slivers lean more.
+
 ## 2026-11-16: Right-hand text sizes and alignment
 - **Before:** the amount number was 13px but "oz" was 11px, and the amount's text stopped 8px short of where "Garnish" ended (the amount's button padding pushed it in).
 - **After:** the amount number is 13px; "oz" (and "dashes") and "Garnish" are 12px. The right edge of every right-hand label now lines up exactly, "oz" with "Garnish". The button that shows while you press or drag extends 8px beyond that edge, around the text.

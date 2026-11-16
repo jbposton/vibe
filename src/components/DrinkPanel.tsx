@@ -26,7 +26,7 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
 
 /**
  * The drink card's fixed shape: width divided by height. With a 24px margin on
- * each side (PEEK + GAP), 0.77 gives 327 x 425 on a 375 x 812 phone.
+ * each side (CARD_MARGIN = 16), 0.77 gives 343 x 445 on a 375 x 812 phone.
  * OPEN: the exact proportion (JP, 2026-11-16: "fixed proportion, scales down a bit",
  * then "scale it up a bit again").
  */
@@ -34,8 +34,8 @@ const CARD_ASPECT = 0.77;
 
 /** Phone layout: the middle card with its neighbors peeking in at the sides. */
 const SIDE_SCALE = 0.86; // size of the cards beside the middle one
-const PEEK = 16; // px of each side card showing at the screen edge (PEEK + GAP = the card's 24px margin from each side of the screen)
-const GAP = 8; // px between the middle card and a side card
+const CARD_MARGIN = 16; // px between the middle card and each side of the screen
+const GAP = 8; // px between the middle card and a side card (more space = a smaller sliver of the side card shows)
 const SIDE_DIM = 0.6; // how dark a card at the side gets (black overlay opacity)
 /** How far a finger moves (px) before it counts as a swipe rather than a tap. */
 const SLOP = 6;
@@ -90,7 +90,7 @@ export function DrinkPanel() {
   // Card sizes: the middle card leaves room for a sliver of its neighbors.
   // The card keeps one fixed shape (CARD_ASPECT) and shrinks to fit when there
   // isn't room, instead of stretching to fill whatever height is left.
-  const maxCardWidth = isDesktop ? trackSize.width : Math.max(0, trackSize.width - 2 * (PEEK + GAP));
+  const maxCardWidth = isDesktop ? trackSize.width : Math.max(0, trackSize.width - 2 * CARD_MARGIN);
   const cardWidth = Math.max(0, Math.min(maxCardWidth, trackSize.height * CARD_ASPECT));
   const cardHeight = cardWidth / CARD_ASPECT;
   const step = isDesktop ? 0 : cardWidth / 2 + (cardWidth * SIDE_SCALE) / 2 + GAP;
@@ -126,6 +126,7 @@ export function DrinkPanel() {
       const scale = c.desktop ? 1 : 1 - (1 - SIDE_SCALE) * Math.min(Math.abs(t), 1);
       const x = c.desktop ? 0 : t * c.step;
       el.style.transform = `translate3d(${(x - c.cardWidth / 2).toFixed(2)}px,0,0) scale(${scale.toFixed(4)})`;
+      // Cards fade to dark the further they are from the middle, and back up as they arrive.
       // Cards fade to dark the further they are from the middle, and back up as they arrive.
       const dim = el.querySelector<HTMLElement>("[data-dim]");
       if (dim) dim.style.opacity = c.desktop ? "0" : String((SIDE_DIM * Math.min(Math.abs(t), 1)).toFixed(3));
