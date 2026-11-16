@@ -16,6 +16,18 @@ Visible before-and-after changes, newest first.
 - **Open for JP:** the Ice / Long / Stirred row in the mock isn't built (it needs data and icons); Substitution needs a curated swap list; the edit rules and ¼ oz step are a first pass (see `src/lib/edits.ts`); the mock's stats used DM Sans and I used Instrument Sans; "Subsitution" in the mock is spelled "Substitution" here; filter chips stay 32px tall (the mock shows 36px).
 - **Tested:** Daiquiri: Less Sour added syrup (¾ to 1 oz, total 3¾ to 4 oz), Less Sweet added lime; Gin and tonic and Negroni show the right buttons dimmed; a drag that starts on an amount button still moves the layer; wide screen layout checked.
 
+## 2026-11-16: Wider, slightly shorter card
+- **Before:** the card was 307 x 451 on a 375 x 812 phone, with 34px between its edge and the screen edge.
+- **After:** 331 x 430 on the same phone: 24px wider and 21px shorter. The cards peeking in at the sides show 14px (was 24) with an 8px gap (was 10), which gives the middle card its extra width; the shape is now `CARD_ASPECT = 0.77` (was 0.68). Swiping to the next drink works as before.
+
+## 2026-11-16: Lines instead of handles, labels under the line
+- **Before:** a small bar (handle) sat on each boundary between layers and each label was centered in its layer.
+- **After:** the handles are gone. Each layer has a thin line along its top (20% of the label color, so dark on light layers and light on dark ones), inset 22px from the card's sides, and the ingredient name and amount sit just below the line, near the top of their layer. The top layer has no line (its label sits 15px down to clear the rounded corners), and the lines were then made lighter, from 20% to 10% of the label color. JP also tried lines in the ingredient's own flat color (too strong) and in the color above nudged lighter or darker, then chose a dark or light see-through line: the label's color at 10%, dark on light layers and light on dark ones. The lines fade out while you press or drag a layer and come back when you let go.
+
+## 2026-11-16: Card a bit bigger; family label back under the name
+- **Before:** the card was 3 to 4 (307 x 409 on an iPhone-size screen) and the ingredient list sat under the drink name.
+- **After:** the card is a bit taller at the same width: `CARD_ASPECT = 0.68` (307 x 451 on a 375 x 812 phone, about 10% shorter than the original full-height card). The ingredient list is gone from the top and the family label (for example "Spirit-forward") is back in its place, in the same 12px, 55% white style.
+
 ## 2026-11-16: Drink card keeps one shape and scales down
 - **Before:** the drink card stretched to fill all the height the screen had left, so its shape changed from phone to phone (about 307 x 514 on an iPhone-size screen).
 - **After:** the card has a fixed shape, 3 to 4 (width to height, `CARD_ASPECT = 0.75` in `src/components/DrinkPanel.tsx`), and shrinks to fit. On a 375 x 812 phone it is 307 x 409, about a fifth shorter, centered in its space with 40px above and below. On a short phone (375 x 667) it scales down to 258 x 344 and keeps the same shape. On a wide screen it is a centered card of the same shape instead of a tall slab. The cards peeking in at the sides use the same shape, and swiping works as before.

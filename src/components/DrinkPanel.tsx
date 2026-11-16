@@ -10,8 +10,6 @@ import {
   useSyncExternalStore,
 } from "react";
 import { DRINKS, type RecipeLine } from "@/data/drinks";
-import { INGREDIENTS } from "@/data/ingredients";
-import { orderLines } from "@/lib/stack";
 import { flavorProfile } from "@/lib/flavor";
 import { DrinkCard } from "./DrinkCard";
 import { CLASSICS_ID, FILTERS, filterList } from "@/data/finder";
@@ -27,16 +25,17 @@ const mod = (a: number, n: number) => ((a % n) + n) % n;
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
 /**
- * The drink card's fixed shape: width divided by height. 0.75 is a 3:4 card,
- * which is about a fifth shorter than the old full-height card on a phone.
- * OPEN: the exact proportion (JP, 2026-11-16: "fixed proportion, scales down a bit").
+ * The drink card's fixed shape: width divided by height. 0.77 with the wider
+ * card (smaller side peeks) is 331 x 430 on a 375 x 812 phone (0.68 was 307 x 451).
+ * OPEN: the exact proportion (JP, 2026-11-16: "fixed proportion, scales down a bit",
+ * then "scale it up a bit again").
  */
-const CARD_ASPECT = 0.75;
+const CARD_ASPECT = 0.77;
 
 /** Phone layout: the middle card with its neighbors peeking in at the sides. */
 const SIDE_SCALE = 0.86; // size of the cards beside the middle one
-const PEEK = 24; // px of each side card showing at the screen edge
-const GAP = 10; // px between the middle card and a side card
+const PEEK = 14; // px of each side card showing at the screen edge
+const GAP = 8; // px between the middle card and a side card
 const SIDE_DIM = 0.6; // how dark a card at the side gets (black overlay opacity)
 /** How far a finger moves (px) before it counts as a swipe rather than a tap. */
 const SLOP = 6;
@@ -383,12 +382,6 @@ export function DrinkPanel() {
   const editsForDrink = useMemo(() => traitEdits(infoDrink.lines), [infoDrink]);
   const profile = useMemo(() => flavorProfile(infoLines), [infoLines]);
 
-  const caption = orderLines(infoLines)
-    .slice()
-    .reverse()
-    .map((l) => INGREDIENTS[l.ingredient].name)
-    .join(" · ");
-
   const navButton =
     "grid size-11 place-items-center rounded-full text-lg text-[#F7F7F7]/60 hover:text-[#F7F7F7] focus-visible:outline-2 focus-visible:outline-[#F7F7F7] max-md:sr-only";
 
@@ -422,7 +415,7 @@ export function DrinkPanel() {
         </div>
 
         <h1 className="font-serif text-[40px] leading-[52px]">{infoDrink.name}</h1>
-        <p className="mt-1 text-xs opacity-55">{caption}</p>
+        <p className="mt-1 text-xs opacity-55">{infoDrink.family}</p>
       </header>
 
       {/* ── The row of drinks ─────────────────────────────────────── */}

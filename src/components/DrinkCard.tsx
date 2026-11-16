@@ -296,10 +296,23 @@ export const DrinkCard = memo(function DrinkCard({
             const ink = labelColor(ingredient.color);
             const lightLayer = ink === "#000";
             const [amountNumber, ...amountUnit] = amountText.split(" ");
+            // A thin line along the top of each layer, with the label just below it
+            // (Figma, JP 2026-11-16). The top layer has no line (its label sits 15px down, clear of
+            // the rounded corners). The others are a dark or light see-through line (the label's
+            // color at 10%: dark on light layers, light on dark ones). They fade out while you drag.
+            const isTopLayer = i === ordered.length - 1;
+            const lineTop = isTopLayer ? 15 : 0;
+            const rule = isTopLayer ? null : (
+              <span
+                aria-hidden
+                className="pointer-events-none absolute left-[22px] right-[22px] h-px bg-current transition-opacity duration-200"
+                style={{ top: lineTop, color: ink, opacity: pressing ? 0 : 0.1 }}
+              />
+            );
             const label = (
               <span
-                className="pointer-events-none absolute left-6 right-[22px] top-1/2 flex -translate-y-1/2 items-center justify-between gap-3 text-xs leading-4"
-                style={{ color: ink }}
+                className="pointer-events-none absolute left-[22px] right-[22px] flex items-center justify-between gap-3 text-xs leading-4"
+                style={{ color: ink, top: lineTop + 8 }}
               >
                 <span>{ingredient.name}</span>
                 {isGarnish ? (
@@ -322,6 +335,7 @@ export const DrinkCard = memo(function DrinkCard({
             if (isGarnish) {
               return (
                 <div key={`layer-${drink.id}-${line.key}`} className="layer-anim absolute inset-x-0" style={box}>
+                  {rule}
                   {label}
                 </div>
               );
@@ -360,23 +374,11 @@ export const DrinkCard = memo(function DrinkCard({
                   }
                 }}
               >
+                {rule}
                 {label}
               </div>
             );
           })}
-
-          {/* Handles on the line between layers: a hint of where things can be moved.
-              None next to a garnish, which can't be moved. */}
-          {ordered.slice(0, -1).map((line, i) =>
-            line.amount.kind === "garnish" || ordered[i + 1].amount.kind === "garnish" ? null : (
-              <span
-                key={`handle-${drink.id}-${line.key}`}
-                aria-hidden
-                className="layer-anim pointer-events-none absolute left-1/2 z-10 h-0.5 w-5 -translate-x-1/2 rounded-full bg-white/25"
-                style={{ bottom: bottoms[i] + heights[i] - 1, transition: animate }}
-              />
-            ),
-          )}
 
           {/* Reset: a small glass circle (same look as the amount buttons) at the bottom center. It's only there
               once the drink has been changed. data-no-swipe keeps the carousel
