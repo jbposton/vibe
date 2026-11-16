@@ -16,6 +16,12 @@ Visible before-and-after changes, newest first.
 - **Open for JP:** the Ice / Long / Stirred row in the mock isn't built (it needs data and icons); Substitution needs a curated swap list; the edit rules and ¼ oz step are a first pass (see `src/lib/edits.ts`); the mock's stats used DM Sans and I used Instrument Sans; "Subsitution" in the mock is spelled "Substitution" here; filter chips stay 32px tall (the mock shows 36px).
 - **Tested:** Daiquiri: Less Sour added syrup (¾ to 1 oz, total 3¾ to 4 oz), Less Sweet added lime; Gin and tonic and Negroni show the right buttons dimmed; a drag that starts on an amount button still moves the layer; wide screen layout checked.
 
+## 2026-11-16: Drink card keeps one shape and scales down
+- **Before:** the drink card stretched to fill all the height the screen had left, so its shape changed from phone to phone (about 307 x 514 on an iPhone-size screen).
+- **After:** the card has a fixed shape, 3 to 4 (width to height, `CARD_ASPECT = 0.75` in `src/components/DrinkPanel.tsx`), and shrinks to fit. On a 375 x 812 phone it is 307 x 409, about a fifth shorter, centered in its space with 40px above and below. On a short phone (375 x 667) it scales down to 258 x 344 and keeps the same shape. On a wide screen it is a centered card of the same shape instead of a tall slab. The cards peeking in at the sides use the same shape, and swiping works as before.
+- **Open for JP:** the exact proportion (the Figma frame's panel is nearly square at 370 x 418; 0.75 is my pick); the leftover space around the card is just empty for now.
+- **Tested:** measured card sizes on 812px, 667px and wide screens, and swiped to the next drink on the short phone.
+
 ## 2026-11-16: Amount buttons only show while you press or drag
 - **Before:** the button around each "1 oz" (faint fill, top-edge highlight and blur) was always visible.
 - **After:** at rest each amount is just text ("1 oz") in the same place. The button appears around every amount as soon as you press a layer, stays while you drag, and fades away when you let go (about 0.2s). Garnishes and the reset icon are unchanged.

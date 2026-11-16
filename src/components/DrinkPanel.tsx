@@ -26,6 +26,13 @@ const START_DRINK = Math.max(0, DRINKS.findIndex((d) => d.id === "negroni"));
 const mod = (a: number, n: number) => ((a % n) + n) % n;
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
+/**
+ * The drink card's fixed shape: width divided by height. 0.75 is a 3:4 card,
+ * which is about a fifth shorter than the old full-height card on a phone.
+ * OPEN: the exact proportion (JP, 2026-11-16: "fixed proportion, scales down a bit").
+ */
+const CARD_ASPECT = 0.75;
+
 /** Phone layout: the middle card with its neighbors peeking in at the sides. */
 const SIDE_SCALE = 0.86; // size of the cards beside the middle one
 const PEEK = 24; // px of each side card showing at the screen edge
@@ -67,20 +74,26 @@ export function DrinkPanel() {
   // Edited recipes, by drink. A drink you haven't touched isn't in here. Each
   // card keeps its edits when you swipe away and back.
   const [edits, setEdits] = useState<Record<number, RecipeLine[]>>({});
-  const [trackWidth, setTrackWidth] = useState(0);
+  const [trackSize, setTrackSize] = useState({ width: 0, height: 0 });
   // How many drinks each recipe makes (default 1). Scales the oz, never the parts.
   const [servings, setServings] = useState<Record<number, number>>({});
 
   const trackRef = useCallback((el: HTMLDivElement | null) => {
     if (!el) return;
-    setTrackWidth(el.clientWidth); // measure now; the observer keeps it current
-    const observer = new ResizeObserver(([entry]) => setTrackWidth(entry.contentRect.width));
+    setTrackSize({ width: el.clientWidth, height: el.clientHeight }); // measure now; the observer keeps it current
+    const observer = new ResizeObserver(([entry]) =>
+      setTrackSize({ width: entry.contentRect.width, height: entry.contentRect.height }),
+    );
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
 
   // Card sizes: the middle card leaves room for a sliver of its neighbors.
-  const cardWidth = isDesktop ? trackWidth : Math.max(0, trackWidth - 2 * (PEEK + GAP));
+  // The card keeps one fixed shape (CARD_ASPECT) and shrinks to fit when there
+  // isn't room, instead of stretching to fill whatever height is left.
+  const maxCardWidth = isDesktop ? trackSize.width : Math.max(0, trackSize.width - 2 * (PEEK + GAP));
+  const cardWidth = Math.max(0, Math.min(maxCardWidth, trackSize.height * CARD_ASPECT));
+  const cardHeight = cardWidth / CARD_ASPECT;
   const step = isDesktop ? 0 : cardWidth / 2 + (cardWidth * SIDE_SCALE) / 2 + GAP;
 
   // ── Carousel motion ─────────────────────────────────────────────────────
@@ -436,8 +449,8 @@ export function DrinkPanel() {
                 else cardEls.current.delete(j);
               }}
               inert={j !== infoIndex}
-              className="absolute inset-y-0 left-1/2 will-change-transform"
-              style={{ width: cardWidth }}
+              className="absolute left-1/2 top-1/2 will-change-transform"
+              style={{ width: cardWidth, height: cardHeight, marginTop: -cardHeight / 2 }}
             >
               <DrinkCard
                 drink={DRINKS[d]}
