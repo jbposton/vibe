@@ -11,6 +11,14 @@ Visible before-and-after changes, newest first.
 
 - The edit panel's 1px white border is now at 50% opacity (JP wrote ".5"; read as 0.5, not 0.5 percent, which would be invisible).
 
+## 2026-11-16: The drink card no longer scales when the drawer opens
+
+- When the edit panel swipes up the drink card now only moves up (78px) and fades; it keeps its full size (it used to shrink by 16px on each side). Since the panel is solid, the lower part of the card (about a third on a 375 x 812 phone) is hidden behind it when it is open. OPEN: JP may want the card to move up more.
+
+## 2026-11-16: Grain removed from the ingredient layers
+
+- The film grain over the ingredient layers (and the base wave) is gone: the layers are flat colors again. The grain on the glowing ladder steps stays. (It was added earlier today; the pattern is still in `surfaceEffects.ts` as `LAYER_GRAIN_STYLE` for the ladders.)
+
 ## 2026-11-16: More space between the labels and the ladders
 
 - The gap between each label ("Strength · 27% ABV") and its ladder went from 10px to 14px (JP; 18px was tried and was too much). The ladders moved down 4px; the buttons did not move (the space under the ladders is 24px).
