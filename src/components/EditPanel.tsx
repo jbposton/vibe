@@ -8,8 +8,8 @@ import { MakeEdits } from "./MakeEdits";
 
 /** How tall the panel is when open, and how much of it shows when closed (Figma 117:975 and 118:1044). */
 export const PANEL_OPEN_HEIGHT = 470;
-// 140px of content (top padding 26, flavor, 27px gap, buttons) plus 26px under the buttons, the same as above.
-export const PANEL_CLOSED_HEIGHT = 166;
+// 140px of content (top padding 26, flavor, 27px gap, buttons) plus 12px under the buttons, the same as the padding at the sides.
+export const PANEL_CLOSED_HEIGHT = 152;
 /** How far the panel travels between closed and open. */
 export const PANEL_TRAVEL = PANEL_OPEN_HEIGHT - PANEL_CLOSED_HEIGHT;
 

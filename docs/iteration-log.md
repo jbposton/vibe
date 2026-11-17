@@ -2,15 +2,17 @@
 
 Visible before-and-after changes, newest first.
 
-## 2026-11-16: Safari's top bar follows the drink background
+## 2026-11-16: Small controls are fully rounded
 
-- In Safari the strip behind the clock and battery was a different color from the blurred background. `DrinkBackdrop.tsx` now works out the background's color at the very top of the screen for each drink, sets it as the page's theme color, and draws a thin fixed strip of it at the top edge (as tall as the status bar), so Safari has the matching color to pick up.
-- Not verified on a real iPhone (no Xcode simulator on this Mac). OPEN: it will be a solid band that matches the top of the gradient, not the gradient itself; JP to check on the phone.
+- The filter pills, the edit buttons (Add Sweet, Less Strong...) and the amount buttons on the layers are now completely rounded (pill shaped). The edit panel (30px) and the drink card (38px) keep their corner radii.
 
-## 2026-11-16: The app background is the drink's own colors, blurred and darkened
+## 2026-11-16: Closed edit drawer: bottom padding matches the sides
 
-- New `src/components/DrinkBackdrop.tsx`: behind everything, the drink in view is drawn as its classic color bands (default order and sizes, not your edits), blurred 56px, with a warm-black overlay at 72% over it. It cross-fades (0.6s) when you switch drinks.
-- OPEN: the darkness (`DARKEN`) and blur (`BLUR`) at the top of that file are first guesses for JP to tune. The bands follow the classic recipe, so dragging layers doesn't change the background.
+- The space under the buttons in the closed drawer went from 26px to 12px, the same as the left and right padding. The drawer is 14px shorter (`PANEL_CLOSED_HEIGHT` 166 to 152) and the drink card has 14px more room.
+
+## 2026-11-16: Blurred drink-color background (and Safari top bar color) tried, then removed
+
+- The app background was the current drink's colors, blurred and darkened, with a matching Safari top bar color. JP asked to go back to the plain warm-black background, so `DrinkBackdrop.tsx`, its fade keyframes and the theme-color code were removed.
 
 ## 2026-11-16: Side drinks and prep icons fade first when the drawer opens
 

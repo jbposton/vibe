@@ -326,7 +326,7 @@ export const DrinkCard = memo(function DrinkCard({
                   <span
                     // -mr-2 cancels the button's right padding, so the "oz" text ends exactly where
                     // "Garnish" does (the button's chrome, shown while you drag, reaches 8px past it).
-                    className="relative -mr-2 flex h-8 items-center gap-1 rounded-lg px-2 text-xs tabular-nums"
+                    className="relative -mr-2 flex h-8 items-center gap-1 rounded-full px-2 text-xs tabular-nums"
                     style={amountButtonStyle(lightLayer, pressing)}
                   >
                     <GlassTopEdge shown={pressing} />
