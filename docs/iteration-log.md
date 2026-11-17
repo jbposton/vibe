@@ -11,6 +11,10 @@ Visible before-and-after changes, newest first.
 
 - The edit panel's 1px white border is now at 50% opacity (JP wrote ".5"; read as 0.5, not 0.5 percent, which would be invisible).
 
+## 2026-11-17: The edit buttons use the browse filters' type
+
+- The four buttons at the bottom (Add Sweet, Add Bitter, Less Strong, More Strong) are now set like the browse filters: 10px capitals with 0.08em letter spacing (they were 11px mixed case). Still white, regular weight, on the same pill. In capitals the four labels no longer fit on one line side by side, so a label wraps onto two lines (ADD / SWEET) inside the 36px pill instead of being cut off; with only two or three buttons they stay on one line.
+
 ## 2026-11-16: The taste slider is parked (cut from the panel, saved for later)
 
 - The Sweet-to-Bitter slider is out of the edit panel. Its code moved to `src/components/parked/TasteSlider.tsx` (not used anywhere), the math stays in `lib/flavor.ts`, and `docs/parked.md` says how to bring it back and where the earlier graph versions (bars, orbs, ladders) are in git history. `FlavorReadout.tsx` is deleted.

@@ -13,7 +13,7 @@ type Props = {
 };
 
 const BUTTON =
-  "h-9 min-w-0 flex-1 truncate rounded-full bg-white/[0.09] px-1 text-[11px] text-white transition-colors hover:bg-white/[0.16] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] disabled:pointer-events-none disabled:opacity-35";
+  "h-9 min-w-0 flex-1 rounded-full bg-white/[0.09] px-2 text-center text-[10px] uppercase leading-3 tracking-[0.08em] text-white transition-colors hover:bg-white/[0.16] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] disabled:pointer-events-none disabled:opacity-35";
 
 /**
  * "Make edits" (Figma 110:581): Add Sweet, Add Bitter, Less Strong and More
