@@ -568,10 +568,9 @@ export function DrinkPanel() {
         />
       )}
 
-      {/* ── The edit panel: flavor profile and the edit buttons, in a frame ── */}
+      {/* ── The edit panel: the edit buttons, in a frame ── */}
       <div className="md:col-start-1 md:row-start-3 md:min-h-0 md:overflow-y-auto">
         <EditPanel
-          profile={profile}
           edits={editsForDrink}
           lines={infoLines}
           onAdjust={(key, direction) => onEdit(infoD, (prev) => adjustLine(prev, key, direction))}

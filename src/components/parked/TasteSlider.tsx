@@ -1,3 +1,13 @@
+/**
+ * PARKED (JP, 2026-11-16): the Sweet-to-Bitter slider, taken out of the edit panel but kept here
+ * so it can come back. It is not used anywhere right now. See docs/parked.md for how to put it
+ * back. The math (tasteBalance, balanceWord, intensityWord) stays in src/lib/flavor.ts.
+ *
+ * Sweet and bitter as one continuum: a thin glowing track, bitter (purple) on the left and sweet
+ * (gold) on the right, a marker where the drink leans, and a line of words above it
+ * ("Balanced · Intense"). The marker gets wider and brighter the stronger the flavors are.
+ * It was drawn across the whole panel (a 27px-tall row under a 13px line of words).
+ */
 import { balanceWord, intensityWord, tasteBalance, type Profile } from "@/lib/flavor";
 
 /** The slider's colors from the bitter end (left) to the sweet end (right), through a soft neutral. */
@@ -32,7 +42,7 @@ const TRACK_GRADIENT = `linear-gradient(to right, ${TRACK_STOPS.map(([at, c]) =>
  * brighter the stronger the flavors are, so a Negroni (strongly both) and a Martini (barely
  * either), which are both near the middle, still look different. It slides as you edit.
  */
-function BalanceTrack({ profile }: { profile: Profile }) {
+export function TasteSlider({ profile }: { profile: Profile }) {
   const { position, intensity } = tasteBalance(profile);
   const at = (position + 1) / 2; // 0 to 1 along the track
   const words = `${balanceWord(position)} · ${intensityWord(intensity)}`;
@@ -69,26 +79,6 @@ function BalanceTrack({ profile }: { profile: Profile }) {
         </span>
         <span>Sweet</span>
       </div>
-    </div>
-  );
-}
-
-type Props = {
-  profile: Profile;
-};
-
-/**
- * The flavor profile: Sweet and Bitter as one wide slider (a continuum from bitter to sweet)
- * across the whole panel, with a line of words above it ("Balanced · Intense"). Strength is no
- * longer drawn here: the ABV sits next to the family label under the drink's name.
- * OPEN: the brief (§3) wants calculated and hand-set values kept visibly
- * apart; for now they share one row.
- * OPEN: where this sits on the screen (brief §7).
- */
-export function FlavorReadout({ profile }: Props) {
-  return (
-    <div aria-label="Flavor profile" role="group">
-      <BalanceTrack profile={profile} />
     </div>
   );
 }

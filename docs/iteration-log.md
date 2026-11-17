@@ -11,6 +11,11 @@ Visible before-and-after changes, newest first.
 
 - The edit panel's 1px white border is now at 50% opacity (JP wrote ".5"; read as 0.5, not 0.5 percent, which would be invisible).
 
+## 2026-11-16: The taste slider is parked (cut from the panel, saved for later)
+
+- The Sweet-to-Bitter slider is out of the edit panel. Its code moved to `src/components/parked/TasteSlider.tsx` (not used anywhere), the math stays in `lib/flavor.ts`, and `docs/parked.md` says how to bring it back and where the earlier graph versions (bars, orbs, ladders) are in git history. `FlavorReadout.tsx` is deleted.
+- With nothing above the buttons, the closed edit panel shrank from 152px to 76px (buttons 26px from its top, 12px under). The drink card has more room above it. The open panel is still 470px tall (mostly empty). OPEN: JP may want the closed panel at another height or something new in that space.
+
 ## 2026-11-16: Only the taste slider in the panel; ABV moves up beside the family
 
 - The Strength ladder is gone. The Sweet-to-Bitter slider now spans the whole panel, and its label is just the words ("Balanced · Intense"), with no "Taste". The strength now shows as "27% ABV" right after the family label under the drink's name, split by a small dot ("Spirit-forward · 27% ABV"); it follows your edits. The slider row and the buttons stayed where they were.

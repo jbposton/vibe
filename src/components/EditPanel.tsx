@@ -2,19 +2,17 @@
 
 import type { RecipeLine } from "@/data/drinks";
 import type { TraitEdit } from "@/lib/edits";
-import type { Profile } from "@/lib/flavor";
-import { FlavorReadout } from "./FlavorReadout";
 import { MakeEdits } from "./MakeEdits";
 
 /** How tall the panel is when open, and how much of it shows when closed (Figma 117:975 and 118:1044). */
 export const PANEL_OPEN_HEIGHT = 470;
-// 140px of content (top padding 26, flavor, 27px gap, buttons) plus 12px under the buttons, the same as the padding at the sides.
-export const PANEL_CLOSED_HEIGHT = 152;
+// 63px of content (1px border, top padding 26, the 36px buttons) plus 12px under the buttons, the same as the padding at the sides.
+// (It was 152px when the taste slider sat above the buttons: see docs/parked.md.)
+export const PANEL_CLOSED_HEIGHT = 76;
 /** How far the panel travels between closed and open. */
 export const PANEL_TRAVEL = PANEL_OPEN_HEIGHT - PANEL_CLOSED_HEIGHT;
 
 type Props = {
-  profile: Profile;
   edits: TraitEdit[];
   lines: RecipeLine[];
   onAdjust: (key: number, direction: 1 | -1) => void;
@@ -28,11 +26,11 @@ type Props = {
 
 /**
  * The edit panel in its frame (Figma 117:975): a dark card with wavy top and bottom edges holding the
- * flavor profile and the edit buttons. On a phone it sits at the bottom and
+ * edit buttons. On a phone it sits at the bottom and
  * swipes up to fill the screen (see useSheet and DrinkPanel). The fill is solid
  * (the app's background color), with no blur and no shadow (see .wavy-sheet in globals.css).
  */
-export function EditPanel({ profile, edits, lines, onAdjust, floating, open, onToggle, bind }: Props) {
+export function EditPanel({ edits, lines, onAdjust, floating, open, onToggle, bind }: Props) {
   return (
     <section
       aria-label="Edit this drink"
@@ -65,10 +63,7 @@ export function EditPanel({ profile, edits, lines, onAdjust, floating, open, onT
         </button>
       )}
       <div className="relative">
-        <FlavorReadout profile={profile} />
-        <div className="mt-[24px]">
-          <MakeEdits edits={edits} lines={lines} onAdjust={onAdjust} />
-        </div>
+        <MakeEdits edits={edits} lines={lines} onAdjust={onAdjust} />
       </div>
     </section>
   );
