@@ -11,6 +11,10 @@ Visible before-and-after changes, newest first.
 
 - The edit panel's 1px white border is now at 50% opacity (JP wrote ".5"; read as 0.5, not 0.5 percent, which would be invisible).
 
+## 2026-11-17: Ingredient icons in the drawer (Figma 196:38)
+
+- The gray placeholder circles on the drawer's ingredient chips are now the 40 "Night glow" ingredient icons (38 x 38, one per ingredient). They were exported at 4x (152px) into `public/icons/ingredients/<ingredient id>.png`, and the near-black background of each was made transparent (as for the prep icons) so only the glowing object shows on the chip. The drink's own picture at the top right of the open drawer is still a gray placeholder circle.
+
 ## 2026-11-17: New design: serving size, full-width panel, ingredient drawer (Figma 187:43)
 
 - **Under the drink:** serving buttons 1, 2, 4 and "+" and the total on the right ("3 oz" / "Single drink", "6 oz" / "2 drinks"). They scale the oz on the layers and the total; the ratios never change. "+" opens a small number box (1 to 99). The drink card is 25px in from the sides (352px on a 402px screen) and the layer names are capitals at 60%.

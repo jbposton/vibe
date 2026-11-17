@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import type { RecipeLine } from "@/data/drinks";
 import { CATEGORIES, INGREDIENTS, type IngredientId } from "@/data/ingredients";
 
@@ -14,8 +15,7 @@ const all = Object.values(INGREDIENTS) as { id: IngredientId; name: string; cate
 
 /**
  * The drawer's ingredient sections (Figma 187:43): one section per category, each a wrapped row of
- * round-ended chips with a picture on the left (a gray circle for now: the imagery is a placeholder)
- * and the name in capitals. The ingredients in the current drink have a white outline.
+ * round-ended chips with the ingredient's icon on the left and the name in capitals. The ingredients in the current drink have a white outline.
  */
 export function IngredientDrawer({ lines, onPick }: Props) {
   const chosen = new Set<string>(lines.map((l) => l.ingredient));
@@ -39,8 +39,16 @@ export function IngredientDrawer({ lines, onPick }: Props) {
                       on ? "border-white" : "border-white/[0.12] hover:border-white/40"
                     }`}
                   >
-                    {/* OPEN: the picture of each ingredient (a placeholder circle for now). */}
-                    <span aria-hidden className="size-[38px] shrink-0 rounded-full bg-[#D9D9D9]" />
+                    {/* The ingredient's picture: the 38 x 38 "Night glow" icon (Figma 196:38), saved at 4x in public/icons/ingredients. */}
+                    <Image
+                      src={`/icons/ingredients/${i.id}.png`}
+                      alt=""
+                      width={38}
+                      height={38}
+                      unoptimized
+                      draggable={false}
+                      className="size-[38px] shrink-0"
+                    />
                     {i.name}
                   </button>
                 );
