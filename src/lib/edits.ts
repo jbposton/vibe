@@ -78,8 +78,8 @@ export function traitEdits(original: RecipeLine[]): TraitEdit[] {
 
   const strong = best(original, liquid, (l) => f(l).abv, ALCOHOL_MIN, (l) => f(l).abv);
   if (strong !== null) {
-    edits.push({ id: "more-strong", label: "More Strength", key: strong, direction: 1 });
-    edits.push({ id: "less-strong", label: "Less Strength", key: strong, direction: -1 });
+    edits.push({ id: "more-strong", label: "Stronger", key: strong, direction: 1 });
+    edits.push({ id: "less-strong", label: "Lighter", key: strong, direction: -1 });
   }
   return edits;
 }

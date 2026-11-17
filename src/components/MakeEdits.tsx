@@ -17,18 +17,18 @@ type Props = {
 const PILL =
   "flex h-9 shrink-0 items-center gap-[3px] rounded-full border border-transparent bg-[#1A1612] text-[10px] uppercase tracking-[0.08em] text-white transition-colors hover:bg-[#26221E] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] disabled:pointer-events-none disabled:opacity-35";
 
-/** What each taste button says ("More" or "Less" goes in front of these). */
-const WORD: Record<TraitEdit["id"], string> = {
-  "more-sweet": "Sweet",
-  "less-sweet": "Sweet",
-  "more-bitter": "Bitter",
-  "less-bitter": "Bitter",
-  "more-strong": "Strength",
-  "less-strong": "Strength",
+/** What each taste button says. */
+const LABEL: Record<TraitEdit["id"], string> = {
+  "more-sweet": "More sweet",
+  "less-sweet": "Less sweet",
+  "more-bitter": "More bitter",
+  "less-bitter": "Less bitter",
+  "more-strong": "Stronger",
+  "less-strong": "Lighter",
 };
 
 /**
- * The buttons under the drink: SUBSTITUTE, then MORE / LESS SWEET, BITTER and STRENGTH, but
+ * The buttons under the drink: SUBSTITUTE, then MORE / LESS SWEET, MORE / LESS BITTER, STRONGER and LIGHTER, but
  * only the taste ones that fit the drink (see lib/edits.ts). JP, 2026-11-17: a Less button for each.
  */
 export function MakeEdits({ edits, lines, onAdjust, onSubstitute }: Props) {
@@ -50,7 +50,7 @@ export function MakeEdits({ edits, lines, onAdjust, onSubstitute }: Props) {
             disabled={!canAdjust(lines, edit.key, edit.direction)}
             onClick={() => onAdjust(edit.key, edit.direction)}
           >
-            {edit.direction > 0 ? "More" : "Less"} {WORD[edit.id]}
+            {LABEL[edit.id]}
           </button>
         ))}
       </div>

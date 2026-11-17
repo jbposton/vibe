@@ -11,6 +11,26 @@ Visible before-and-after changes, newest first.
 
 - The edit panel's 1px white border is now at 50% opacity (JP wrote ".5"; read as 0.5, not 0.5 percent, which would be invisible).
 
+## 2026-11-17: Stronger and Lighter
+
+- The strength pills now read STRONGER (was MORE STRENGTH) and LIGHTER (was LESS STRENGTH). The sweet and bitter pills keep More / Less. They do the same thing as before.
+
+## 2026-11-17: A little more space above the drawer's buttons
+
+- JP asked for a little more room at the top and only 16px at the bottom: 34px above the pills (was 28), 16px below (was 28). The closed panel is 86px tall (was 92), so the drink card gets 6px taller than before this change.
+
+## 2026-11-17: Equal space above and below the drawer's buttons
+
+- The row of pills (MAKE A SUBSTITUTE, MORE SWEET...) now has 28px above it (was 42) and 28px below it, where the ingredient list starts and scrolls away (it used to start 2px under the buttons, so chips peeked out beneath them). The closed panel is 17px shorter (92px, was 109), so the drink card gets 17px taller.
+
+## 2026-11-17: 2px less between the title and the label in the drawer header
+
+- With the drawer open, the label under the drink name (and the Sweet / Bitter ladders beside it) sit 2px closer to the name (the gap closes by 16px as the drawer rises, was 14).
+
+## 2026-11-17: The open drawer's title lines up with the browse filters
+
+- With the drawer open, the top of the drink name now sits at the same height as the top of the browse filter text when the drawer is closed (the header moves up 55px, was 40; first 59, then 4px lower at JP's request, so the title now sits 4px below the filters' top). The labels and the Sweet / Bitter ladders move up with it, so there is more room between them and the drawer's wavy edge.
+
 ## 2026-11-17: Ingredient names in the drink panel are 10px
 
 - The ingredient names on the drink's layers (ORANGE PEEL, CAMPARI...) are 10px, the same size as the button text (were 12px). Weight, capitals and spacing are unchanged; the amounts (1 oz) stay 12px.

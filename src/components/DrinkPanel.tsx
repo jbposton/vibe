@@ -46,9 +46,9 @@ const CARD_ASPECT = 0.9;
  */
 const SHEET = {
   filtersBack: 260, // px the filters move back (z) before they fade out
-  headerUp: 40, // px the header moves up (into the space the filters leave); JP brought it 14px lower on 2026-11-17
+  headerUp: 55, // px the header moves up (into the space the filters leave): the name's top lands where the browse filters' top is when the drawer is closed (JP, 2026-11-17)
   titleScale: 0.7, // the drink name shrinks from 40px to 28px
-  titleGap: 14, // px the family label follows the shrinking name up (closer to the name, JP 2026-11-17)
+  titleGap: 16, // px the label under the name follows the shrinking name up (closer to the name, JP 2026-11-17)
 };
 
 /** Phone layout: the middle card with its neighbors peeking in at the sides. */

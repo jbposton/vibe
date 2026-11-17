@@ -6,8 +6,8 @@ import type { TraitEdit } from "@/lib/edits";
 import { IngredientDrawer } from "./IngredientDrawer";
 import { MakeEdits } from "./MakeEdits";
 
-/** How tall the panel is closed (Figma 187:43: the grabber, one row of buttons and a little room). */
-export const PANEL_CLOSED_HEIGHT = 109;
+/** How tall the panel is closed (the grabber and one row of buttons, 34px above the buttons and 16px below, JP 2026-11-17). */
+export const PANEL_CLOSED_HEIGHT = 86;
 /** Where the open drawer's top edge sits (px from the top of the screen): the header stays above it. */
 export const DRAWER_TOP = 102;
 
@@ -63,7 +63,7 @@ export function EditPanel({ edits, lines, onAdjust, onSubstitute, onPick, floati
       <span aria-hidden className="wave-line wave-line-top" />
 
       {/* The drag strip: the grabber and the buttons. */}
-      <div {...bind} className="relative touch-pan-x px-[19px] pt-[42px]">
+      <div {...bind} className="relative touch-pan-x px-[19px] pt-[34px]">
         {/* The grabber: also a button, so the panel can be opened and closed without swiping. */}
         <button
           type="button"
@@ -80,7 +80,7 @@ export function EditPanel({ edits, lines, onAdjust, onSubstitute, onPick, floati
       {/* The ingredients: they fade in as the panel rises, and scroll. */}
       <div
         inert={!open}
-        className="absolute inset-x-0 bottom-0 top-[80px] touch-pan-y overflow-y-auto overscroll-contain px-[19px] pb-10 pt-3.5"
+        className="absolute inset-x-0 bottom-0 top-[86px] touch-pan-y overflow-y-auto overscroll-contain px-[19px] pb-10"
         style={{ opacity: "clamp(0, calc((var(--p, 0) - 0.3) * 1.5), 1)" }}
       >
         <IngredientDrawer lines={lines} onPick={onPick} />
