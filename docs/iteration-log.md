@@ -11,12 +11,18 @@ Visible before-and-after changes, newest first.
 
 - The edit panel's 1px white border is now at 50% opacity (JP wrote ".5"; read as 0.5, not 0.5 percent, which would be invisible).
 
+## 2026-11-17: Equal space around the serving buttons
+
+- The extra space between the serving buttons and the drawer is gone: the drink panel moved down (and is taller) so the gap between the serving buttons and the drawer's wavy edge (about 18px) is about the same as between the drink panel and the serving buttons (about 20px).
+
 ## 2026-11-17: New reset icon, on a dark see-through circle
 
 - The reset button on a changed drink uses the icon from Figma 204:48 (`public/icons/reset.svg`) in place of the old arrow, and its glass background is now plain black at 30% opacity (no highlight edge). It is 36px, the same as the serving buttons (icon 20px), and sits at the bottom center. When tapped it just fades out; it no longer shrinks.
 - OPEN: the 30% is a first guess.
 
-## 2026-11-17: The closed drawer peeks at the ingredients
+## 2026-11-17: The closed drawer peeks at the ingredients (reverted the same day)
+
+- JP took the peek out again: the closed panel is back to 109px with only the grabber and the buttons, and the ingredients fade in as it rises. The spacing under the serving buttons (next entry up) stays. The description below is what it was.
 
 - The closed edit panel is 72px taller (181px, was 109). Under the buttons you now see the first ingredients (the Spirit title and its first row of chips), fading out into a scrim in the panel's own color. The scrim fades away as the panel rises, and a tap or swipe up on it opens the panel. The drink card above gets 72px shorter to make room.
 - OPEN: how much to show (one row or two), and whether the card should shrink or the peek should overlap it.

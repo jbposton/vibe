@@ -586,9 +586,10 @@ export function DrinkPanel() {
 
       </div>
 
-      {/* On a phone the edit panel floats over the bottom of the screen; this keeps the drink above it
-          (the panel's closed height, less the screen's padding, plus 40px of air). */}
-      <div aria-hidden className="shrink-0 md:hidden" style={{ height: PANEL_CLOSED_HEIGHT - 16 + 40 }} />
+      {/* On a phone the edit panel floats over the bottom of the screen; this keeps the drink above it. The height
+          leaves the same 23px between the serving buttons and the panel as between the drink and the serving
+          buttons (the screen's 16px padding and 16px gap are counted in: height = panel height - 24, found by measuring on a 402x749 screen). */}
+      <div aria-hidden className="shrink-0 md:hidden" style={{ height: PANEL_CLOSED_HEIGHT - 24 }} />
 
       {/* While the drawer is up, a tap on the header above it closes it. */}
       {phone && sheet.open && (
