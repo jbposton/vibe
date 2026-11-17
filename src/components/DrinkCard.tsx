@@ -409,7 +409,10 @@ export const DrinkCard = memo(function DrinkCard({
                   transition: animate ?? "bottom 180ms ease-out",
                 }}
               >
-                <rect width="100" height={h} fill={INGREDIENTS[above.ingredient].color} />
+                {/* The layer-above color stops 1px short of the strip's bottom edge: the wave shape covers
+                    that last pixel row completely, so no thin line of the upper color shows along the edge
+                    (two shapes sharing an edge both blend with what is under them, leaving a faint line). */}
+                <rect width="100" height={h - 1} fill={INGREDIENTS[above.ingredient].color} />
                 <path d={d} fill={INGREDIENTS[base.ingredient].color} />
               </svg>
             );

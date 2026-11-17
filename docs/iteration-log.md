@@ -11,6 +11,16 @@ Visible before-and-after changes, newest first.
 
 - The edit panel's 1px white border is now at 50% opacity (JP wrote ".5"; read as 0.5, not 0.5 percent, which would be invisible).
 
+## 2026-11-18: A floating MIX button in the drawer
+
+- Once the drink has been changed (a MORE / LESS pill, or a swap in the drawer) and the drawer is up, a rounded glass button that says MIX floats at the bottom center (blurred, lightly white, a bright top edge; text in the buttons' style). Tapping it closes the drawer so you see the result. It fades in and out; it is not there before the first edit.
+- JP confirmed: the button closes the drawer, sits at the bottom with 24px of margin below it. OPEN: whether it should also show on the closed screen; the glass look is a first try.
+
+## 2026-11-17: No thin line under the wave
+
+- JP saw a thin line of the upper layer's color along the bottom of the base layer's wave. The wave strip was drawn as two shapes that shared the same bottom edge, so that edge pixel blended both with what is underneath. The upper color now stops 1px above the strip's bottom edge, where the wave shape already covers everything, so nothing shows. (Instead of moving the wave down a pixel, which would only have moved the line.)
+- OPEN: not yet checked on a real phone screen at 2x or 3x pixel density.
+
 ## 2026-11-17: Stronger and Lighter
 
 - The strength pills now read STRONGER (was MORE STRENGTH) and LIGHTER (was LESS STRENGTH). The sweet and bitter pills keep More / Less. They do the same thing as before.

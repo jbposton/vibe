@@ -613,6 +613,8 @@ export function DrinkPanel() {
           floating={phone}
           open={sheet.open}
           onToggle={sheet.toggle}
+          modified={infoD in edits}
+          onMix={sheet.closeSheet}
           travel={travel}
           bind={sheet.bind}
         />

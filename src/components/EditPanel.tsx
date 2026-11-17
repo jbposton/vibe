@@ -23,6 +23,10 @@ type Props = {
   floating: boolean;
   open: boolean;
   onToggle: () => void;
+  /** Whether this drink has been edited (shows the Mix button while the drawer is open). */
+  modified: boolean;
+  /** MIX: done editing, close the drawer and show the drink. */
+  onMix: () => void;
   /** How far the panel grows between closed and open (px). */
   travel: number;
   /** Pointer handlers that make the panel draggable (empty on wide screens). */
@@ -36,7 +40,7 @@ type Props = {
  * shows the ingredients in sections by category. Only the top strip (grabber and buttons) is
  * dragged; the ingredients below scroll.
  */
-export function EditPanel({ edits, lines, onAdjust, onSubstitute, onPick, floating, open, onToggle, travel, bind }: Props) {
+export function EditPanel({ edits, lines, onAdjust, onSubstitute, onPick, floating, open, onToggle, modified, onMix, travel, bind }: Props) {
   const buttons = <MakeEdits edits={edits} lines={lines} onAdjust={onAdjust} onSubstitute={onSubstitute} />;
 
   if (!floating) {
@@ -85,6 +89,26 @@ export function EditPanel({ edits, lines, onAdjust, onSubstitute, onPick, floati
       >
         <IngredientDrawer lines={lines} onPick={onPick} />
       </div>
+
+      {/* MIX: a floating glass button that shows up once the drink has been edited and the drawer is up.
+          It closes the drawer so you can see the result. */}
+      <button
+        type="button"
+        onClick={onMix}
+        tabIndex={open && modified ? 0 : -1}
+        aria-hidden={!(open && modified)}
+        className={`absolute bottom-6 left-1/2 z-30 flex h-12 -translate-x-1/2 items-center justify-center rounded-full px-9 text-[10px] uppercase tracking-[0.08em] text-white transition-[opacity,translate] duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] ${
+          open && modified ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-2 opacity-0"
+        }`}
+        style={{
+          background: "rgba(255,255,255,0.12)",
+          backdropFilter: "blur(16px) saturate(1.4)",
+          WebkitBackdropFilter: "blur(16px) saturate(1.4)",
+          boxShadow: "inset 0 0.5px 0 rgba(255,255,255,0.7), inset 0 0 0 0.5px rgba(255,255,255,0.18), 0 8px 24px rgba(0,0,0,0.3)",
+        }}
+      >
+        Mix
+      </button>
     </section>
   );
 }
