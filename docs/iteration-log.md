@@ -11,6 +11,17 @@ Visible before-and-after changes, newest first.
 
 - The edit panel's 1px white border is now at 50% opacity (JP wrote ".5"; read as 0.5, not 0.5 percent, which would be invisible).
 
+## 2026-11-16: Only the taste slider in the panel; ABV moves up beside the family
+
+- The Strength ladder is gone. The Sweet-to-Bitter slider now spans the whole panel, and its label is just the words ("Balanced · Intense"), with no "Taste". The strength now shows as "27% ABV" right after the family label under the drink's name, split by a small dot ("Spirit-forward · 27% ABV"); it follows your edits. The slider row and the buttons stayed where they were.
+- OPEN: there is no Low / Medium / High reading of strength any more (only the number); the brief (§3) lists strength as a calculated value, so this keeps it, just in the header.
+
+## 2026-11-16: Sweet and Bitter are one slider
+
+- The two ladders for Sweet and Bitter became one wide glowing slider (Bitter on the left in purple, Sweet on the right in gold) across the right two columns. Strength keeps its ladder on the left. The marker sits where the drink leans (sweet minus bitter, from `tasteBalance` in `lib/flavor.ts`) and gets wider and brighter the stronger the flavors are, so a Negroni (Balanced, Intense) and a Martini (Balanced, Light) look different. The label reads like "Taste · Leans sweet · Medium". It slides smoothly as you tap Add Sweet / Add Bitter or drag layers.
+- OPEN: real drinks only reach about -0.3 on the bitter side (the bitterness scale is 4), so the bitter half of the track is underused. `BITTER_GAIN` (now 1) can stretch it, but at 1.5 a Negroni lands on "Bitter". Word cut-offs (Balanced under 0.12, Leans under 0.4; Light under 0.2, Medium under 0.5) and the track colors are first guesses for JP.
+- Note: More / Less Strong shifts the marker a little, because adding or removing spirit changes every other share of the drink.
+
 ## 2026-11-16: The drink card no longer scales when the drawer opens
 
 - When the edit panel swipes up the drink card now only moves up (78px) and fades; it keeps its full size (it used to shrink by 16px on each side). Since the panel is solid, the lower part of the card (about a third on a 375 x 812 phone) is hidden behind it when it is open. OPEN: JP may want the card to move up more.

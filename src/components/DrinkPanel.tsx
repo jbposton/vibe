@@ -490,8 +490,11 @@ export function DrinkPanel() {
             <h1 className="font-serif text-[40px] leading-[52px]" style={zTitle}>
               {infoDrink.name}
             </h1>
-            <p className="mt-1 text-xs opacity-55" style={zFamily}>
-              {infoDrink.family}
+            {/* The family, a dot, then the drink's alcohol (it follows your edits). */}
+            <p className="mt-1 flex items-center gap-[5px] text-xs opacity-55" style={zFamily}>
+              <span>{infoDrink.family}</span>
+              <span aria-hidden className="size-0.5 rounded-full bg-[#7f7f7f]" />
+              <span>{Math.round(profile.strength)}% ABV</span>
             </p>
           </div>
           <div className="-mr-1" style={zPrep}>
