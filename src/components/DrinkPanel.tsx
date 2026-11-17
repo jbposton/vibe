@@ -14,6 +14,7 @@ import { flavorProfile } from "@/lib/flavor";
 import { DrinkCard } from "./DrinkCard";
 import { CLASSICS_ID, FILTERS, filterList } from "@/data/finder";
 import { FilterBar } from "./FilterBar";
+import { DrinkBackdrop } from "./DrinkBackdrop";
 import { PrepTags } from "./PrepIcons";
 import { EditPanel, PANEL_CLOSED_HEIGHT, PANEL_TRAVEL } from "./EditPanel";
 import { useSheet } from "./useSheet";
@@ -150,7 +151,7 @@ export function DrinkPanel() {
       el.style.transform = `translate3d(${(x - c.cardWidth / 2).toFixed(2)}px,0,0) scale(${scale.toFixed(4)})`;
       // The cards beside the middle one fade out as the edit sheet comes up (--p), so only
       // the drink in view stays.
-      el.style.opacity = c.desktop || Math.abs(t) < 0.5 ? "1" : "calc(1 - var(--p, 0))";
+      el.style.opacity = c.desktop || Math.abs(t) < 0.5 ? "1" : "calc(1 - var(--p, 0) * 3)";
       // Cards fade to dark the further they are from the middle, and back up as they arrive.
       const dim = el.querySelector<HTMLElement>("[data-dim]");
       if (dim) dim.style.opacity = c.desktop ? "0" : String((SIDE_DIM * Math.min(Math.abs(t), 1)).toFixed(3));
@@ -445,6 +446,8 @@ export function DrinkPanel() {
   const zFamily: React.CSSProperties | undefined = phone
     ? { transform: `translateY(calc(var(--p, 0) * -${SHEET.titleGap}px))` }
     : undefined;
+  // The side drinks and the prep icons fade out first, in the opening third of the swipe.
+  const zPrep: React.CSSProperties | undefined = phone ? { opacity: "calc(1 - var(--p, 0) * 3)" } : undefined;
   const zDrink: React.CSSProperties | undefined = phone
     ? {
         transform: `translateY(calc(var(--p, 0) * -${SHEET.drinkUp}px)) scale(calc(1 - var(--p, 0) * ${1 - SHEET.drinkScale}))`,
@@ -458,9 +461,12 @@ export function DrinkPanel() {
   return (
     <main
       ref={mainRef}
-      className="fixed inset-0 flex flex-col gap-4 overflow-hidden bg-[#1A1612] p-4 text-[#F7F7F7] select-none [-webkit-touch-callout:none] md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] md:grid-rows-[auto_auto_minmax(0,1fr)] md:gap-x-8 md:gap-y-4"
+      className="fixed inset-0 isolate flex flex-col gap-4 overflow-hidden bg-[#1A1612] p-4 text-[#F7F7F7] select-none [-webkit-touch-callout:none] md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] md:grid-rows-[auto_auto_minmax(0,1fr)] md:gap-x-8 md:gap-y-4"
       style={phone ? { perspective: 1000, perspectiveOrigin: "50% 30%" } : undefined}
     >
+      {/* The blurred colors of the drink in view, behind everything. */}
+      <DrinkBackdrop drinkIndex={infoD} />
+
       {/* The browse filters: they move back (z) and disappear when the edit panel comes up. */}
       <div className="md:col-span-2 md:row-start-1" style={zFilters} inert={phone && sheet.open}>
         <FilterBar active={filterId} onSelect={selectFilter} />
@@ -488,7 +494,7 @@ export function DrinkPanel() {
               {infoDrink.family}
             </p>
           </div>
-          <div className="-mr-1">
+          <div className="-mr-1" style={zPrep}>
             <PrepTags method={infoDrink.method} glass={infoDrink.glass} />
           </div>
         </div>

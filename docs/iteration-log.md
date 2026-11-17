@@ -2,6 +2,15 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-16: The app background is the drink's own colors, blurred and darkened
+
+- New `src/components/DrinkBackdrop.tsx`: behind everything, the drink in view is drawn as its classic color bands (default order and sizes, not your edits), blurred 56px, with a warm-black overlay at 72% over it. It cross-fades (0.6s) when you switch drinks.
+- OPEN: the darkness (`DARKEN`) and blur (`BLUR`) at the top of that file are first guesses for JP to tune. The bands follow the classic recipe, so dragging layers doesn't change the background.
+
+## 2026-11-16: Side drinks and prep icons fade first when the drawer opens
+
+- They now reach zero by about a third of the swipe (before: the side drinks faded evenly across the whole swipe, the icons stayed). The header text and the middle drink fade more slowly as before.
+
 ## 2026-11-16: Prep icons (method + glass) at the top right of the screen
 
 - Added the 13 line icons from Figma (node 135:34) in `src/components/PrepIcons.tsx`: Shaken, Stirred, Built, and ten glasses (Rocks, Highball, Coupe, Martini, Wine, Mug, some with ice).
