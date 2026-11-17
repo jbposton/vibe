@@ -11,6 +11,20 @@ Visible before-and-after changes, newest first.
 
 - The edit panel's 1px white border is now at 50% opacity (JP wrote ".5"; read as 0.5, not 0.5 percent, which would be invisible).
 
+## 2026-11-17: Ingredient names in the drink panel are 10px
+
+- The ingredient names on the drink's layers (ORANGE PEEL, CAMPARI...) are 10px, the same size as the button text (were 12px). Weight, capitals and spacing are unchanged; the amounts (1 oz) stay 12px.
+- OPEN: the buttons also use wider letter spacing (0.08em); the layer names keep their tight spacing unless JP asks.
+
+## 2026-11-17: Drawer category names match the buttons
+
+- The category names in the drawer (Spirit, Liqueur, and so on) are now 10px, uppercase, with the buttons' letter spacing (were 14px). Still 50% white.
+
+## 2026-11-17: A Less button for sweet and bitter too
+
+- The pills under the drink are now MAKE A SUBSTITUTE, MORE SWEET, LESS SWEET, MORE BITTER, LESS BITTER, MORE STRENGTH, LESS STRENGTH (the words, not + and - signs), each only when it applies to the drink (a drink with no sweet ingredient has no sweet pills, and so on). A pill is dimmed when it can't go any further. Less Strength is back (it had been hidden). Names are More / Less for screen readers. The row scrolls sideways.
+- OPEN: the Less buttons take a quarter part out of the same ingredient the More button adds to (the one doing the job best in the classic recipe).
+
 ## 2026-11-17: A squiggly line under the browse filters
 
 - A thin wavy line (the same wave as the edit panel's top edge, white at 60%) runs under the browse filters, 16px in from each side of the screen. It moves back and fades with the filters when the drawer opens.

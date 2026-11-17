@@ -23,7 +23,7 @@ export function IngredientDrawer({ lines, onPick }: Props) {
     <div className="flex flex-col gap-[30px]">
       {CATEGORIES.map((category) => (
         <section key={category} aria-label={category}>
-          <h2 className="mb-2 text-sm leading-[17px] text-[#F7F7F7]/50">{category}</h2>
+          <h2 className="mb-2 text-[10px] uppercase leading-[17px] tracking-[0.08em] text-[#F7F7F7]/50">{category}</h2>
           <div className="flex flex-wrap gap-x-3 gap-y-[11px]">
             {all
               .filter((i) => i.category === category)
