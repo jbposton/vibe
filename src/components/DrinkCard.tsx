@@ -221,6 +221,15 @@ export const DrinkCard = memo(function DrinkCard({
 
   const animate = draggingKey === null ? undefined : "none";
 
+  // Which layers are under 1 oz (their text is centered). While a drag is going this is
+  // held as it was when you touched down, so the text doesn't jump until you let go.
+  const smallNow: Record<number, boolean> = {};
+  for (const l of ordered) smallNow[l.key] = l.amount.kind !== "garnish" && volumeParts(l.amount) < 1;
+  const [smallAtTouch, setSmallAtTouch] = useState<Record<number, boolean> | null>(null);
+  if (draggingKey !== null && smallAtTouch === null) setSmallAtTouch(smallNow);
+  if (draggingKey === null && smallAtTouch !== null) setSmallAtTouch(null);
+  const smallFlags = smallAtTouch ?? smallNow;
+
   return (
     <section
       ref={panelRef}
@@ -314,8 +323,8 @@ export const DrinkCard = memo(function DrinkCard({
             // down, clear of the rounded corners. (The lines and edge ticks that were
             // tried here are gone: JP, 2026-11-16.)
             const lineTop = i === ordered.length - 1 ? 15 : 0;
-            // A layer of less than 1 oz (1 part) is short, so its text is centered in it instead.
-            const small = !isGarnish && volumeParts(line.amount) < 1;
+            // A layer of less than 1 oz (1 part) is short, so its text is centered in it instead (held while dragging).
+            const small = !isGarnish && smallFlags[line.key];
             const label = (
               <span
                 className="pointer-events-none absolute left-[22px] right-[22px] flex items-center justify-between gap-3 text-xs leading-4"
