@@ -47,28 +47,48 @@ body {
 }
 
 /*
- * The edit drawer: pure black (#000000), a little see-through, that blurs
- * whatever is behind it (JP, 2026-11-16: the lighter glass look with extra color saturation is
- * gone). A thin white line at 50% opacity all round (the 1px border set in EditPanel) and a soft shadow around its
- * top and sides.
+ * The edit drawer: solid, the app's own background color (#1A1612), no blur and no shadow (JP,
+ * 2026-11-16). Its top and bottom edges are gentle waves with a thin white wavy line along each, and
+ * no side borders (Figma 169:107: wave 22.25px long and 5px tall). The fill and the lines are
+ * separate pieces inside the panel (see EditPanel): the fill is cut to the wave with a mask.
  */
-.glass-sheet {
-  background: rgba(0, 0, 0, 0.8);
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
-  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
+:root {
+  /* One wave: the fill below the curve (for the top edge) and above it (for the bottom edge). */
+  --wave-top: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22.25' height='5' viewBox='0 0 22.25 5'%3E%3Cpath d='M0 2.5C3.708-0.833 7.417-0.833 11.125 2.5C14.833 5.833 18.542 5.833 22.25 2.5L22.25 5L0 5Z'/%3E%3C/svg%3E");
+  --wave-bottom: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22.25' height='5' viewBox='0 0 22.25 5'%3E%3Cpath d='M0 0L22.25 0L22.25 2.5C18.542 5.833 14.833 5.833 11.125 2.5C7.417-0.833 3.708-0.833 0 2.5Z'/%3E%3C/svg%3E");
+  --wave-line: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22.25' height='7' viewBox='0 -1 22.25 7'%3E%3Cpath d='M0 2.5C3.708-0.833 7.417-0.833 11.125 2.5C14.833 5.833 18.542 5.833 22.25 2.5' fill='none' stroke='white' stroke-width='1'/%3E%3C/svg%3E");
 }
 
-/* No backdrop blur available, or "reduce transparency" is on: a solid panel. */
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .glass-sheet {
-    background: #000000;
-  }
+.wavy-sheet {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: #1a1612;
+  -webkit-mask-image: var(--wave-top), var(--wave-bottom), linear-gradient(#000, #000);
+  mask-image: var(--wave-top), var(--wave-bottom), linear-gradient(#000, #000);
+  -webkit-mask-size: 22.25px 5px, 22.25px 5px, 100% calc(100% - 10px);
+  mask-size: 22.25px 5px, 22.25px 5px, 100% calc(100% - 10px);
+  -webkit-mask-position: 0 0, 0 100%, 0 5px;
+  mask-position: 0 0, 0 100%, 0 5px;
+  -webkit-mask-repeat: repeat-x, repeat-x, no-repeat;
+  mask-repeat: repeat-x, repeat-x, no-repeat;
 }
-@media (prefers-reduced-transparency: reduce) {
-  .glass-sheet {
-    background: #000000;
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-  }
+
+.wave-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 7px;
+  pointer-events: none;
+  opacity: 0.8;
+  background-image: var(--wave-line);
+  background-size: 22.25px 7px;
+  background-repeat: repeat-x;
 }
+.wave-line-top {
+  top: -1px;
+}
+.wave-line-bottom {
+  bottom: -1px;
+}
+

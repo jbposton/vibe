@@ -27,23 +27,31 @@ type Props = {
 };
 
 /**
- * The edit panel in its frame (Figma 117:975): a rounded dark card holding the
+ * The edit panel in its frame (Figma 117:975): a dark card with wavy top and bottom edges holding the
  * flavor profile and the edit buttons. On a phone it sits at the bottom and
- * swipes up to fill the screen (see useSheet and DrinkPanel). It is a glass
- * material (see .glass-sheet in globals.css): it blurs whatever is behind it,
- * with a soft shadow around its top and sides.
+ * swipes up to fill the screen (see useSheet and DrinkPanel). The fill is solid
+ * (the app's background color), with no blur and no shadow (see .wavy-sheet in globals.css).
  */
 export function EditPanel({ profile, edits, lines, onAdjust, floating, open, onToggle, bind }: Props) {
   return (
     <section
       aria-label="Edit this drink"
       {...bind}
-      className={`rounded-[30px] border border-white/50 px-3 pt-[26px] ${
-        floating ? "glass-sheet absolute inset-x-4 bottom-4 z-20 touch-none overflow-hidden" : "relative bg-[#2b2b2b]"
+      className={`px-3 pt-[26px] ${
+        floating ? "absolute inset-x-4 bottom-4 z-20 touch-none" : "relative rounded-[30px] border border-white/50 bg-[#2b2b2b]"
       }`}
       // Floating: the panel grows upward from the bottom (226px closed to 470px open) as --p goes 0 to 1.
       style={floating ? { height: `calc(${PANEL_CLOSED_HEIGHT}px + var(--p, 0) * ${PANEL_TRAVEL}px)` } : undefined}
     >
+      {floating && (
+        // The panel's body: a solid fill cut to wavy top and bottom edges, and a thin white wavy line
+        // along each of those two edges (Figma 169:107).
+        <>
+          <span aria-hidden className="wavy-sheet" />
+          <span aria-hidden className="wave-line wave-line-top" />
+          <span aria-hidden className="wave-line wave-line-bottom" />
+        </>
+      )}
       {floating && (
         // The grip: also a button, so the panel can be opened and closed without swiping.
         <button
@@ -56,9 +64,11 @@ export function EditPanel({ profile, edits, lines, onAdjust, floating, open, onT
           <span aria-hidden className="block h-1 w-9 rounded-full bg-white/20" />
         </button>
       )}
-      <FlavorReadout profile={profile} />
-      <div className="mt-[27px]">
-        <MakeEdits edits={edits} lines={lines} onAdjust={onAdjust} />
+      <div className="relative">
+        <FlavorReadout profile={profile} />
+        <div className="mt-[10px]">
+          <MakeEdits edits={edits} lines={lines} onAdjust={onAdjust} />
+        </div>
       </div>
     </section>
   );

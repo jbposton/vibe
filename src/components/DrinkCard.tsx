@@ -21,7 +21,7 @@ import {
   volumeParts,
 } from "@/lib/stack";
 import { LiquidCanvas, type LiquidLayer } from "./LiquidCanvas";
-import { GRAIN_STYLE } from "./surfaceEffects";
+import { GRAIN_STYLE, LAYER_GRAIN_STYLE } from "./surfaceEffects";
 import { useLayerDrag } from "./useLayerDrag";
 
 /**
@@ -70,6 +70,9 @@ function GlassTopEdge({ shown = true }: { shown?: boolean }) {
  * is kept so we can go back by flipping this one switch.
  */
 const USE_SHADER = false;
+
+/** How strong the grain on the layers is (0 to 1). */
+const LAYER_GRAIN = 0.6;
 
 /** The page's warm black, also shown by the shader above and below the drink. */
 const PAGE_BACKGROUND = "#1A1612";
@@ -377,6 +380,10 @@ export const DrinkCard = memo(function DrinkCard({
               </svg>
             );
           })()}
+
+          {/* Film grain over the flat colors and the wave, under the labels (JP, 2026-11-16: "a grainy
+              texture on the layers"). A still tiled image, so it costs nothing while you drag. */}
+          {!USE_SHADER && <div aria-hidden className="pointer-events-none absolute inset-0" style={{ ...LAYER_GRAIN_STYLE, opacity: LAYER_GRAIN }} />}
 
           {/* One region per layer: label (name left, amount right) and keyboard control. */}
           {ordered.map((line, i) => {

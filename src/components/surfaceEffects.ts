@@ -19,3 +19,19 @@ export const GRAIN_STYLE: CSSProperties = {
   mixBlendMode: "overlay",
   opacity: 0.45,
 };
+
+/**
+ * Grain for the flat layer colors: grey noise (fully opaque, averaging mid-grey) laid over the
+ * colors with "overlay", so it adds texture without making the colors lighter or darker.
+ */
+const LAYER_GRAIN_SVG =
+  "<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'>" +
+  "<filter id='g' color-interpolation-filters='sRGB'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/>" +
+  "<feColorMatrix values='0.33 0.33 0.33 0 0  0.33 0.33 0.33 0 0  0.33 0.33 0.33 0 0  0 0 0 0 1'/></filter>" +
+  "<rect width='100%' height='100%' filter='url(#g)'/></svg>";
+
+export const LAYER_GRAIN_STYLE: CSSProperties = {
+  backgroundImage: svgUrl(LAYER_GRAIN_SVG),
+  backgroundSize: "200px 200px",
+  mixBlendMode: "overlay",
+};

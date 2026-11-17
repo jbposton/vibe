@@ -11,6 +11,29 @@ Visible before-and-after changes, newest first.
 
 - The edit panel's 1px white border is now at 50% opacity (JP wrote ".5"; read as 0.5, not 0.5 percent, which would be invisible).
 
+## 2026-11-16: The edit panel is solid, with no shadow
+
+- The edit panel's fill is now solid #1A1612 (the app's background color): not see-through, no blur. The soft drop shadow around it is gone too. The wavy edges and white lines are unchanged. The glass fallbacks (no blur, "reduce transparency") were removed since nothing blurs any more.
+
+## 2026-11-16: The edit panel is the app's background color again
+
+- The edit panel's fill went from pure black to the app's own background color (#1A1612), still at 80% with the 20px blur (solid #1A1612 where blur isn't available). The wavy edges and lines are unchanged.
+
+## 2026-11-16: Edit panel: wavy top and bottom edges (Figma 169:107)
+
+- On a phone the edit panel's top and bottom edges are gentle waves (22px long, 5px tall) with a thin white line (1px, 80%) along each, and nothing along the sides; the corners are square. The dark fill, its blur and its soft shadow are cut to the same wave. Before: a 1px white border all round with 30px corners. The wide-screen layout keeps its rounded panel.
+- The panel is now built from a few layers in `EditPanel.tsx` (shadow, fill, two wave lines) styled in `globals.css` (`.wavy-sheet`, `.wavy-shadow`, `.wave-line`, and the three `--wave-*` shapes). The fill and shadow use CSS masks.
+
+## 2026-11-16: Flavor profile orbs (Figma 171:38)
+
+- The five-bar stacks under Strength, Sweet and Bitter are now glowing orbs (pink, gold and blue, 44px, with a blurred glow behind, a little grain and a sparkle at the top right). A thin white line grows clockwise around each orb, from 9 o'clock over the top, as the value rises: nothing at 0, a full circle at the top of the scale (50% ABV, 15 sugar, 4 bitter). It grows smoothly when you edit. Figma shows the line as a short fixed arc; here its length is the measure (JP's change).
+- The words (Low / Medium / High) still go by five steps. The buttons stay where they were; the gap under the orbs is 10px instead of 27px (`EditPanel.tsx`).
+- OPEN: the arc's start (9 o'clock), the 18px ring size and the colors are first guesses for JP to tune.
+
+## 2026-11-16: Grainy texture on the layers
+
+- The ingredient layers (and the base wave) have a film grain over them: grey noise laid on with "overlay" at 60%, under the text. It is tuned so the ingredient colors stay true (the first try made them lighter; the fix was to blend the noise in sRGB). It is one still tiled image, so it costs nothing while you drag. `LAYER_GRAIN` in `DrinkCard.tsx` sets the strength (0 for none); the pattern is `LAYER_GRAIN_STYLE` in `surfaceEffects.ts`. It only shows with the flat colors (the shader has its own grain).
+
 ## 2026-11-16: A round wave on the base ingredient
 
 - Only the base ingredient (the bottom layer) has a wave now: its color rises into the layer above in smooth, round humps, up to 26px, with no sharp points (a sine curve with a random phase and 1.5 to 2.25 humps across the card, fixed for each drink). It follows the layer as you drag. The wave is lower when the layer above is short, so it never runs under that layer's label, and it is not drawn when the layer above is a garnish. `WAVE_AMPLITUDE` and `WAVE_TEXT_ROOM` in `DrinkCard.tsx` set the size.
