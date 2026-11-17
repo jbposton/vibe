@@ -11,6 +11,7 @@ import {
   layerBottoms,
   layerGeometry,
   layerHeights,
+  MIN_LAYER,
   orderLines,
   shareForEdge,
   snapAmount,
@@ -72,6 +73,11 @@ const USE_SHADER = false;
 
 /** The page's warm black, also shown by the shader above and below the drink. */
 const PAGE_BACKGROUND = "#1A1612";
+
+/** Distance from the top of a layer to its label row (the 32px-tall row centered in a 60px layer). */
+const LABEL_TOP = 14;
+/** A top layer at least this tall (px) gets 15px more above its label, to clear the card's rounded corners. OPEN: the threshold is a first guess. */
+const TALL_TOP_LAYER = 90;
 
 /** Finger travel (px) that adds or removes one dash. */
 const DASH_DRAG_PX = 16;
@@ -193,6 +199,12 @@ export const DrinkCard = memo(function DrinkCard({
         dashDrag.current = { key, down: i === 0 ? -1 : 1, startY: clientY, startCount: amount.count, scale };
       }
     },
+    // Once it is clearly a vertical drag, measure from the finger's position now, so the
+    // layer doesn't jump by the few pixels the gesture needed to be recognized.
+    onEngage: (_key, clientY) => {
+      if (shareDrag.current) shareDrag.current.startY = clientY;
+      if (dashDrag.current) dashDrag.current.startY = clientY;
+    },
     onMove: (_key, clientY) => {
       const sd = shareDrag.current;
       if (sd) {
@@ -221,16 +233,12 @@ export const DrinkCard = memo(function DrinkCard({
 
   const animate = draggingKey === null ? undefined : "none";
 
-  // Which layers are under 1 oz (their text is centered). While a drag is going this is
-  // held as it was when you touched down, so the other layers' text doesn't jump until you
-  // let go. The layer being dragged goes to the top alignment for the drag, then settles
-  // to the middle or the top depending on where it lands.
+  // Which layers are at their smallest height on screen (the 60px minimum); outside a drag
+  // their text is centered (the top layer is the exception: see where the label is drawn).
   const smallNow: Record<number, boolean> = {};
-  for (const l of ordered) smallNow[l.key] = l.amount.kind !== "garnish" && volumeParts(l.amount) < 1;
-  const [smallAtTouch, setSmallAtTouch] = useState<Record<number, boolean> | null>(null);
-  if (draggingKey !== null && smallAtTouch === null) setSmallAtTouch(smallNow);
-  if (draggingKey === null && smallAtTouch !== null) setSmallAtTouch(null);
-  const smallFlags = smallAtTouch ?? smallNow;
+  ordered.forEach((l, i) => {
+    smallNow[l.key] = heights[i] <= MIN_LAYER + 0.5;
+  });
 
   return (
     <section
@@ -321,16 +329,20 @@ export const DrinkCard = memo(function DrinkCard({
             const ink = labelColor(ingredient.color);
             const lightLayer = ink === "#000";
             const [amountNumber, ...amountUnit] = amountText.split(" ");
-            // The label sits near the top of its layer; the top layer's label is 15px
-            // down, clear of the rounded corners. (The lines and edge ticks that were
-            // tried here are gone: JP, 2026-11-16.)
-            const lineTop = i === ordered.length - 1 ? 15 : 0;
-            // A layer of less than 1 oz (1 part) is short, so its text is centered in it instead (while you drag a layer its text goes to the top; the others hold as they were).
-            const small = !isGarnish && draggingKey !== line.key && smallFlags[line.key];
+            // The label sits near the top of its layer, 14px down: the same distance as when it is
+            // centered in a minimum-height (60px) layer, so it doesn't move when the alignment
+            // changes. The top layer's label is 15px lower, clear of the card's rounded
+            // corners, but only when that layer is tall enough for the corners to matter. (The lines and edge ticks that were tried here are gone: JP, 2026-11-16.)
+            const lineTop = LABEL_TOP + (i === ordered.length - 1 && heights[i] >= TALL_TOP_LAYER ? 15 : 0);
+            // A layer at its minimum height has its text centered in it instead (held during a drag).
+            // The top layer: centered if it is a garnish, top-aligned if not (always, drag or not).
+            // Every other layer: top-aligned during a drag, and centered only at the minimum height.
+            const isTop = i === ordered.length - 1;
+            const small = isTop ? isGarnish : draggingKey === null && smallNow[line.key];
             const label = (
               <span
-                className="label-anim pointer-events-none absolute left-[22px] right-[22px] flex items-center justify-between gap-3 text-xs leading-4"
-                style={{ color: ink, top: small ? "calc(50% - 16px)" : lineTop + 8 }}
+                className="label-anim pointer-events-none absolute left-[22px] right-[22px] flex h-8 items-center justify-between gap-3 text-xs leading-4"
+                style={{ color: ink, top: small ? "calc(50% - 16px)" : lineTop }}
               >
                 <span>{ingredient.name}</span>
                 {isGarnish ? (

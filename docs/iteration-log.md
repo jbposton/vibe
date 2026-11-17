@@ -2,9 +2,31 @@
 
 Visible before-and-after changes, newest first.
 
-## 2026-11-16: Text is centered in layers under 1 oz
+## 2026-11-16: Garnish text is now truly centered in its layer
 
-- A layer with less than 1 oz (a part) now has its name and amount centered vertically in the layer; layers of 1 oz or more keep the text near the top. While you drag a layer, its text glides to the top; when you let go it settles to the middle or the top depending on where it landed (0.32s glide, no jump). The other layers hold their alignment during the drag. Garnish layers (no volume) keep the text near the top for now. OPEN: JP to say whether garnishes should be centered too.
+- The "Garnish" label row was 16px tall while the rows with an oz button were 32px, and the centering assumed 32px, so a garnish's text sat 8px too high (it looked off-center and the layer looked taller than the 1/4 oz layers next to it, though all are 60px). Every label row is now 32px tall, so garnish and ingredient text line up at the same spots.
+
+## 2026-11-16: Top layer: garnish centered, anything else top-aligned
+
+- The top layer's text is centered when the top layer is a garnish, and top-aligned (14px from the top, plus 15px for the rounded corners only when the layer is at least 90px tall) when it is not, whether or not you are dragging. Other layers: top-aligned during a drag; otherwise centered only at the 60px minimum.
+- A short non-garnish top layer (Cosmopolitan's lime juice, 60px) stays at 14px. OPEN: the 90px threshold is a first guess.
+
+## 2026-11-16: While dragging, every layer but the top one is top-aligned
+
+- When a drag starts, all the layers except the top one have their text top-aligned and keep it that way until you let go, so a layer shrinking to the minimum doesn't switch to centered mid-drag. When you let go each settles to the right alignment (glide). The top layer holds the alignment it had when you touched down.
+
+## 2026-11-16: Same label distance from the top whether centered or top-aligned
+
+- Layer labels (name and amount) with top alignment now sit 14px from the top of the layer, the same as when centered in a 60px layer (before: 8px, and 23px on the top layer). The text no longer shifts when a layer crosses the minimum height. The top layer alone gets 15px more when it is top-aligned (so 29px), to clear the card's rounded corners; a top layer at the minimum height stays centered.
+
+## 2026-11-16: Text is centered in short layers
+
+- A layer with less than 1 oz (a part) now has its name and amount centered vertically in the layer; layers of 1 oz or more keep the text near the top. While you drag anything, every centered layer's text glides to the top; when you let go each settles to the middle or the top depending on its size (0.32s glide, no jump). Garnish layers (no volume) keep the text near the top for now. OPEN: JP to say whether garnishes should be centered too.
+
+## 2026-11-16: Less movement when a drag starts
+
+- While you drag, every layer's text stays exactly where it was (centered stays centered, top stays top); it only glides to its new place after you let go. Before, the centered text glided up to the top as the drag began, which was a lot of movement.
+- When the drag begins, the layer now follows the finger from where it is at that moment, so it no longer jumps by the few pixels used to recognize the drag (it jumped about 8px on the Gimlet's Gin layer).
 
 ## 2026-11-16: Small controls are fully rounded
 

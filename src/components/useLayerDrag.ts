@@ -10,6 +10,12 @@ type DragCallbacks = {
   onStart: (key: number, clientY: number) => void;
   /** Called at most once per screen frame with the pointer's latest position. */
   onMove: (key: number, clientY: number) => void;
+  /**
+   * Called once when the finger has moved far enough to count as a vertical
+   * drag, with where it is then. The drag measures from here, so the layer
+   * doesn't jump by the few pixels spent deciding.
+   */
+  onEngage?: (key: number, clientY: number) => void;
   /** Called when a vertical drag ends (the finger lifts or the drag is cancelled). */
   onEnd: (key: number) => void;
   /**
@@ -35,7 +41,7 @@ type DragCallbacks = {
  * section and its share of the glass follows the finger (down gives it more,
  * except the base layer, whose top line moves down and shrinks it).
  */
-export function useLayerDrag({ onStart, onMove, onEnd, onHorizontal }: DragCallbacks) {
+export function useLayerDrag({ onStart, onEngage, onMove, onEnd, onHorizontal }: DragCallbacks) {
   const active = useRef<{
     key: number;
     pointerId: number;
@@ -102,10 +108,11 @@ export function useLayerDrag({ onStart, onMove, onEnd, onHorizontal }: DragCallb
           // (Leaving it set made later drags on this card be ignored.)
           active.current = null;
           setDraggingKey(null);
-          onHorizontal(e.clientX, e.pointerId);
+                onHorizontal(e.clientX, e.pointerId);
           return;
         }
         a.axis = "v";
+        onEngage?.(a.key, e.clientY);
       }
       a.y = e.clientY;
       if (a.frame) return; // an update is already scheduled for this frame
