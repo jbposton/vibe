@@ -14,9 +14,9 @@ type Props = {
 };
 
 const circle =
-  "grid size-7 shrink-0 place-items-center rounded-full border text-[10px] tracking-[0.08em] text-white transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7]";
+  "grid size-9 shrink-0 place-items-center rounded-full border text-xs tracking-[0.08em] text-white transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7]";
 const off = "border-white/20 hover:border-white/40";
-const on = "border-[0.5px] border-white bg-[#2F2B27]";
+const on = "border-white bg-[#2F2B27]";
 
 /**
  * Serving size under the drink (Figma 187:43): 1, 2 and 4 drinks, and "+" for any other number,
@@ -36,7 +36,7 @@ export function ServingsRow({ servings, total, onChange }: Props) {
 
   return (
     <div className="flex items-center justify-between">
-      <div role="group" aria-label="Servings" className="flex items-center gap-[5px]">
+      <div role="group" aria-label="Servings" className="flex items-center gap-1.5">
         {PRESETS.map((n) => (
           <button
             key={n}
@@ -65,7 +65,7 @@ export function ServingsRow({ servings, total, onChange }: Props) {
               if (e.key === "Enter") commit(e.currentTarget.value);
               if (e.key === "Escape") setTyping(false);
             }}
-            className="h-7 w-12 rounded-full border border-white/60 bg-transparent text-center text-[10px] text-white outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+            className="h-9 w-14 rounded-full border border-white/60 bg-transparent text-center text-xs text-white outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
           />
         ) : (
           <button
@@ -78,7 +78,7 @@ export function ServingsRow({ servings, total, onChange }: Props) {
             {custom ? (
               servings
             ) : (
-              <svg width="8" height="8" viewBox="0 0 8 8" fill="none" aria-hidden>
+              <svg width="10" height="10" viewBox="0 0 8 8" fill="none" aria-hidden>
                 <path d="M4 0.5V7.5M0.5 4H7.5" stroke="currentColor" strokeLinecap="round" />
               </svg>
             )}
@@ -86,7 +86,7 @@ export function ServingsRow({ servings, total, onChange }: Props) {
         )}
       </div>
       <p className="text-right">
-        <span className="block text-xs leading-4 text-[#F7F7F7]">{total}</span>
+        <span className="block text-sm leading-[18px] text-[#F7F7F7]">{total}</span>
         <span className="block text-[10px] leading-3 text-[#F7F7F7]/50">
           {servings === 1 ? "Single drink" : `${servings} drinks`}
         </span>

@@ -11,6 +11,10 @@ Visible before-and-after changes, newest first.
 
 - The edit panel's 1px white border is now at 50% opacity (JP wrote ".5"; read as 0.5, not 0.5 percent, which would be invisible).
 
+## 2026-11-17: Bigger serving buttons and total, bigger icon labels
+
+- The serving buttons (1, 2, 4, +) are 36 x 36 (were 28; JP wrote "bigger" and "24x24", then chose bigger, 36) with 12px numbers; all of them have a 1px border (the chosen one used 0.5px). The total under the drink ("3 oz") is 14px (was 12). The labels under the two header icons (Stirred, Rocks...) are 12px like the family label (were 10).
+
 ## 2026-11-17: Ingredient icons in the drawer (Figma 196:38)
 
 - The gray placeholder circles on the drawer's ingredient chips are now the 40 "Night glow" ingredient icons (38 x 38, one per ingredient). They were exported at 4x (152px) into `public/icons/ingredients/<ingredient id>.png`, and the near-black background of each was made transparent (as for the prep icons) so only the glowing object shows on the chip. The drink's own picture at the top right of the open drawer is still a gray placeholder circle.
