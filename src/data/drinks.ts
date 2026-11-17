@@ -2,6 +2,7 @@
  * The 18 test drinks (brief §5). Amounts are in parts (1 part = 1 oz, see PART_OZ in stack.ts). Lines are listed base
  * first, in recipe order; the stack order comes from each line's role.
  */
+import type { GlassId } from "@/components/PrepIcons";
 import type { IngredientId } from "./ingredients";
 import type { Role } from "./roles";
 
@@ -36,6 +37,8 @@ export type Drink = {
   name: string;
   family: Family;
   method: Method;
+  /** OPEN: what the drink is served in (my first-pass mapping, for JP to review). Drawn with the prep icons. */
+  glass: GlassId;
   /** OPEN: "feeling and vibe" tags (brief §7). Placeholder: a few plain words per drink. */
   tags: string[];
   lines: RecipeLine[];
@@ -57,6 +60,7 @@ export const DRINKS: Drink[] = [
     name: "Gimlet",
     family: "Sour",
     method: "shaken",
+    glass: "coupe",
     tags: ["crisp", "sharp"],
     lines: [
       line("gin", "base", parts(2)),
@@ -70,6 +74,7 @@ export const DRINKS: Drink[] = [
     name: "Daiquiri",
     family: "Sour",
     method: "shaken",
+    glass: "coupe",
     tags: ["bright", "easy"],
     lines: [
       line("white-rum", "base", parts(2)),
@@ -82,6 +87,7 @@ export const DRINKS: Drink[] = [
     name: "Whiskey sour",
     family: "Sour",
     method: "shaken",
+    glass: "rocks-ice",
     tags: ["cozy", "tart"],
     lines: [
       line("bourbon", "base", parts(2)),
@@ -95,6 +101,7 @@ export const DRINKS: Drink[] = [
     name: "Margarita",
     family: "Sour",
     method: "shaken",
+    glass: "rocks-ice",
     tags: ["lively", "salty"],
     lines: [
       line("tequila", "base", parts(2)),
@@ -108,6 +115,7 @@ export const DRINKS: Drink[] = [
     name: "Cosmopolitan",
     family: "Sour",
     method: "shaken",
+    glass: "martini",
     tags: ["playful", "tart"],
     lines: [
       line("vodka", "base", parts(1.5)),
@@ -122,6 +130,7 @@ export const DRINKS: Drink[] = [
     name: "Tom Collins",
     family: "Long sour",
     method: "shaken",
+    glass: "highball-ice",
     tags: ["refreshing", "light"],
     lines: [
       line("gin", "base", parts(2)),
@@ -135,6 +144,7 @@ export const DRINKS: Drink[] = [
     name: "Mojito",
     family: "Long sour",
     method: "built",
+    glass: "highball-ice",
     tags: ["refreshing", "minty"],
     lines: [
       line("white-rum", "base", parts(2)),
@@ -150,6 +160,7 @@ export const DRINKS: Drink[] = [
     name: "Old fashioned",
     family: "Spirit-forward",
     method: "stirred",
+    glass: "rocks-ice",
     tags: ["slow", "warming"],
     lines: [
       line("bourbon", "base", parts(2)),
@@ -163,6 +174,7 @@ export const DRINKS: Drink[] = [
     name: "Manhattan",
     family: "Spirit-forward",
     method: "stirred",
+    glass: "coupe",
     tags: ["rich", "serious"],
     lines: [
       line("rye", "base", parts(2)),
@@ -176,6 +188,7 @@ export const DRINKS: Drink[] = [
     name: "Negroni",
     family: "Spirit-forward",
     method: "stirred",
+    glass: "rocks-ice",
     tags: ["bittersweet", "bold"],
     lines: [
       line("gin", "base", parts(1)),
@@ -189,6 +202,7 @@ export const DRINKS: Drink[] = [
     name: "Martini",
     family: "Spirit-forward",
     method: "stirred",
+    glass: "martini",
     tags: ["sharp", "elegant"],
     lines: [
       line("gin", "base", parts(2.5)),
@@ -201,6 +215,7 @@ export const DRINKS: Drink[] = [
     name: "Gin and tonic",
     family: "Highball",
     method: "built",
+    glass: "highball-ice",
     tags: ["crisp", "easy"],
     lines: [
       line("gin", "base", parts(2)),
@@ -213,6 +228,7 @@ export const DRINKS: Drink[] = [
     name: "Moscow mule",
     family: "Highball",
     method: "built",
+    glass: "mug-ice",
     tags: ["zesty", "spicy"],
     lines: [
       line("vodka", "base", parts(2)),
@@ -226,6 +242,7 @@ export const DRINKS: Drink[] = [
     name: "Aperol spritz",
     family: "Spritz",
     method: "built",
+    glass: "wine-ice",
     tags: ["sunny", "light"],
     lines: [
       // OPEN: Prosecco as base and Aperol as bitter are guesses to confirm with JP.
@@ -240,6 +257,7 @@ export const DRINKS: Drink[] = [
     name: "Hot toddy",
     family: "Hot",
     method: "built",
+    glass: "mug-hot",
     tags: ["warming", "comforting"],
     lines: [
       line("whiskey", "base", parts(2)),
@@ -254,6 +272,7 @@ export const DRINKS: Drink[] = [
     name: "Arnold Palmer",
     family: "Non-alcoholic",
     method: "built",
+    glass: "highball-ice",
     tags: ["gentle", "sunny"],
     lines: [
       line("iced-tea", "base", parts(4)),
@@ -267,6 +286,7 @@ export const DRINKS: Drink[] = [
     name: "Shirley Temple",
     family: "Non-alcoholic",
     method: "built",
+    glass: "highball-ice",
     tags: ["sweet", "nostalgic"],
     lines: [
       // OPEN: Ginger ale as base is a guess to confirm with JP.
@@ -281,6 +301,7 @@ export const DRINKS: Drink[] = [
     // OPEN: which family the Espresso martini belongs to is undecided.
     family: "Unplaced",
     method: "shaken",
+    glass: "martini",
     tags: ["rich", "awake"],
     lines: [
       line("vodka", "base", parts(2)),

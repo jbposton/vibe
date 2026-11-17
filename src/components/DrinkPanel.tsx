@@ -14,6 +14,7 @@ import { flavorProfile } from "@/lib/flavor";
 import { DrinkCard } from "./DrinkCard";
 import { CLASSICS_ID, FILTERS, filterList } from "@/data/finder";
 import { FilterBar } from "./FilterBar";
+import { PrepTags } from "./PrepIcons";
 import { EditPanel, PANEL_CLOSED_HEIGHT, PANEL_TRAVEL } from "./EditPanel";
 import { useSheet } from "./useSheet";
 import { adjustLine, traitEdits } from "@/lib/edits";
@@ -477,12 +478,20 @@ export function DrinkPanel() {
           </button>
         </div>
 
-        <h1 className="font-serif text-[40px] leading-[52px]" style={zTitle}>
-          {infoDrink.name}
-        </h1>
-        <p className="mt-1 text-xs opacity-55" style={zFamily}>
-          {infoDrink.family}
-        </p>
+        {/* The name and family on the left; how it's made and what it's served in, bottom right, level with the family label (Figma 135:107). */}
+        <div className="flex items-end justify-between gap-2">
+          <div className="min-w-0">
+            <h1 className="font-serif text-[40px] leading-[52px]" style={zTitle}>
+              {infoDrink.name}
+            </h1>
+            <p className="mt-1 text-xs opacity-55" style={zFamily}>
+              {infoDrink.family}
+            </p>
+          </div>
+          <div className="-mr-1">
+            <PrepTags method={infoDrink.method} glass={infoDrink.glass} />
+          </div>
+        </div>
       </header>
 
       {/* ── The row of drinks (it moves back and shrinks when the edit panel is up) ── */}

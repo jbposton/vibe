@@ -2,6 +2,12 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-16: Prep icons (method + glass) at the top right of the screen
+
+- Added the 13 line icons from Figma (node 135:34) in `src/components/PrepIcons.tsx`: Shaken, Stirred, Built, and ten glasses (Rocks, Highball, Coupe, Martini, Wine, Mug, some with ice).
+- Each drink now has a `glass` (`src/data/drinks.ts`). The header shows its method icon and glass icon with small labels, right of the drink name (Figma 135:107).
+- OPEN: my drink-to-glass mapping and the glass names are first-pass guesses for JP to confirm. A long name (Espresso martini) wraps to two lines on a phone because the icons take room.
+
 ## 2026-11-16: New design pass (from JP's Figma "Hack", frame 91:5)
 - **Before:** Inter type, pill buttons, plain "1 oz" text on each layer, no handles, three flavor bars, and no way to fix a drink with a button.
 - **After:**
