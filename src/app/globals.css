@@ -33,8 +33,14 @@ body {
     height 180ms ease-out;
 }
 
+/* A layer's text glides between the top and the middle (layers under 1 oz) instead of jumping. */
+.label-anim {
+  transition: top 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .layer-anim,
+  .label-anim,
   .band {
     transition: none !important;
   }

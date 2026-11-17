@@ -4,7 +4,7 @@ Visible before-and-after changes, newest first.
 
 ## 2026-11-16: Text is centered in layers under 1 oz
 
-- A layer with less than 1 oz (a part) now has its name and amount centered vertically in the layer; layers of 1 oz or more keep the text near the top. While you drag, the text stays where it was when you touched down and only switches after you let go. Garnish layers (no volume) keep the text near the top for now. OPEN: JP to say whether garnishes should be centered too.
+- A layer with less than 1 oz (a part) now has its name and amount centered vertically in the layer; layers of 1 oz or more keep the text near the top. While you drag, the text stays where it was when you touched down and only switches after you let go, and then it glides (0.32s) between the middle and the top instead of jumping. Garnish layers (no volume) keep the text near the top for now. OPEN: JP to say whether garnishes should be centered too.
 
 ## 2026-11-16: Small controls are fully rounded
 

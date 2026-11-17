@@ -327,8 +327,8 @@ export const DrinkCard = memo(function DrinkCard({
             const small = !isGarnish && smallFlags[line.key];
             const label = (
               <span
-                className="pointer-events-none absolute left-[22px] right-[22px] flex items-center justify-between gap-3 text-xs leading-4"
-                style={small ? { color: ink, top: "50%", transform: "translateY(-50%)" } : { color: ink, top: lineTop + 8 }}
+                className="label-anim pointer-events-none absolute left-[22px] right-[22px] flex items-center justify-between gap-3 text-xs leading-4"
+                style={{ color: ink, top: small ? "calc(50% - 16px)" : lineTop + 8 }}
               >
                 <span>{ingredient.name}</span>
                 {isGarnish ? (
