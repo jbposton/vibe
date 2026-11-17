@@ -11,6 +11,16 @@ Visible before-and-after changes, newest first.
 
 - The edit panel's 1px white border is now at 50% opacity (JP wrote ".5"; read as 0.5, not 0.5 percent, which would be invisible).
 
+## 2026-11-17: A squiggly line under the browse filters
+
+- A thin wavy line (the same wave as the edit panel's top edge, white at 60%) runs under the browse filters, 16px in from each side of the screen. It moves back and fades with the filters when the drawer opens.
+- OPEN: the space it takes (about 15px) pushes the title down a little; its look is a first try.
+
+## 2026-11-17: Sweet and Bitter are two ladders again
+
+- The open drawer's header shows the two separate glow ladders again (the look from 2026-11-16, Figma 180:39) instead of the one Sweet-to-Bitter slider: five stacked steps each, lit from the bottom (gold for Sweet, purple for Bitter), the name under each in the label's style. Strength is not shown (ABV is in the label). Component: `FlavorLadders.tsx`; the slider is parked in `src/components/parked/TasteSlider.tsx`.
+- OPEN: the ladders stack above the labels, so they reach higher than the old single row and sit beside the drink name.
+
 ## 2026-11-17: Equal space around the serving buttons
 
 - The extra space between the serving buttons and the drawer is gone: the drink panel moved down (and is taller) so the gap between the serving buttons and the drawer's wavy edge (about 18px) is about the same as between the drink panel and the serving buttons (about 20px).

@@ -1,7 +1,7 @@
 /**
- * PARKED (JP, 2026-11-16): the Sweet-to-Bitter slider, taken out of the edit panel but kept here
- * so it can come back. It is not used anywhere right now. See docs/parked.md for how to put it
- * back. The math (tasteBalance, balanceWord, intensityWord) stays in src/lib/flavor.ts.
+ * PARKED (JP, 2026-11-17; first parked 2026-11-16): the Sweet-to-Bitter slider. It lived in the drawer
+ * header until JP brought the two separate ladders back (FlavorLadders.tsx). Not used anywhere right
+ * now. See docs/parked.md. The math (tasteBalance, balanceWord, intensityWord) stays in src/lib/flavor.ts.
  *
  * Sweet and bitter as one continuum: a thin glowing track, bitter (purple) on the left and sweet
  * (gold) on the right, a marker where the drink leans, and a line of words above it

@@ -21,7 +21,7 @@ import { useSheet } from "./useSheet";
 import { adjustLine, traitEdits } from "@/lib/edits";
 import { swapIngredient } from "@/lib/swap";
 import { DEFAULT_UNIT, formatTotal, totalParts } from "@/lib/stack";
-import { TasteSlider } from "./TasteSlider";
+import { FlavorLadders } from "./FlavorLadders";
 import { tasteSummary } from "@/lib/flavor";
 
 // OPEN: which drink a visitor sees first (brief §1 flow). Placeholder: Negroni.
@@ -511,15 +511,15 @@ export function DrinkPanel() {
           <div className="relative -mr-1" style={zPrep}>
             <PrepTags method={infoDrink.method} glass={infoDrink.glass} />
           </div>
-          {/* Once the drawer is up, the Sweet-to-Bitter slider takes the prep icons' place: its Bitter and
-              Sweet labels sit level with the family label, its words above them. */}
+          {/* Once the drawer is up, the Sweet and Bitter ladders take the prep icons' place, their names level with
+              the label under the title. */}
           {phone && (
             <div
               aria-hidden={!sheet.open}
-              className="pointer-events-none absolute bottom-0 right-0 w-[190px]"
+              className="pointer-events-none absolute bottom-0 right-0"
               style={{ opacity: "clamp(0, calc((var(--p, 0) - 0.5) * 2), 1)", transform: `translateY(calc(var(--p, 0) * -${SHEET.titleGap}px))` }}
             >
-              <TasteSlider profile={profile} showWords={false} />
+              <FlavorLadders profile={profile} />
             </div>
           )}
         </div>

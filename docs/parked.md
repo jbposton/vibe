@@ -2,7 +2,7 @@
 
 Things JP cut from the app but wants to keep for later. Nothing here is used by the app right now. Newest first.
 
-## The Sweet-to-Bitter slider (parked 2026-11-16)
+## The Sweet-to-Bitter slider (parked 2026-11-16; used in the drawer header 2026-11-17; parked again the same day)
 
 Sweet and Bitter shown as one continuum: a thin glowing track (Bitter purple on the left, Sweet gold on the right), a marker where the drink leans, and a line of words above it ("Balanced · Intense"). The marker gets wider and brighter the stronger the flavors are, so a Negroni (strongly both) and a Martini (barely either) look different. It slid smoothly as you tapped Add Sweet / Add Bitter or dragged layers.
 
@@ -27,3 +27,5 @@ The graphs under Strength, Sweet and Bitter went through several looks today. To
 ## The blobby mesh-gradient drink picture (parked 2026-11-17)
 
 A 43px blobby picture of the drink's ingredient colors, with grain and a glow, that slowly changed shape. It sat top right of the drawer header until the Sweet-to-Bitter slider took its place. The component is `src/components/parked/DrinkBlob.tsx` (`DrinkBlob({ lines })`); its `.blob-shape` animation is still in `globals.css`. To bring it back, import it in `DrinkPanel.tsx` where `TasteSlider` is rendered in the header.
+
+Update 2026-11-17: the slider was in the open drawer's header for a while, then JP asked for the two separate ladders back. To use the slider again, render `<TasteSlider profile={profile} />` (`showWords={false}` if the summary text is shown elsewhere) in the header slot in `DrinkPanel.tsx` where `<FlavorLadders />` is now.

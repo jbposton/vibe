@@ -59,6 +59,12 @@ export function FilterBar({ active, onSelect }: Props) {
           })}
         </div>
       </div>
+
+      {/* A squiggly line under the filters, 16px in from each side of the screen (the screen's own padding),
+          the same wave as the edit panel's edge. */}
+      <span aria-hidden className="relative block h-[7px]">
+        <span className="wave-line" style={{ top: 0 }} />
+      </span>
     </section>
   );
 }
