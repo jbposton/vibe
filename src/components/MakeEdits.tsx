@@ -15,7 +15,7 @@ type Props = {
 };
 
 const PILL =
-  "flex h-[30px] shrink-0 items-center gap-[3px] rounded-full border border-white/[0.12] bg-[#1A1612] text-[10px] uppercase tracking-[0.08em] text-white transition-colors hover:border-white/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] disabled:pointer-events-none disabled:opacity-35";
+  "flex h-[30px] shrink-0 items-center gap-[3px] rounded-full border border-[#21201E] bg-[#1A1612] text-[10px] uppercase tracking-[0.08em] text-white transition-colors hover:border-white/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] disabled:pointer-events-none disabled:opacity-35";
 
 /** The small plus before SWEET, BITTER and STRENGTH. */
 function Plus() {

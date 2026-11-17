@@ -11,6 +11,10 @@ Visible before-and-after changes, newest first.
 
 - The edit panel's 1px white border is now at 50% opacity (JP wrote ".5"; read as 0.5, not 0.5 percent, which would be invisible).
 
+## 2026-11-17: Button borders use the drawer's gray
+
+- The outline of every button that isn't chosen (the four drawer pills, the ingredient chips and the serving buttons) is now the drawer's own gray (#21201E) instead of 12% white. In the drawer that makes the dark buttons read as shapes without a visible edge; under the drink it gives the serving buttons a soft lighter ring. A chosen button still has the white outline, and hovering still brightens the outline to 40% white.
+
 ## 2026-11-17: The line under the total reads "2 servings · 3 oz per serving"
 
 - Under the total ("6 oz") the small text is now the number of servings, a dot, and the oz in one serving: "1 serving · 3 oz per serving", "2 servings · 3 oz per serving", "6 servings · 3 oz per serving". (It was "Single drink" / "2 drinks".) The per-serving amount is the recipe's total at one serving, so it follows your edits to the recipe but not the number of servings.

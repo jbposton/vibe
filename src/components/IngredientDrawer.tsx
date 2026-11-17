@@ -36,7 +36,7 @@ export function IngredientDrawer({ lines, onPick }: Props) {
                     aria-pressed={on}
                     onClick={() => onPick(i.id)}
                     className={`flex h-14 items-center gap-[10px] rounded-full border bg-[#1A1612] py-2 pl-[7px] pr-[14px] text-[10px] uppercase tracking-[0.08em] text-white transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] ${
-                      on ? "border-white" : "border-white/[0.12] hover:border-white/40"
+                      on ? "border-white" : "border-[#21201E] hover:border-white/40"
                     }`}
                   >
                     {/* The ingredient's picture: the 38 x 38 "Night glow" icon (Figma 196:38), saved at 4x in public/icons/ingredients. */}
