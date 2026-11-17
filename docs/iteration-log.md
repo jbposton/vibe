@@ -2,6 +2,30 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-16: Edit panel: no glass look, the app's own background color with a blur
+
+- The edit panel's lighter translucent gray and the extra color saturation behind it are gone. It is now the app's background color (#1A1612) at 80% opacity with a 20px background blur, so it reads as the same dark as the page while still softening what passes behind it. The white 0.5px border and the soft shadow stay. The fallback (no blur support, or "reduce transparency") is solid #1A1612.
+- OPEN: the 80% opacity is a first guess; lower it to show more blur, raise it for a flatter panel.
+
+## 2026-11-16: The edit panel is full width
+
+- On a phone the edit panel now runs the full width of the screen and sits flush with the bottom (before: 16px in from the sides and the bottom). Inside it, the buttons and text are 16px from the screen edges, lining up with the drink card; the space under the buttons is 16px too (the closed panel is 156px tall, was 152). The drink card gets 16px of the room back that the old bottom margin took.
+
+## 2026-11-16: Edit panel: white 1px top border, square corners
+
+- The edit panel (closed and open) has a 1px white border along its top edge only (it was 0.5px all round for a moment), and its corners are square (they were 30px). It replaces the faint 1px light ring the glass material had. The soft shadow above and around it is unchanged.
+
+## 2026-11-16: Browse filters restyled as text with slashes (Figma 132:35)
+
+- The filter chips lost their pill backgrounds: they are now 10px capitals split by thin slashes. The chosen filter is white and medium weight, the rest are 50% white. The sparkle on "Build my own" and the thin divider between taste and occasion are gone (the slashes replace it). Still one row that scrolls sideways with each tap area 44px tall, and the right edge still fades out; the left edge now fades too once you scroll.
+- The filter labels have slightly wider letter spacing (0.08em).
+- The slash is centered between two labels (14px each side); Figma's own spacing is 16px before it and 12px after.
+- OPEN: Figma says "Build Your Own"; the app keeps "Build my own" (data label) for now.
+
+## 2026-11-16: New icon illustrations (Night glow) replace the line icons
+
+- The method and glass icons are now the 36 x 36 "Night glow" illustrations from Figma (152:426): dark tiles with a glowing, colored glass. They are saved at 4x (144px) in `public/icons/` and drawn at 42 x 42 in `src/components/PrepIcons.tsx`, with the same labels under them. The dark tile behind each illustration was turned into transparency in the saved pictures (so only the glowing glass shows on the page, not a black square); the originals with the tile are in the Figma file. The old line icons (135:34) were removed from the code (they are still in the Figma file).
+
 ## 2026-11-16: The drink shrinks only a little when the drawer opens
 
 - When the edit panel swipes up, the drink now shrinks by 16px on each side (about 91% on a phone) instead of to 78%, like an Apple sheet pushing the page back a little. The apple-design skill gives no numbers for this, only "push the background back"; the 16px matches the screen margin. The drink still moves up 78px, so more of its lower part sits behind the glass drawer than before. OPEN: JP to say if it should move up more or less.

@@ -47,28 +47,27 @@ body {
 }
 
 /*
- * The edit drawer as a material (apple-design skill): a dark, see-through fill
- * that blurs and slightly saturates whatever is behind it, a thin light edge,
- * and a soft shadow that shows around its top and sides.
+ * The edit drawer: the app's own background color (#1A1612), a little see-through, that blurs
+ * whatever is behind it (JP, 2026-11-16: the lighter glass look with extra color saturation is
+ * gone). A thin white line along its top edge (the 1px top border set in EditPanel) and a soft shadow around its
+ * top and sides.
  */
 .glass-sheet {
-  background: rgba(43, 43, 43, 0.72);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  backdrop-filter: blur(20px) saturate(180%);
-  box-shadow:
-    0 -10px 40px rgba(0, 0, 0, 0.5),
-    0 0 0 1px rgba(255, 255, 255, 0.07);
+  background: rgba(26, 22, 18, 0.8);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
 }
 
 /* No backdrop blur available, or "reduce transparency" is on: a solid panel. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .glass-sheet {
-    background: #2b2b2b;
+    background: #1a1612;
   }
 }
 @media (prefers-reduced-transparency: reduce) {
   .glass-sheet {
-    background: #2b2b2b;
+    background: #1a1612;
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
