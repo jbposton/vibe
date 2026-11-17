@@ -11,6 +11,10 @@ Visible before-and-after changes, newest first.
 
 - The edit panel's 1px white border is now at 50% opacity (JP wrote ".5"; read as 0.5, not 0.5 percent, which would be invisible).
 
+## 2026-11-16: New prep icon set (Night glow, warm palette)
+
+- The 13 method and glass icons were replaced with the "Night glow @ 36x36, warm palette" set (Figma 176:38). Same names, sizes (42 x 42 on the page) and labels; the pictures in `public/icons/` were re-exported at 4x and the dark tile behind each was made transparent again, as before. Nothing in the code changed.
+
 ## 2026-11-16: No jump at the end of the wave
 
 - The wave's drawing box had a 180ms CSS height transition (copied from the layers) on top of the frame-by-frame size animation, so its box lagged behind the shape inside it, stretching the wave, and then snapped when the wave was removed at the end. The transition is gone from the wave; it still follows the layer's position smoothly as you drag.
