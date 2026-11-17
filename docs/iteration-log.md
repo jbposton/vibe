@@ -2,6 +2,11 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-16: Safari's top bar follows the drink background
+
+- In Safari the strip behind the clock and battery was a different color from the blurred background. `DrinkBackdrop.tsx` now works out the background's color at the very top of the screen for each drink, sets it as the page's theme color, and draws a thin fixed strip of it at the top edge (as tall as the status bar), so Safari has the matching color to pick up.
+- Not verified on a real iPhone (no Xcode simulator on this Mac). OPEN: it will be a solid band that matches the top of the gradient, not the gradient itself; JP to check on the phone.
+
 ## 2026-11-16: The app background is the drink's own colors, blurred and darkened
 
 - New `src/components/DrinkBackdrop.tsx`: behind everything, the drink in view is drawn as its classic color bands (default order and sizes, not your edits), blurred 56px, with a warm-black overlay at 72% over it. It cross-fades (0.6s) when you switch drinks.
