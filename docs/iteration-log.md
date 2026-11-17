@@ -11,6 +11,15 @@ Visible before-and-after changes, newest first.
 
 - The edit panel's 1px white border is now at 50% opacity (JP wrote ".5"; read as 0.5, not 0.5 percent, which would be invisible).
 
+## 2026-11-16: No jump at the end of the wave
+
+- The wave's drawing box had a 180ms CSS height transition (copied from the layers) on top of the frame-by-frame size animation, so its box lagged behind the shape inside it, stretching the wave, and then snapped when the wave was removed at the end. The transition is gone from the wave; it still follows the layer's position smoothly as you drag.
+
+## 2026-11-16: The base wave plays for 3 seconds when a drink comes into view
+
+- When a drink comes into view (on load, after a swipe, after switching filters) the wave on the base ingredient starts at full size, slides along its length about one and a half times (slowing as it goes), and eases down to a flat line at 3s: the first version swelled up from nothing, which JP cut. The end eases out gently (a cosine curve) with no pop. After that the base edge stays straight. With "reduce motion" on it doesn't play at all. `WAVE_PLAY_MS`, `WAVE_SLIDES` and `WAVE_AMPLITUDE` in `DrinkCard.tsx` tune it. The wavy edit-panel borders are not animated.
+- Each play redraws the wave about 60 times a second for 3 seconds, on one card only.
+
 ## 2026-11-16: The edit panel is solid, with no shadow
 
 - The edit panel's fill is now solid #1A1612 (the app's background color): not see-through, no blur. The soft drop shadow around it is gone too. The wavy edges and white lines are unchanged. The glass fallbacks (no blur, "reduce transparency") were removed since nothing blurs any more.

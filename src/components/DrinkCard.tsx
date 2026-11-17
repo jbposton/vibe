@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import type { Drink, RecipeLine } from "@/data/drinks";
 import { INGREDIENTS } from "@/data/ingredients";
 import {
@@ -79,6 +79,10 @@ const PAGE_BACKGROUND = "#1A1612";
 
 /** The tallest the base ingredient's wave can rise (px) above its top line. */
 const WAVE_AMPLITUDE = 26;
+/** How long the wave plays when a drink comes into view: it starts big, then settles down to flat. */
+const WAVE_PLAY_MS = 3000;
+/** How many times the wave slides along its own length while it plays (it slows as it settles). */
+const WAVE_SLIDES = 1.5;
 /** Room (px) kept free at the top of the layer above for its label (14px down + 32px row + a margin). */
 const WAVE_TEXT_ROOM = 52;
 
@@ -88,7 +92,7 @@ const WAVE_TEXT_ROOM = 52;
  * Returns the outline of the base color in a strip `amp + 1` tall (drawn in a 100-wide box that
  * stretches to the card), rising up to `amp` above the strip's bottom line.
  */
-function wavePath(seed: string, amp: number): { d: string; h: number } {
+function wavePath(seed: string, amp: number, phaseShift = 0): { d: string; h: number } {
   let a = 0;
   for (let i = 0; i < seed.length; i++) a = (Math.imul(a, 31) + seed.charCodeAt(i)) | 0;
   const rand = () => {
@@ -99,7 +103,7 @@ function wavePath(seed: string, amp: number): { d: string; h: number } {
   };
   const h = amp + 1;
   const humps = 1.5 + rand() * 0.75;
-  const phase = rand() * Math.PI * 2;
+  const phase = rand() * Math.PI * 2 + phaseShift;
   const N = 80;
   let d = `M0 ${h}`;
   for (let k = 0; k <= N; k++) {
@@ -142,6 +146,8 @@ type Props = {
   onEdit: (drinkIndex: number, update: (prev: RecipeLine[]) => RecipeLine[]) => void;
   /** True for the card in the middle, while nothing is swiping or settling. */
   interactive: boolean;
+  /** True for the drink the screen is showing (even with the edit drawer up). Starts its wave. */
+  inView: boolean;
   /** A drag on a section turned out to be a sideways swipe. */
   onHorizontal: (clientX: number, pointerId: number) => void;
   /** How many drinks the recipe makes: scales the oz labels, never the ratio. */
@@ -163,6 +169,7 @@ export const DrinkCard = memo(function DrinkCard({
   lines,
   onEdit,
   interactive,
+  inView,
   onHorizontal,
   servings,
   modified,
@@ -179,6 +186,32 @@ export const DrinkCard = memo(function DrinkCard({
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
+
+  // The base wave plays for 3 seconds each time this drink comes into view: it starts at full size,
+  // slides along as it goes, and eases down to a flat line (gently at the end, with no pop).
+  // `wave.k` is how big it is now (0 to 1) and `wave.phase` how far it has slid.
+  const [wave, setWave] = useState({ k: 0, phase: 0 });
+  useEffect(() => {
+    if (!inView) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let frame = 0;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / WAVE_PLAY_MS);
+      if (t >= 1) {
+        setWave({ k: 0, phase: 0 });
+        return;
+      }
+      setWave({
+        k: Math.pow(Math.cos((Math.PI * t) / 2), 2), // full size at the start, easing down to flat
+        phase: Math.PI * 2 * WAVE_SLIDES * (1 - Math.pow(1 - t, 2)),
+      });
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [inView, drink.id]);
+  const waveK = inView ? wave.k : 0;
 
   const ordered = orderLines(lines);
   const heights = layerHeights(ordered, panelHeight);
@@ -352,27 +385,31 @@ export const DrinkCard = memo(function DrinkCard({
 
           {/* A wave along the top of the base ingredient: its color rises into the layer above in
               smooth round humps (JP, 2026-11-16). The shape is random but fixed for each drink, and
-              it follows the layer as you drag. It is shorter when the layer above is short, so it
+              it follows the layer as you drag. It plays for 3 seconds when the drink comes into view, then is flat. It is shorter when the layer above is short, so it
               never runs under that layer's label. Not drawn when the layer above is a garnish. */}
           {(() => {
             const base = ordered[0];
             const above = ordered[1];
             if (!base || !above || above.amount.kind === "garnish") return null;
-            const amp = Math.max(0, Math.min(WAVE_AMPLITUDE, heights[1] - WAVE_TEXT_ROOM));
-            if (amp < 2) return null;
-            const { d, h } = wavePath(`${drink.id}-${base.key}`, amp);
+            const maxAmp = Math.max(0, Math.min(WAVE_AMPLITUDE, heights[1] - WAVE_TEXT_ROOM));
+            const amp = maxAmp * waveK;
+            // Only skip it when it is too short to matter or has fully settled (not at 2px, which popped).
+            if (!(maxAmp >= 2) || !(amp >= 0.05)) return null;
+            const { d, h } = wavePath(`${drink.id}-${base.key}`, amp, wave.phase);
             return (
               <svg
                 key={`wave-${drink.id}-${base.key}`}
                 aria-hidden
-                className="layer-anim pointer-events-none absolute inset-x-0"
+                // No height transition here: the wave's size is animated frame by frame, and a CSS
+                // transition on top of that made it lag behind and then snap when it was removed.
+                className="pointer-events-none absolute inset-x-0"
                 width="100%"
                 height={h}
                 viewBox={`0 0 100 ${h}`}
                 preserveAspectRatio="none"
                 style={{
                   bottom: bottoms[0] + heights[0] - 1,
-                  transition: animate ?? "bottom 180ms ease-out, height 180ms ease-out",
+                  transition: animate ?? "bottom 180ms ease-out",
                 }}
               >
                 <rect width="100" height={h} fill={INGREDIENTS[above.ingredient].color} />

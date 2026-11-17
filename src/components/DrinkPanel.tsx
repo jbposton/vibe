@@ -538,6 +538,7 @@ export function DrinkPanel() {
                 lines={edits[d] ?? DRINKS[d].lines}
                 onEdit={onEdit}
                 interactive={j === infoIndex && !busy && !sheet.open}
+                inView={j === infoIndex}
                 onHorizontal={onHorizontal}
                 servings={servings[d] ?? 1}
                 modified={d in edits || (servings[d] ?? 1) !== 1}
