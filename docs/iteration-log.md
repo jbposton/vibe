@@ -11,6 +11,14 @@ Visible before-and-after changes, newest first.
 
 - The edit panel's 1px white border is now at 50% opacity (JP wrote ".5"; read as 0.5, not 0.5 percent, which would be invisible).
 
+## 2026-11-17: New design: serving size, full-width panel, ingredient drawer (Figma 187:43)
+
+- **Under the drink:** serving buttons 1, 2, 4 and "+" and the total on the right ("3 oz" / "Single drink", "6 oz" / "2 drinks"). They scale the oz on the layers and the total; the ratios never change. "+" opens a small number box (1 to 99). The drink card is 25px in from the sides (352px on a 402px screen) and the layer names are capitals at 60%.
+- **Edit panel:** full width again, solid #21201E (a lighter gray than the page) with a wavy top edge only (no bottom wave, no blur, no shadow). The buttons are outlined pills: SUBSTITUTE, + SWEET, + BITTER, + STRENGTH (Less Strong is gone). SUBSTITUTE opens the drawer; the others work as Add Sweet / Add Bitter / More Strong did.
+- **Drawer:** swiping up (or tapping the grabber or SUBSTITUTE) takes the panel all the way up to 102px from the top, over the drink. The header stays above it at full strength: the name shrinks to 28px, the icons fade and a gray circle (the drink's picture, a placeholder) shows at the right. The drawer lists the ingredients in sections by category (`IngredientDrawer.tsx`), each chip with a gray circle placeholder for its picture; the ingredients in the drink have a white outline. Only the top strip (grabber and buttons) drags the sheet; the ingredients scroll.
+- **Tapping an ingredient** swaps the drink's ingredient from the same category (Gin to Vodka), keeping its role and amount; if the drink has nothing from that category it is added as a new layer (`lib/swap.ts`). Tapping one already in the drink changes nothing.
+- OPEN: the "+" number box, the roles and amounts for added ingredients, which line is replaced when a drink has two from one category (the one with the most liquid), the drink's picture and the ingredient pictures (placeholders), and the "New drink" in the design's open header (the app shows the drink's real name).
+
 ## 2026-11-17: Narrower drink card, more of the side cards show
 
 - The middle drink card is 12px narrower on each side (its margin to the screen edge went from 16px to 28px), so it is smaller overall (on a 375px phone: 319px wide, was 343px) and the cards beside it show about 20px instead of 8px. The edit panel stays 16px in from the sides, so the card is now narrower than the panel. `CARD_MARGIN` in `DrinkPanel.tsx` sets it.

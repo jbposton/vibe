@@ -445,7 +445,8 @@ export const DrinkCard = memo(function DrinkCard({
                 className="label-anim pointer-events-none absolute left-[22px] right-[22px] flex h-8 items-center justify-between gap-3 text-xs leading-4"
                 style={{ color: ink, top: small ? "calc(50% - 16px)" : lineTop }}
               >
-                <span>{ingredient.name}</span>
+                {/* The name in capitals, medium weight, at 60% (Figma 187:43). */}
+                <span className="font-medium uppercase tracking-[0.008em] opacity-60">{ingredient.name}</span>
                 {isGarnish ? (
                   <span className="opacity-60">Garnish</span>
                 ) : (
