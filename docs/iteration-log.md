@@ -11,6 +11,39 @@ Visible before-and-after changes, newest first.
 
 - The edit panel's 1px white border is now at 50% opacity (JP wrote ".5"; read as 0.5, not 0.5 percent, which would be invisible).
 
+## 2026-11-17: New reset icon, on a dark see-through circle
+
+- The reset button on a changed drink uses the icon from Figma 204:48 (`public/icons/reset.svg`) in place of the old arrow, and its glass background is now plain black at 30% opacity (no highlight edge). It is 36px, the same as the serving buttons (icon 20px), and sits at the bottom center. When tapped it just fades out; it no longer shrinks.
+- OPEN: the 30% is a first guess.
+
+## 2026-11-17: The closed drawer peeks at the ingredients
+
+- The closed edit panel is 72px taller (181px, was 109). Under the buttons you now see the first ingredients (the Spirit title and its first row of chips), fading out into a scrim in the panel's own color. The scrim fades away as the panel rises, and a tap or swipe up on it opens the panel. The drink card above gets 72px shorter to make room.
+- OPEN: how much to show (one row or two), and whether the card should shrink or the peek should overlap it.
+
+## 2026-11-17: The Sweet-to-Bitter slider is back, in the drawer header
+
+- The blob below was replaced (same day) by the Sweet-to-Bitter slider, top right of the open drawer, 140px wide next to the drink name: "Balanced · Intense" above a glowing purple-to-gold track with a marker. It follows the drink as you swap ingredients. The component moved back to `src/components/TasteSlider.tsx`; the blob is parked in `src/components/parked/DrinkBlob.tsx` (see `docs/parked.md`).
+- Then (same day): the header sits 14px lower, the family label is 6px closer to the name, and the slider is wider (190px) with its Bitter and Sweet labels level with the family label (12px, 55%) and the words above the track. It now lives in the header row in place of the prep icons.
+- Then: with the drawer up, the family label (and ABV) is replaced by the taste summary, for example "Balanced · Intense", in the same spot (a crossfade), in the family label's own look (12px, 55%), with the dot and ABV kept: "Balanced, Intense · 27% ABV". The graph keeps only its track and Bitter / Sweet labels. The family returns when the drawer closes.
+- Then: the same label is now on the main page too: the family name is gone from under the title everywhere, replaced by "Balanced, Intense · 27% ABV" in the same look (so no crossfade any more). The family still drives the browse filters.
+- Then: "Medium" is not shown. Light (under 0.2 of the scale) and Intense (0.5 and up) are kept; in between, the label says only the balance, for example "Sweet · 21% ABV". Helper: `tasteSummary` in `src/lib/flavor.ts`.
+- Then: a strongly sweet drink reads "Very sweet" (was "Sweet"); strongly bitter still reads "Bitter" (JP only asked for sweet).
+- OPEN: the slider only shows while the drawer is open; whether it should also show on the closed drink is undecided.
+
+## 2026-11-17: The drink's picture in the drawer header is a blobby mesh gradient (replaced, see above)
+
+- The gray circle at the top right of the open drawer is now a blob (an uneven, slowly drifting outline) filled with a mesh gradient of the colors of the ingredients in the drink right now: one soft spot of color per ingredient, bigger for more liquid, over the main ingredient's color. It has film grain on it and a soft blurred glow behind it, like the icon illustrations, and it changes as you swap ingredients or change amounts. Component: `DrinkBlob.tsx`. With "reduce motion" on the outline stays still.
+- OPEN: it is a stand-in until there is a real picture of the drink.
+
+## 2026-11-17: The four top buttons are 36px tall
+
+- SUBSTITUTE, + SWEET, + BITTER and + STRENGTH are 36px tall (were 30), matching the serving buttons. The text is unchanged. The ingredient list below them starts 6px lower to make room; its first heading stays where it was. They also have more room inside (16px at the sides, was about 10): the four no longer fit across a phone, so the row scrolls sideways (the last button, STRENGTH, is partly off the edge at first). The drag strip now only blocks vertical scrolling (`touch-pan-x`) so the row can scroll while up and down still drags the sheet.
+
+## 2026-11-17: No outline on buttons except the chosen ones
+
+- The drawer pills, the ingredient chips and the serving buttons have no visible outline unless they are chosen (white outline, as before). The space for the outline is kept (a transparent 1px border) so nothing changes size. Hovering now lightens the button's fill a little (#26221E) instead of brightening an outline.
+
 ## 2026-11-17: Button borders use the drawer's gray
 
 - The outline of every button that isn't chosen (the four drawer pills, the ingredient chips and the serving buttons) is now the drawer's own gray (#21201E) instead of 12% white. In the drawer that makes the dark buttons read as shapes without a visible edge; under the drink it gives the serving buttons a soft lighter ring. A chosen button still has the white outline, and hovering still brightens the outline to 40% white.

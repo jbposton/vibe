@@ -6,8 +6,8 @@ import type { TraitEdit } from "@/lib/edits";
 import { IngredientDrawer } from "./IngredientDrawer";
 import { MakeEdits } from "./MakeEdits";
 
-/** How tall the panel is closed (Figma 187:43: the grabber, one row of buttons and a little room). */
-export const PANEL_CLOSED_HEIGHT = 109;
+/** How tall the panel is closed: the grabber, one row of buttons, and a peek at the first ingredients (JP, 2026-11-17). */
+export const PANEL_CLOSED_HEIGHT = 181;
 /** Where the open drawer's top edge sits (px from the top of the screen): the header stays above it. */
 export const DRAWER_TOP = 102;
 
@@ -63,7 +63,7 @@ export function EditPanel({ edits, lines, onAdjust, onSubstitute, onPick, floati
       <span aria-hidden className="wave-line wave-line-top" />
 
       {/* The drag strip: the grabber and the buttons. */}
-      <div {...bind} className="relative touch-none px-[19px] pt-[42px]">
+      <div {...bind} className="relative touch-pan-x px-[19px] pt-[42px]">
         {/* The grabber: also a button, so the panel can be opened and closed without swiping. */}
         <button
           type="button"
@@ -77,14 +77,28 @@ export function EditPanel({ edits, lines, onAdjust, onSubstitute, onPick, floati
         {buttons}
       </div>
 
-      {/* The ingredients: they fade in as the panel rises, and scroll. */}
+      {/* The ingredients. Closed, the first row or two peek out under the buttons and fade away into a scrim;
+          opening the panel brings them in at full strength. They scroll once the panel is open. */}
       <div
         inert={!open}
-        className="absolute inset-x-0 bottom-0 top-[74px] touch-pan-y overflow-y-auto overscroll-contain px-[19px] pb-10 pt-5"
-        style={{ opacity: "clamp(0, calc((var(--p, 0) - 0.3) * 1.5), 1)" }}
+        className="absolute inset-x-0 bottom-0 top-[80px] touch-pan-y overflow-y-auto overscroll-contain px-[19px] pb-10 pt-3.5"
       >
         <IngredientDrawer lines={lines} onPick={onPick} />
       </div>
+
+      {/* The scrim over the peek: clear at the top, the panel's own color at the bottom. It fades out as the
+          panel rises. While closed, a tap or a swipe up on it opens the panel. */}
+      <div
+        {...bind}
+        aria-hidden
+        onClick={open ? undefined : onSubstitute}
+        className="absolute inset-x-0 bottom-0 top-[84px] touch-pan-x"
+        style={{
+          background: "linear-gradient(to bottom, rgba(33,32,30,0) 0%, #21201E 88%)",
+          opacity: "clamp(0, calc(1 - var(--p, 0) * 3), 1)",
+          pointerEvents: open ? "none" : "auto",
+        }}
+      />
     </section>
   );
 }

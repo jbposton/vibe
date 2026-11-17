@@ -15,7 +15,7 @@ type Props = {
 };
 
 const PILL =
-  "flex h-[30px] shrink-0 items-center gap-[3px] rounded-full border border-[#21201E] bg-[#1A1612] text-[10px] uppercase tracking-[0.08em] text-white transition-colors hover:border-white/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] disabled:pointer-events-none disabled:opacity-35";
+  "flex h-9 shrink-0 items-center gap-[3px] rounded-full border border-transparent bg-[#1A1612] text-[10px] uppercase tracking-[0.08em] text-white transition-colors hover:bg-[#26221E] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] disabled:pointer-events-none disabled:opacity-35";
 
 /** The small plus before SWEET, BITTER and STRENGTH. */
 function Plus() {
@@ -42,8 +42,11 @@ const WORD: Record<TraitEdit["id"], string> = {
 export function MakeEdits({ edits, lines, onAdjust, onSubstitute }: Props) {
   return (
     <section aria-label="Make edits">
-      <div className="flex gap-[7px]">
-        <button type="button" className={`${PILL} px-2.5`} onClick={onSubstitute}>
+      {/* More room inside each button (16px at the sides), so the row can be wider than the screen:
+          it scrolls sideways (JP, 2026-11-17). */}
+      <div className="-mx-[19px] overflow-x-auto px-[19px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="flex w-max gap-[7px] pr-[19px]">
+        <button type="button" className={`${PILL} px-4`} onClick={onSubstitute}>
           Substitute
         </button>
         {edits
@@ -53,7 +56,7 @@ export function MakeEdits({ edits, lines, onAdjust, onSubstitute }: Props) {
               key={edit.id}
               type="button"
               aria-label={`Add ${WORD[edit.id].toLowerCase()}`}
-              className={`${PILL} pl-2.5 pr-[13px]`}
+              className={`${PILL} pl-4 pr-[19px]`}
               disabled={!canAdjust(lines, edit.key, edit.direction)}
               onClick={() => onAdjust(edit.key, edit.direction)}
             >
@@ -61,6 +64,7 @@ export function MakeEdits({ edits, lines, onAdjust, onSubstitute }: Props) {
               {WORD[edit.id]}
             </button>
           ))}
+      </div>
       </div>
     </section>
   );

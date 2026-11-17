@@ -105,10 +105,19 @@ export function balanceWord(position: number): string {
   const side = position >= 0 ? "sweet" : "bitter";
   const far = Math.abs(position);
   if (far < 0.12) return "Balanced";
-  return far < 0.4 ? `Leans ${side}` : side === "sweet" ? "Sweet" : "Bitter";
+  return far < 0.4 ? `Leans ${side}` : side === "sweet" ? "Very sweet" : "Bitter";
 }
 
-/** How strong the flavors are, in words. */
+/**
+ * How strong the flavors are, in words: Light, Intense, or "" for in between (JP, 2026-11-17: a
+ * medium drink just doesn't say anything).
+ */
 export function intensityWord(intensity: number): string {
-  return intensity < 0.2 ? "Light" : intensity < 0.5 ? "Medium" : "Intense";
+  return intensity < 0.2 ? "Light" : intensity < 0.5 ? "" : "Intense";
+}
+
+/** The taste summary: "Sweet, Intense", or just "Sweet" when the strength is in between. */
+export function tasteSummary(profile: Profile): string {
+  const { position, intensity } = tasteBalance(profile);
+  return [balanceWord(position), intensityWord(intensity)].filter(Boolean).join(", ");
 }

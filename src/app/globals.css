@@ -87,3 +87,25 @@ body {
   top: -1px;
 }
 
+
+/* The drink's blobby picture drifts slowly between a few outlines (not with "reduce motion"). */
+@keyframes blob-drift {
+  0%,
+  100% {
+    border-radius: 64% 36% 55% 45% / 52% 62% 38% 48%;
+  }
+  33% {
+    border-radius: 42% 58% 38% 62% / 60% 40% 60% 40%;
+  }
+  66% {
+    border-radius: 55% 45% 62% 38% / 40% 55% 45% 60%;
+  }
+}
+.blob-shape {
+  animation: blob-drift 9s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .blob-shape {
+    animation: none;
+  }
+}

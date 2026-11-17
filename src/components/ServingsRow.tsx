@@ -17,7 +17,7 @@ type Props = {
 
 const circle =
   "grid size-9 shrink-0 place-items-center rounded-full border bg-[#1A1612] text-xs tracking-[0.08em] text-white transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7]";
-const off = "border-[#21201E] hover:border-white/40";
+const off = "border-transparent hover:bg-[#26221E]";
 const on = "border-white";
 
 /**

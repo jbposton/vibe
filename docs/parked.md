@@ -23,3 +23,7 @@ The graphs under Strength, Sweet and Bitter went through several looks today. To
 - Glowing orbs with a white line that grows around them (Figma 171:38): `75c5967`.
 - "Glow ladder" of five glowing steps per stat (Figma 180:39), 3px thick, 3px apart: `9ef2a15`.
 - Ladder for Strength plus one wide Sweet/Bitter slider: `4637df3` (this is also where the slider above lives in full).
+
+## The blobby mesh-gradient drink picture (parked 2026-11-17)
+
+A 43px blobby picture of the drink's ingredient colors, with grain and a glow, that slowly changed shape. It sat top right of the drawer header until the Sweet-to-Bitter slider took its place. The component is `src/components/parked/DrinkBlob.tsx` (`DrinkBlob({ lines })`); its `.blob-shape` animation is still in `globals.css`. To bring it back, import it in `DrinkPanel.tsx` where `TasteSlider` is rendered in the header.

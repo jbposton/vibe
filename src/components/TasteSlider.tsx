@@ -42,10 +42,10 @@ const TRACK_GRADIENT = `linear-gradient(to right, ${TRACK_STOPS.map(([at, c]) =>
  * brighter the stronger the flavors are, so a Negroni (strongly both) and a Martini (barely
  * either), which are both near the middle, still look different. It slides as you edit.
  */
-export function TasteSlider({ profile }: { profile: Profile }) {
+export function TasteSlider({ profile, showWords = true }: { profile: Profile; showWords?: boolean }) {
   const { position, intensity } = tasteBalance(profile);
   const at = (position + 1) / 2; // 0 to 1 along the track
-  const words = `${balanceWord(position)} · ${intensityWord(intensity)}`;
+  const words = [balanceWord(position), intensityWord(intensity)].filter(Boolean).join(" · ");
   const color = trackColor(at);
   const width = 8 + 14 * intensity; // px
   const glow = 0.45 + 0.5 * intensity;
@@ -58,10 +58,10 @@ export function TasteSlider({ profile }: { profile: Profile }) {
       aria-valuemax={1}
       aria-valuenow={Math.round(position * 100) / 100}
       aria-valuetext={words}
-      className="flex w-full flex-col items-center gap-[14px] px-1"
+      className="flex w-full flex-col items-center gap-1"
     >
-      <p className="whitespace-nowrap text-[11px] leading-[13px] text-[#F7F7F7]">{words}</p>
-      <div aria-hidden className="flex h-[27px] w-full items-center gap-3 text-[11px] leading-[13px] text-[#F7F7F7]/45">
+      {showWords && <p className="whitespace-nowrap text-[11px] leading-[13px] text-[#F7F7F7]">{words}</p>}
+      <div aria-hidden className="flex h-4 w-full items-center gap-3 text-xs leading-4 text-[#F7F7F7]/55">
         <span>Bitter</span>
         <span className="relative h-[3px] flex-1">
           {/* A blurred copy of the track behind it, as the ladders have. */}

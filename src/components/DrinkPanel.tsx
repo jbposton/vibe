@@ -21,6 +21,8 @@ import { useSheet } from "./useSheet";
 import { adjustLine, traitEdits } from "@/lib/edits";
 import { swapIngredient } from "@/lib/swap";
 import { DEFAULT_UNIT, formatTotal, totalParts } from "@/lib/stack";
+import { TasteSlider } from "./TasteSlider";
+import { tasteSummary } from "@/lib/flavor";
 
 // OPEN: which drink a visitor sees first (brief §1 flow). Placeholder: Negroni.
 const START_DRINK = Math.max(0, DRINKS.findIndex((d) => d.id === "negroni"));
@@ -44,9 +46,9 @@ const CARD_ASPECT = 0.9;
  */
 const SHEET = {
   filtersBack: 260, // px the filters move back (z) before they fade out
-  headerUp: 54, // px the header moves up (into the space the filters leave): the name goes from y 64 to y 10
+  headerUp: 40, // px the header moves up (into the space the filters leave); JP brought it 14px lower on 2026-11-17
   titleScale: 0.7, // the drink name shrinks from 40px to 28px
-  titleGap: 8, // px the family label follows the shrinking name up
+  titleGap: 14, // px the family label follows the shrinking name up (closer to the name, JP 2026-11-17)
 };
 
 /** Phone layout: the middle card with its neighbors peeking in at the sides. */
@@ -494,21 +496,32 @@ export function DrinkPanel() {
         </div>
 
         {/* The name and family on the left; how it's made and what it's served in, bottom right, level with the family label (Figma 135:107). */}
-        <div className="flex items-end justify-between gap-2">
+        <div className="relative flex items-end justify-between gap-2">
           <div className="min-w-0">
             <h1 className="font-serif text-[40px] leading-[52px]" style={zTitle}>
               {infoDrink.name}
             </h1>
-            {/* The family, a dot, then the drink's alcohol (it follows your edits). */}
+            {/* The taste summary, a dot, then the drink's alcohol (both follow your edits). */}
             <p className="mt-1 flex items-center gap-[5px] text-xs opacity-55" style={zFamily}>
-              <span>{infoDrink.family}</span>
-              <span aria-hidden className="size-0.5 rounded-full bg-[#7f7f7f]" />
+              <span>{tasteSummary(profile)}</span>
+              <span aria-hidden className="size-0.5 shrink-0 rounded-full bg-[#7f7f7f]" />
               <span>{Math.round(profile.strength)}% ABV</span>
             </p>
           </div>
-          <div className="-mr-1" style={zPrep}>
+          <div className="relative -mr-1" style={zPrep}>
             <PrepTags method={infoDrink.method} glass={infoDrink.glass} />
           </div>
+          {/* Once the drawer is up, the Sweet-to-Bitter slider takes the prep icons' place: its Bitter and
+              Sweet labels sit level with the family label, its words above them. */}
+          {phone && (
+            <div
+              aria-hidden={!sheet.open}
+              className="pointer-events-none absolute bottom-0 right-0 w-[190px]"
+              style={{ opacity: "clamp(0, calc((var(--p, 0) - 0.5) * 2), 1)", transform: `translateY(calc(var(--p, 0) * -${SHEET.titleGap}px))` }}
+            >
+              <TasteSlider profile={profile} showWords={false} />
+            </div>
+          )}
         </div>
       </header>
 
@@ -576,16 +589,6 @@ export function DrinkPanel() {
       {/* On a phone the edit panel floats over the bottom of the screen; this keeps the drink above it
           (the panel's closed height, less the screen's padding, plus 40px of air). */}
       <div aria-hidden className="shrink-0 md:hidden" style={{ height: PANEL_CLOSED_HEIGHT - 16 + 40 }} />
-
-      {/* A picture of the drink, top right, once the drawer is up (a gray circle for now: the imagery is a
-          placeholder). */}
-      {phone && (
-        <div
-          aria-hidden
-          className="pointer-events-none absolute right-[25px] top-[27px] z-10 size-[43px] rounded-full bg-[#D9D9D9]"
-          style={{ opacity: "clamp(0, calc((var(--p, 0) - 0.5) * 2), 1)" }}
-        />
-      )}
 
       {/* While the drawer is up, a tap on the header above it closes it. */}
       {phone && sheet.open && (

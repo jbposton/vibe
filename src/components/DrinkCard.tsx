@@ -512,7 +512,7 @@ export const DrinkCard = memo(function DrinkCard({
             );
           })}
 
-          {/* Reset: a small glass circle (same look as the amount buttons) at the bottom center. It's only there
+          {/* Reset: a small circle on a dark see-through background, at the bottom center. It's only there
               once the drink has been changed. data-no-swipe keeps the carousel
               from grabbing the tap. */}
           <button
@@ -522,16 +522,19 @@ export const DrinkCard = memo(function DrinkCard({
             aria-label={`Reset ${drink.name}`}
             tabIndex={modified && interactive ? 0 : -1}
             aria-hidden={!modified}
-            className={`absolute bottom-4 left-1/2 z-20 grid size-[45px] -translate-x-1/2 place-items-center rounded-full text-[#F7F7F7] transition-[opacity,transform] duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] ${
-              modified ? "scale-100 opacity-100" : "pointer-events-none scale-75 opacity-0"
+            className={`absolute bottom-4 left-1/2 z-20 grid size-9 -translate-x-1/2 place-items-center rounded-full bg-black/30 text-[#F7F7F7] transition-opacity duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] ${
+              modified ? "opacity-100" : "pointer-events-none opacity-0"
             }`}
-            style={amountButtonStyle(true)}
           >
-            <GlassTopEdge />
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path d="M3 12a9 9 0 1 0 3-6.7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M3 4v5h5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            {/* The reset icon (Figma 204:48): a box with the drawn arrow inset inside it, 20px so it fits the 36px button. */}
+            <span aria-hidden className="relative block size-5">
+              <span className="absolute inset-[10.83%_14.58%_14.58%_15.79%]">
+                <span className="absolute inset-[-4.19%_-4.49%]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img alt="" src="/icons/reset.svg" className="block size-full max-w-none" />
+                </span>
+              </span>
+            </span>
           </button>
         </>
       )}
