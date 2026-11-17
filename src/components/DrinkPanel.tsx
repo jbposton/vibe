@@ -538,7 +538,7 @@ export function DrinkPanel() {
                 onReset={resetDrink}
               />
               {/* Dims the card when it's at the side; its opacity is set as the row moves. */}
-              <div aria-hidden data-dim className="pointer-events-none absolute inset-0 bg-black opacity-0" />
+              <div aria-hidden data-dim className="pointer-events-none absolute inset-0 rounded-[38px] bg-black opacity-0" />
             </div>
           );
         })}

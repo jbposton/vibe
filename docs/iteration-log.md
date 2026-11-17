@@ -2,10 +2,6 @@
 
 Visible before-and-after changes, newest first.
 
-## 2026-11-16: The drink card has square corners
-
-- The drink card's corner radius went from 38px to none (and the dark overlay on the side cards matches). The edit panel keeps its 30px corners.
-
 ## 2026-11-16: Small controls are fully rounded
 
 - The filter pills, the edit buttons (Add Sweet, Less Strong...) and the amount buttons on the layers are now completely rounded (pill shaped). The edit panel (30px) and the drink card (38px) keep their corner radii.

@@ -225,7 +225,7 @@ export const DrinkCard = memo(function DrinkCard({
     <section
       ref={panelRef}
       aria-label={`${drink.name} layers`}
-      className="absolute inset-0 isolate touch-manipulation overflow-hidden select-none [-webkit-touch-callout:none]"
+      className="absolute inset-0 isolate touch-manipulation overflow-hidden rounded-[38px] [clip-path:inset(0_round_38px)] select-none [-webkit-touch-callout:none]"
     >
       {panelHeight > 0 && (
         <>
