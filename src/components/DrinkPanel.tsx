@@ -45,7 +45,7 @@ const SHEET = {
   titleScale: 0.6, // the drink name shrinks from 40px to 24px
   titleGap: 21, // px the family label follows the shrinking name up
   drinkUp: 78, // px the drink moves up (it starts lower now that the closed drawer is shorter)
-  drinkScale: 0.78, // the drink shrinks to 78% (290 of 370 in the diagram)
+  drinkInset: 16, // px the drink's width shrinks by on each side when the edit panel is fully up (JP, 2026-11-16: only a little, like an Apple sheet pushing the page back)
   dim: 0.45, // how much the header and the drink fade (0 to 1) when the edit panel is fully up
 };
 
@@ -110,11 +110,15 @@ export function DrinkPanel() {
   }, []);
 
   // Card sizes: the middle card leaves room for a sliver of its neighbors.
-  // The card keeps one fixed shape (CARD_ASPECT) and shrinks to fit when there
+  // On a wide screen the card keeps one fixed shape (CARD_ASPECT) and shrinks to fit when there
   // isn't room, instead of stretching to fill whatever height is left.
   const maxCardWidth = isDesktop ? trackSize.width : Math.max(0, trackSize.width - 2 * CARD_MARGIN);
-  const cardWidth = Math.max(0, Math.min(maxCardWidth, trackSize.height * CARD_ASPECT));
-  const cardHeight = cardWidth / CARD_ASPECT;
+  // On a phone the card is always as wide as the edit panel (the screen less the 16px margins) and
+  // gets shorter, not narrower, when the screen is short (JP, 2026-11-16). Wide screens keep the shape.
+  const cardWidth = isDesktop
+    ? Math.max(0, Math.min(maxCardWidth, trackSize.height * CARD_ASPECT))
+    : maxCardWidth;
+  const cardHeight = isDesktop ? cardWidth / CARD_ASPECT : Math.min(cardWidth / CARD_ASPECT, trackSize.height);
   const step = isDesktop ? 0 : cardWidth / 2 + (cardWidth * SIDE_SCALE) / 2 + GAP;
 
   // ── Carousel motion ─────────────────────────────────────────────────────
@@ -447,9 +451,11 @@ export function DrinkPanel() {
     : undefined;
   // The side drinks and the prep icons fade out first, in the opening third of the swipe.
   const zPrep: React.CSSProperties | undefined = phone ? { opacity: "calc(1 - var(--p, 0) * 3)" } : undefined;
+  // The drink shrinks by 16px on each side at most, whatever the card's width.
+  const drinkShrink = cardWidth > 0 ? (2 * SHEET.drinkInset) / cardWidth : 0.08;
   const zDrink: React.CSSProperties | undefined = phone
     ? {
-        transform: `translateY(calc(var(--p, 0) * -${SHEET.drinkUp}px)) scale(calc(1 - var(--p, 0) * ${1 - SHEET.drinkScale}))`,
+        transform: `translateY(calc(var(--p, 0) * -${SHEET.drinkUp}px)) scale(calc(1 - var(--p, 0) * ${drinkShrink}))`,
         transformOrigin: "50% 0",
         opacity: `calc(1 - var(--p, 0) * ${SHEET.dim})`,
       }

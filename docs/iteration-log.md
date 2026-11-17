@@ -2,6 +2,14 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-16: The drink shrinks only a little when the drawer opens
+
+- When the edit panel swipes up, the drink now shrinks by 16px on each side (about 91% on a phone) instead of to 78%, like an Apple sheet pushing the page back a little. The apple-design skill gives no numbers for this, only "push the background back"; the 16px matches the screen margin. The drink still moves up 78px, so more of its lower part sits behind the glass drawer than before. OPEN: JP to say if it should move up more or less.
+
+## 2026-11-16: The drink card is as wide as the edit panel
+
+- On a phone the card is now always the full width between the 16px margins, the same as the edit panel. On a shorter screen it gets shorter (down from the 0.9 width-to-height shape) instead of narrower. Wide screens keep the fixed shape.
+
 ## 2026-11-16: Garnish text is now truly centered in its layer
 
 - The "Garnish" label row was 16px tall while the rows with an oz button were 32px, and the centering assumed 32px, so a garnish's text sat 8px too high (it looked off-center and the layer looked taller than the 1/4 oz layers next to it, though all are 60px). Every label row is now 32px tall, so garnish and ingredient text line up at the same spots.
