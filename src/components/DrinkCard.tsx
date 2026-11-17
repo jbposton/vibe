@@ -74,6 +74,39 @@ const USE_SHADER = false;
 /** The page's warm black, also shown by the shader above and below the drink. */
 const PAGE_BACKGROUND = "#1A1612";
 
+/** The tallest the base ingredient's wave can rise (px) above its top line. */
+const WAVE_AMPLITUDE = 26;
+/** Room (px) kept free at the top of the layer above for its label (14px down + 32px row + a margin). */
+const WAVE_TEXT_ROOM = 52;
+
+/**
+ * The base ingredient's wave: smooth, round humps with no sharp points, as a sine curve with a
+ * random phase and 1.5 to 2.25 humps across the card. The same seed always gives the same curve.
+ * Returns the outline of the base color in a strip `amp + 1` tall (drawn in a 100-wide box that
+ * stretches to the card), rising up to `amp` above the strip's bottom line.
+ */
+function wavePath(seed: string, amp: number): { d: string; h: number } {
+  let a = 0;
+  for (let i = 0; i < seed.length; i++) a = (Math.imul(a, 31) + seed.charCodeAt(i)) | 0;
+  const rand = () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const h = amp + 1;
+  const humps = 1.5 + rand() * 0.75;
+  const phase = rand() * Math.PI * 2;
+  const N = 80;
+  let d = `M0 ${h}`;
+  for (let k = 0; k <= N; k++) {
+    const x = (k * 100) / N;
+    const rise = amp * (0.5 + 0.5 * Math.sin((x / 100) * humps * Math.PI * 2 + phase));
+    d += ` L${x.toFixed(2)} ${(amp - rise).toFixed(2)}`;
+  }
+  return { d: `${d} L100 ${h} Z`, h };
+}
+
 /** Distance from the top of a layer to its label row (the 32px-tall row centered in a 60px layer). */
 const LABEL_TOP = 14;
 /** A top layer at least this tall (px) gets 15px more above its label, to clear the card's rounded corners. OPEN: the threshold is a first guess. */
@@ -313,6 +346,37 @@ export const DrinkCard = memo(function DrinkCard({
               />
             );
           })}
+
+          {/* A wave along the top of the base ingredient: its color rises into the layer above in
+              smooth round humps (JP, 2026-11-16). The shape is random but fixed for each drink, and
+              it follows the layer as you drag. It is shorter when the layer above is short, so it
+              never runs under that layer's label. Not drawn when the layer above is a garnish. */}
+          {(() => {
+            const base = ordered[0];
+            const above = ordered[1];
+            if (!base || !above || above.amount.kind === "garnish") return null;
+            const amp = Math.max(0, Math.min(WAVE_AMPLITUDE, heights[1] - WAVE_TEXT_ROOM));
+            if (amp < 2) return null;
+            const { d, h } = wavePath(`${drink.id}-${base.key}`, amp);
+            return (
+              <svg
+                key={`wave-${drink.id}-${base.key}`}
+                aria-hidden
+                className="layer-anim pointer-events-none absolute inset-x-0"
+                width="100%"
+                height={h}
+                viewBox={`0 0 100 ${h}`}
+                preserveAspectRatio="none"
+                style={{
+                  bottom: bottoms[0] + heights[0] - 1,
+                  transition: animate ?? "bottom 180ms ease-out, height 180ms ease-out",
+                }}
+              >
+                <rect width="100" height={h} fill={INGREDIENTS[above.ingredient].color} />
+                <path d={d} fill={INGREDIENTS[base.ingredient].color} />
+              </svg>
+            );
+          })()}
 
           {/* One region per layer: label (name left, amount right) and keyboard control. */}
           {ordered.map((line, i) => {

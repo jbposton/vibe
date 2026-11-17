@@ -11,6 +11,11 @@ Visible before-and-after changes, newest first.
 
 - The edit panel's 1px white border is now at 50% opacity (JP wrote ".5"; read as 0.5, not 0.5 percent, which would be invisible).
 
+## 2026-11-16: A round wave on the base ingredient
+
+- Only the base ingredient (the bottom layer) has a wave now: its color rises into the layer above in smooth, round humps, up to 26px, with no sharp points (a sine curve with a random phase and 1.5 to 2.25 humps across the card, fixed for each drink). It follows the layer as you drag. The wave is lower when the layer above is short, so it never runs under that layer's label, and it is not drawn when the layer above is a garnish. `WAVE_AMPLITUDE` and `WAVE_TEXT_ROOM` in `DrinkCard.tsx` set the size.
+- History today: a 16px gradient blend (reverted), a 5px wave on every non-garnish boundary, a 12px wave with 7 bends, then this.
+
 ## 2026-11-16: The edit panel is pure black
 
 - Only the edit panel's fill is pure black (#000000, at 80% with the 20px blur); the page background stays warm black (#1A1612). The solid fallback (no blur, or "reduce transparency") is #000000.
