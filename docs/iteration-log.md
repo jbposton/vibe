@@ -11,6 +11,10 @@ Visible before-and-after changes, newest first.
 
 - The edit panel's 1px white border is now at 50% opacity (JP wrote ".5"; read as 0.5, not 0.5 percent, which would be invisible).
 
+## 2026-11-17: Narrower drink card, more of the side cards show
+
+- The middle drink card is 12px narrower on each side (its margin to the screen edge went from 16px to 28px), so it is smaller overall (on a 375px phone: 319px wide, was 343px) and the cards beside it show about 20px instead of 8px. The edit panel stays 16px in from the sides, so the card is now narrower than the panel. `CARD_MARGIN` in `DrinkPanel.tsx` sets it.
+
 ## 2026-11-17: The edit buttons use the browse filters' type
 
 - The four buttons at the bottom (Add Sweet, Add Bitter, Less Strong, More Strong) are now set like the browse filters: 10px capitals with 0.08em letter spacing (they were 11px mixed case). Still white, regular weight, on the same pill. In capitals the four labels no longer fit on one line side by side, so a label wraps onto two lines (ADD / SWEET) inside the 36px pill instead of being cut off; with only two or three buttons they stay on one line.

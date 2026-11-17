@@ -28,7 +28,7 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
 /**
  * The drink card's fixed shape: width divided by height. 0.9 is the Figma panel
  * (370 x 410), which leaves room for the edit panel under it: 343 x 381 on a
- * 375 x 812 phone with the 16px margin (CARD_MARGIN).
+ * 375 x 812 phone with the 16px margin (CARD_MARGIN, now 28px, so the card is narrower).
  * OPEN: the exact proportion (JP, 2026-11-16: "fixed proportion, scales down a bit").
  */
 const CARD_ASPECT = 0.9;
@@ -50,7 +50,7 @@ const SHEET = {
 
 /** Phone layout: the middle card with its neighbors peeking in at the sides. */
 const SIDE_SCALE = 0.86; // size of the cards beside the middle one
-const CARD_MARGIN = 16; // px between the middle card and each side of the screen
+const CARD_MARGIN = 28; // px between the middle card and each side of the screen (JP, 2026-11-17: was 16; more of the side cards show)
 const GAP = 8; // px between the middle card and a side card (more space = a smaller sliver of the side card shows)
 const SIDE_DIM = 0.6; // how dark a card at the side gets (black overlay opacity)
 /** How far a finger moves (px) before it counts as a swipe rather than a tap. */
