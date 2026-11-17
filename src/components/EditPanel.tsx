@@ -66,7 +66,7 @@ export function EditPanel({ profile, edits, lines, onAdjust, floating, open, onT
       )}
       <div className="relative">
         <FlavorReadout profile={profile} />
-        <div className="mt-[10px]">
+        <div className="mt-[24px]">
           <MakeEdits edits={edits} lines={lines} onAdjust={onAdjust} />
         </div>
       </div>

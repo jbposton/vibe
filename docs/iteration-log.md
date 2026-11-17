@@ -11,6 +11,19 @@ Visible before-and-after changes, newest first.
 
 - The edit panel's 1px white border is now at 50% opacity (JP wrote ".5"; read as 0.5, not 0.5 percent, which would be invisible).
 
+## 2026-11-16: More space between the labels and the ladders
+
+- The gap between each label ("Strength · 27% ABV") and its ladder went from 10px to 14px (JP; 18px was tried and was too much). The ladders moved down 4px; the buttons did not move (the space under the ladders is 24px).
+
+## 2026-11-16: Ladder steps are 3px thick
+
+- The ladder steps went from 5px to 3px thick (JP tried 2px first; still 24px wide and rounded). The gap between steps is 3px (JP; it was 4px), so the ladder is 27px tall (was 41px) and starts at the same place; the buttons did not move (the space under the ladder grew to 28px). The glow behind each lit step is blurred 4px instead of 5px so a thinner line still glows.
+
+## 2026-11-16: Flavor profile as a "glow ladder" (Figma 180:39)
+
+- The orbs under Strength, Sweet and Bitter are replaced by ladders of five steps (24 x 5, 4px apart) filled from the bottom. Each lit step glows (a blurred copy behind it at 60%) and has a little grain; the colors shift as they climb: pink-red for Strength, gold for Sweet, purple for Bitter. Unlit steps are white at 12%. It goes by the same five steps as the Low / Medium / High words, so it no longer grows continuously like the orb's line did.
+- Figma draws only 3 or 4 lit steps per stat, so steps 4 and 5 continue each color ramp (the fifth reaches the old orb's edge color). OPEN: JP to check those colors. The buttons stay where they were (the gap under the ladders is 14px).
+
 ## 2026-11-16: New prep icon set (Night glow, warm palette)
 
 - The 13 method and glass icons were replaced with the "Night glow @ 36x36, warm palette" set (Figma 176:38). Same names, sizes (42 x 42 on the page) and labels; the pictures in `public/icons/` were re-exported at 4x and the dark tile behind each was made transparent again, as before. Nothing in the code changed.
