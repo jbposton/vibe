@@ -553,7 +553,7 @@ export function DrinkPanel() {
       </div>
 
       {/* On a phone the edit panel floats above this space (it is pulled up from here). */}
-      <div aria-hidden className="shrink-0 md:hidden" style={{ height: PANEL_CLOSED_HEIGHT - 16 }} />
+      <div aria-hidden className="shrink-0 md:hidden" style={{ height: PANEL_CLOSED_HEIGHT }} />
 
       {/* While the panel is up, a tap on the shrunken drink above it closes it. */}
       {phone && sheet.open && (

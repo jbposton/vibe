@@ -7,13 +7,17 @@ Visible before-and-after changes, newest first.
 - The edit panel's lighter translucent gray and the extra color saturation behind it are gone. It is now the app's background color (#1A1612) at 80% opacity with a 20px background blur, so it reads as the same dark as the page while still softening what passes behind it. The white 0.5px border and the soft shadow stay. The fallback (no blur support, or "reduce transparency") is solid #1A1612.
 - OPEN: the 80% opacity is a first guess; lower it to show more blur, raise it for a flatter panel.
 
-## 2026-11-16: The edit panel is full width
+## 2026-11-16: The edit panel's border is 50% opacity
 
-- On a phone the edit panel now runs the full width of the screen and sits flush with the bottom (before: 16px in from the sides and the bottom). Inside it, the buttons and text are 16px from the screen edges, lining up with the drink card; the space under the buttons is 16px too (the closed panel is 156px tall, was 152). The drink card gets 16px of the room back that the old bottom margin took.
+- The edit panel's 1px white border is now at 50% opacity (JP wrote ".5"; read as 0.5, not 0.5 percent, which would be invisible).
 
-## 2026-11-16: Edit panel: white 1px top border, square corners
+## 2026-11-16: The edit panel is pure black
 
-- The edit panel (closed and open) has a 1px white border along its top edge only (it was 0.5px all round for a moment), and its corners are square (they were 30px). It replaces the faint 1px light ring the glass material had. The soft shadow above and around it is unchanged.
+- Only the edit panel's fill is pure black (#000000, at 80% with the 20px blur); the page background stays warm black (#1A1612). The solid fallback (no blur, or "reduce transparency") is #000000.
+
+## 2026-11-16: Edit panel back to its inset size, rounded, with a border all round
+
+- JP asked to undo the full-width, square, top-border-only panel. The edit panel is again 16px in from the sides and bottom (152px tall closed, 12px of padding at the sides and under the buttons), with 30px corners, and now has the 1px white border on all four sides. It keeps the app's dark background color with the blur. The full-width version was only live for one push (`b920dac`).
 
 ## 2026-11-16: Browse filters restyled as text with slashes (Figma 132:35)
 

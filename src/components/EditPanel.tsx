@@ -8,8 +8,8 @@ import { MakeEdits } from "./MakeEdits";
 
 /** How tall the panel is when open, and how much of it shows when closed (Figma 117:975 and 118:1044). */
 export const PANEL_OPEN_HEIGHT = 470;
-// 140px of content (top padding 26, flavor, 27px gap, buttons) plus 16px under the buttons, the same as the padding at the sides.
-export const PANEL_CLOSED_HEIGHT = 156;
+// 140px of content (top padding 26, flavor, 27px gap, buttons) plus 12px under the buttons, the same as the padding at the sides.
+export const PANEL_CLOSED_HEIGHT = 152;
 /** How far the panel travels between closed and open. */
 export const PANEL_TRAVEL = PANEL_OPEN_HEIGHT - PANEL_CLOSED_HEIGHT;
 
@@ -27,7 +27,7 @@ type Props = {
 };
 
 /**
- * The edit panel in its frame (Figma 117:975): a dark card with square corners holding the
+ * The edit panel in its frame (Figma 117:975): a rounded dark card holding the
  * flavor profile and the edit buttons. On a phone it sits at the bottom and
  * swipes up to fill the screen (see useSheet and DrinkPanel). It is a glass
  * material (see .glass-sheet in globals.css): it blurs whatever is behind it,
@@ -38,8 +38,8 @@ export function EditPanel({ profile, edits, lines, onAdjust, floating, open, onT
     <section
       aria-label="Edit this drink"
       {...bind}
-      className={`border-t border-white px-4 pt-[26px] ${
-        floating ? "glass-sheet absolute inset-x-0 bottom-0 z-20 touch-none overflow-hidden" : "relative bg-[#2b2b2b]"
+      className={`rounded-[30px] border border-white/50 px-3 pt-[26px] ${
+        floating ? "glass-sheet absolute inset-x-4 bottom-4 z-20 touch-none overflow-hidden" : "relative bg-[#2b2b2b]"
       }`}
       // Floating: the panel grows upward from the bottom (226px closed to 470px open) as --p goes 0 to 1.
       style={floating ? { height: `calc(${PANEL_CLOSED_HEIGHT}px + var(--p, 0) * ${PANEL_TRAVEL}px)` } : undefined}
