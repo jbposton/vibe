@@ -566,6 +566,7 @@ export function DrinkPanel() {
         <ServingsRow
           servings={infoServings}
           total={formatTotal(totalParts(infoLines), DEFAULT_UNIT, infoServings)}
+          perServing={formatTotal(totalParts(infoLines), DEFAULT_UNIT, 1)}
           onChange={setInfoServings}
         />
       </div>

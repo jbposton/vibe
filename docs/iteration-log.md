@@ -11,6 +11,18 @@ Visible before-and-after changes, newest first.
 
 - The edit panel's 1px white border is now at 50% opacity (JP wrote ".5"; read as 0.5, not 0.5 percent, which would be invisible).
 
+## 2026-11-17: The line under the total reads "2 servings · 3 oz per serving"
+
+- Under the total ("6 oz") the small text is now the number of servings, a dot, and the oz in one serving: "1 serving · 3 oz per serving", "2 servings · 3 oz per serving", "6 servings · 3 oz per serving". (It was "Single drink" / "2 drinks".) The per-serving amount is the recipe's total at one serving, so it follows your edits to the recipe but not the number of servings.
+
+## 2026-11-17: Serving buttons behave like the drawer buttons
+
+- The serving buttons (1, 2, 4, +) are filled with the same dark color (#1A1612) and use the same states as the drawer's chips: a 1px outline at 12% white when not chosen (40% on hover) and a full white outline when chosen. The chosen one no longer has its own lighter fill. The number box that "+" opens has the same fill and a white outline.
+
+## 2026-11-17: Drawer buttons are filled with the page's dark color
+
+- The four buttons (SUBSTITUTE, + SWEET, + BITTER, + STRENGTH) and all the ingredient chips in the edit drawer are filled with the app's darker background color (#1A1612) instead of being see-through, so they read as dark pills on the lighter gray drawer. Their outlines are unchanged; the pills' hover now brightens the outline instead of the fill.
+
 ## 2026-11-17: Bigger serving buttons and total, bigger icon labels
 
 - The serving buttons (1, 2, 4, +) are 36 x 36 (were 28; JP wrote "bigger" and "24x24", then chose bigger, 36) with 12px numbers; all of them have a 1px border (the chosen one used 0.5px). The total under the drink ("3 oz") is 14px (was 12). The labels under the two header icons (Stirred, Rocks...) are 12px like the family label (were 10).

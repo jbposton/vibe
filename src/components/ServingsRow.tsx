@@ -10,21 +10,23 @@ type Props = {
   servings: number;
   /** The total amount for all of them, e.g. "6 oz". */
   total: string;
+  /** The amount in one serving, e.g. "3 oz". */
+  perServing: string;
   onChange: (servings: number) => void;
 };
 
 const circle =
-  "grid size-9 shrink-0 place-items-center rounded-full border text-xs tracking-[0.08em] text-white transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7]";
-const off = "border-white/20 hover:border-white/40";
-const on = "border-white bg-[#2F2B27]";
+  "grid size-9 shrink-0 place-items-center rounded-full border bg-[#1A1612] text-xs tracking-[0.08em] text-white transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7]";
+const off = "border-white/[0.12] hover:border-white/40";
+const on = "border-white";
 
 /**
  * Serving size under the drink (Figma 187:43): 1, 2 and 4 drinks, and "+" for any other number,
- * with the total on the right ("3 oz", "Single drink"). The number of drinks only scales the oz;
+ * with the total on the right ("6 oz" over "2 servings · 3 oz per serving"). The number of drinks only scales the oz;
  * the ratios never change. The oz on the layers follow it too.
  * OPEN: "+" opens a small number box (1 to 99).
  */
-export function ServingsRow({ servings, total, onChange }: Props) {
+export function ServingsRow({ servings, total, perServing, onChange }: Props) {
   const [typing, setTyping] = useState(false);
   const custom = !PRESETS.includes(servings);
 
@@ -65,7 +67,7 @@ export function ServingsRow({ servings, total, onChange }: Props) {
               if (e.key === "Enter") commit(e.currentTarget.value);
               if (e.key === "Escape") setTyping(false);
             }}
-            className="h-9 w-14 rounded-full border border-white/60 bg-transparent text-center text-xs text-white outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+            className="h-9 w-14 rounded-full border border-white bg-[#1A1612] text-center text-xs text-white outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
           />
         ) : (
           <button
@@ -87,8 +89,11 @@ export function ServingsRow({ servings, total, onChange }: Props) {
       </div>
       <p className="text-right">
         <span className="block text-sm leading-[18px] text-[#F7F7F7]">{total}</span>
-        <span className="block text-[10px] leading-3 text-[#F7F7F7]/50">
-          {servings === 1 ? "Single drink" : `${servings} drinks`}
+        {/* "2 servings", a dot, "3 oz per serving". */}
+        <span className="flex items-center justify-end gap-[5px] text-[10px] leading-3 text-[#F7F7F7]/50">
+          <span>{servings === 1 ? "1 serving" : `${servings} servings`}</span>
+          <span aria-hidden className="size-0.5 rounded-full bg-[#7f7f7f]" />
+          <span>{perServing} per serving</span>
         </span>
       </p>
     </div>
