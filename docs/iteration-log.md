@@ -2,6 +2,10 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-16: Text is centered in layers under 1 oz
+
+- A layer with less than 1 oz (a part) now has its name and amount centered vertically in the layer; layers of 1 oz or more keep the text near the top. Garnish layers (no volume) keep the text near the top for now. OPEN: JP to say whether garnishes should be centered too.
+
 ## 2026-11-16: Small controls are fully rounded
 
 - The filter pills, the edit buttons (Add Sweet, Less Strong...) and the amount buttons on the layers are now completely rounded (pill shaped). The edit panel (30px) and the drink card (38px) keep their corner radii.

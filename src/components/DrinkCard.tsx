@@ -314,10 +314,12 @@ export const DrinkCard = memo(function DrinkCard({
             // down, clear of the rounded corners. (The lines and edge ticks that were
             // tried here are gone: JP, 2026-11-16.)
             const lineTop = i === ordered.length - 1 ? 15 : 0;
+            // A layer of less than 1 oz (1 part) is short, so its text is centered in it instead.
+            const small = !isGarnish && volumeParts(line.amount) < 1;
             const label = (
               <span
                 className="pointer-events-none absolute left-[22px] right-[22px] flex items-center justify-between gap-3 text-xs leading-4"
-                style={{ color: ink, top: lineTop + 8 }}
+                style={small ? { color: ink, top: "50%", transform: "translateY(-50%)" } : { color: ink, top: lineTop + 8 }}
               >
                 <span>{ingredient.name}</span>
                 {isGarnish ? (
