@@ -2,6 +2,30 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-18: Wide screens: chevrons for the browse filters
+
+- A mouse can't swipe the filter row sideways, so on wide screens there is now a small round frosted chevron button at each end (28px, the drawer's dark color at 70% with a blur). Each one only shows when there are more filters in its direction, and a click glides the row about two-thirds of its width. The mouse wheel also scrolls the row sideways. Phones are unchanged (you swipe).
+- Each end of the filter row now fades out only when there are more filters past it. On wide screens the left fade had been cutting into "Classics" before you scrolled.
+
+## 2026-11-18: Wide screens: smaller prep icons
+
+- The Stirred / Rocks illustrations in the header are 36×36px on wide screens (were 42). Phones keep 42. The size is also a slider in the design editor (Layout: "Stirred / Rocks icons").
+
+## 2026-11-18: Desktop values from the design editor (third pass)
+
+- Spacing: card to serving buttons 16px (was 8), card to ‹ › buttons 12px (was 8); the rest unchanged (24 / 16 / 16 / 24). Layout unchanged (fade 165px, card 0.89, height cap 1000px).
+- Text on wide screens: browse filters 10px (was 12), drink name 50px, label under the name 12px (was 14), Stirred / Rocks 12px (was 14), card ingredient names 10px (was 11), card amounts 14px (was 16), card oz / Garnish 12px (was 14), serving buttons 12px, "Servings" 12px, total 18px, line under it 12px, edit pills, categories and ingredient names 10px.
+
+## 2026-11-18: The spacing panel is now the design editor
+
+- Renamed to "Design editor" (the button reads DESIGN). Its sliders are grouped into Spacing, Layout and Text, and Text now covers every piece of type on wide screens: browse filters, drink name, the label under it, Stirred / Rocks, the card's ingredient names, amounts and oz / Garnish, the serving buttons, "Servings", the total and the line under it, the edit pills, ingredient categories and ingredient names. Drag its header to move it anywhere (it remembers where; double-click the header to put it back in the corner). "Copy values" copies every value, grouped. Still dev only.
+
+## 2026-11-18: Desktop spacing, second tuning pass
+
+- Wide screens: the MAKE A SUBSTITUTE pill is gone (the ingredients are always shown under the pills there, so it had nothing to open). Phones keep it.
+
+- JP's new values from the spacing panel: 24px above the filters (was 30), 16px filters to the squiggly line (was 22), 16px line to the drink name (was 30), 24px label to the edit panel (was 30), 8px card to the serving buttons (was 24), 8px card to the ‹ › buttons (was 16), 165px side fade (was 240), card size 0.89 (was 0.8), height cap 1000px (same); text: total 18px (was 22), the line under it 12px (was 14), "Servings" 12px (was 14).
+
 ## 2026-11-18: Frosted ‹ › buttons; slightly bigger layer names
 
 - Wide screens: the ‹ › buttons beside the card are now see-through (the drawer's dark color at 50%) with a background blur, so the side drinks show softly through them.

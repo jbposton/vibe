@@ -45,14 +45,14 @@ export const METHOD_LABEL: Record<Method, string> = {
  * originals with the tile are not in the app.
  */
 export function PrepIcon({ id }: { id: Method | GlassId }) {
-  return <Image src={`/icons/${id}.png`} alt="" width={42} height={42} unoptimized draggable={false} className="size-[42px]" />;
+  return <Image src={`/icons/${id}.png`} alt="" width={42} height={42} unoptimized draggable={false} className="size-[42px] md:size-[var(--prep-icon-size,36px)]" />;
 }
 
 function Tag({ icon, label }: { icon: Method | GlassId; label: string }) {
   return (
     <div className="flex w-14 flex-col items-center gap-1.5 text-[#F7F7F7]">
       <PrepIcon id={icon} />
-      <span className="text-xs leading-4 opacity-50 md:text-sm md:leading-5">{label}</span>
+      <span className="text-xs leading-4 opacity-50 md:text-[length:var(--prep-size,14px)] md:leading-[1.43]">{label}</span>
     </div>
   );
 }

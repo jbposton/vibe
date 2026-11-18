@@ -12,7 +12,7 @@ import {
 import { DRINKS, type RecipeLine } from "@/data/drinks";
 import { flavorProfile } from "@/lib/flavor";
 import { useTuning } from "@/lib/tuning";
-import { SpacingPanel } from "./dev/SpacingPanel";
+import { DesignEditor } from "./dev/DesignEditor";
 import { DrinkCard } from "./DrinkCard";
 import { CLASSICS_ID, FILTERS, filterList } from "@/data/finder";
 import { FilterBar } from "./FilterBar";
@@ -173,7 +173,11 @@ export function DrinkPanel() {
   const onThumbDown = (e: React.PointerEvent<HTMLDivElement>) => {
     const el = scrollEl.current;
     if (!el) return;
-    e.currentTarget.setPointerCapture(e.pointerId);
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // the pointer already ended
+    }
     thumbDrag.current = { id: e.pointerId, y: e.clientY, top: el.scrollTop };
   };
   const onThumbMove = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -578,6 +582,18 @@ export function DrinkPanel() {
               "--total-size": `${tune.totalSize}px`,
               "--sub-size": `${tune.subSize}px`,
               "--servings-size": `${tune.servingsSize}px`,
+              "--name-size": `${tune.nameSize}px`,
+              "--label-size": `${tune.labelSize}px`,
+              "--prep-size": `${tune.prepSize}px`,
+              "--prep-icon-size": `${tune.prepIconSize}px`,
+              "--filter-size": `${tune.filterSize}px`,
+              "--layer-name-size": `${tune.layerNameSize}px`,
+              "--layer-amount-size": `${tune.layerAmountSize}px`,
+              "--layer-unit-size": `${tune.layerUnitSize}px`,
+              "--serving-num-size": `${tune.servingNumSize}px`,
+              "--pill-size": `${tune.pillSize}px`,
+              "--category-size": `${tune.categorySize}px`,
+              "--chip-size": `${tune.chipSize}px`,
             } as React.CSSProperties)
       }
     >
@@ -606,11 +622,11 @@ export function DrinkPanel() {
         {/* The name and family on the left; how it's made and what it's served in, bottom right, level with the family label (Figma 135:107). */}
         <div className="relative flex items-end justify-between gap-2">
           <div className="min-w-0">
-            <h1 className="font-serif text-[40px] leading-[52px] md:text-[50px] md:leading-[64px]" style={zTitle}>
+            <h1 className="font-serif text-[40px] leading-[52px] md:text-[length:var(--name-size,50px)] md:leading-[1.28]" style={zTitle}>
               {infoDrink.name}
             </h1>
             {/* The taste summary, a dot, then the drink's alcohol (both follow your edits). */}
-            <p className="mt-1 flex items-center gap-[5px] text-xs opacity-55 md:text-sm" style={zFamily}>
+            <p className="mt-1 flex items-center gap-[5px] text-xs opacity-55 md:text-[length:var(--label-size,14px)]" style={zFamily}>
               <span>{tasteSummary(profile)}</span>
               <span aria-hidden className="size-0.5 shrink-0 rounded-full bg-[#7f7f7f]" />
               <span>{Math.round(profile.strength)}% ABV</span>
@@ -793,8 +809,8 @@ export function DrinkPanel() {
         </div>
       )}
       </div>
-      {/* Dev only: sliders for the wide-screen spacing (never on the live site). */}
-      <SpacingPanel />
+      {/* Dev only: the design editor, sliders for the wide-screen spacing and text sizes (never on the live site). */}
+      <DesignEditor />
     </main>
   );
 }

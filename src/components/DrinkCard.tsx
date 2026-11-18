@@ -490,9 +490,9 @@ export const DrinkCard = memo(function DrinkCard({
                 style={{ color: ink, top: small ? "calc(50% - 16px)" : lineTop }}
               >
                 {/* The name in capitals, medium weight, at 60% (Figma 187:43). */}
-                <span className="text-[11px] font-medium uppercase tracking-[0.008em] opacity-60">{ingredient.name}</span>
+                <span className="text-[11px] font-medium uppercase tracking-[0.008em] opacity-60 md:text-[length:var(--layer-name-size,11px)]">{ingredient.name}</span>
                 {isGarnish ? (
-                  <span className="opacity-60 md:text-sm">Garnish</span>
+                  <span className="opacity-60 md:text-[length:var(--layer-unit-size,14px)]">Garnish</span>
                 ) : (
                   <span
                     // -mr-2 cancels the button's right padding, so the "oz" text ends exactly where
@@ -501,8 +501,8 @@ export const DrinkCard = memo(function DrinkCard({
                     style={amountButtonStyle(lightLayer, pressing)}
                   >
                     <GlassTopEdge shown={pressing} />
-                    <span className="text-[13px] md:text-base">{amountNumber}</span>
-                    <span className="opacity-60 md:text-sm">{amountUnit.join(" ")}</span>
+                    <span className="text-[13px] md:text-[length:var(--layer-amount-size,16px)]">{amountNumber}</span>
+                    <span className="opacity-60 md:text-[length:var(--layer-unit-size,14px)]">{amountUnit.join(" ")}</span>
                   </span>
                 )}
               </span>

@@ -15,7 +15,7 @@ type Props = {
 };
 
 const PILL =
-  "flex h-9 shrink-0 items-center gap-[3px] rounded-full border border-transparent bg-[#1A1612] text-[10px] uppercase tracking-[0.08em] text-white transition-colors hover:bg-[#26221E] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] disabled:pointer-events-none disabled:opacity-35";
+  "flex h-9 shrink-0 items-center gap-[3px] rounded-full border border-transparent bg-[#1A1612] text-[10px] uppercase tracking-[0.08em] md:text-[length:var(--pill-size,10px)] text-white transition-colors hover:bg-[#26221E] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] disabled:pointer-events-none disabled:opacity-35";
 
 /** What each taste button says. */
 const LABEL: Record<TraitEdit["id"], string> = {
@@ -39,7 +39,8 @@ export function MakeEdits({ edits, lines, onAdjust, onSubstitute }: Props) {
           (JP, 2026-11-18). */}
       <div className="-mx-[19px] overflow-x-auto px-[19px] [scrollbar-width:none] md:mx-0 md:overflow-visible md:px-0 [&::-webkit-scrollbar]:hidden">
       <div className="flex w-max gap-[7px] pr-[19px] md:w-auto md:flex-wrap md:gap-y-2 md:pr-0">
-        <button type="button" className={`${PILL} px-4`} onClick={onSubstitute}>
+        {/* Wide screens show the ingredients all the time, so there's nothing for this to open (JP, 2026-11-18). */}
+        <button type="button" className={`${PILL} px-4 md:hidden`} onClick={onSubstitute}>
           Make a substitute
         </button>
         {edits.map((edit) => (
