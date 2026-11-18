@@ -37,7 +37,8 @@ export function ServingsRow({ servings, total, perServing, onChange }: Props) {
   };
 
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex items-end justify-between">
+      <div className="flex flex-col gap-2">
       <div role="group" aria-label="Servings" className="flex items-center gap-1.5">
         {PRESETS.map((n) => (
           <button
@@ -87,10 +88,16 @@ export function ServingsRow({ servings, total, perServing, onChange }: Props) {
           </button>
         )}
       </div>
+      {/* The word "Servings" under the buttons (JP, 2026-11-18), in the same style as the line under the total.
+          Wide screens take its size from the spacing settings (--servings-size). */}
+      <span aria-hidden className="text-[10px] leading-3 text-[#F7F7F7]/50 md:text-[length:var(--servings-size,12px)] md:leading-[1.33]">
+        Servings
+      </span>
+      </div>
       <p className="text-right">
-        <span className="block text-sm leading-[18px] text-[#F7F7F7]">{total}</span>
+        <span className="block text-sm leading-[18px] text-[#F7F7F7] md:text-[length:var(--total-size,16px)] md:leading-[1.25]">{total}</span>
         {/* "2 servings", a dot, "3 oz per serving". */}
-        <span className="flex items-center justify-end gap-[5px] text-[10px] leading-3 text-[#F7F7F7]/50">
+        <span className="flex items-center justify-end gap-[5px] text-[10px] leading-3 text-[#F7F7F7]/50 md:text-[length:var(--sub-size,12px)] md:leading-[1.33]">
           <span>{servings === 1 ? "1 serving" : `${servings} servings`}</span>
           <span aria-hidden className="size-0.5 rounded-full bg-[#7f7f7f]" />
           <span>{perServing} per serving</span>

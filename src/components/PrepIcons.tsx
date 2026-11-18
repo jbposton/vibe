@@ -52,7 +52,7 @@ function Tag({ icon, label }: { icon: Method | GlassId; label: string }) {
   return (
     <div className="flex w-14 flex-col items-center gap-1.5 text-[#F7F7F7]">
       <PrepIcon id={icon} />
-      <span className="text-xs leading-4 opacity-50">{label}</span>
+      <span className="text-xs leading-4 opacity-50 md:text-sm md:leading-5">{label}</span>
     </div>
   );
 }

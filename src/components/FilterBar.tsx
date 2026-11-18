@@ -23,7 +23,7 @@ type Props = {
  */
 export function FilterBar({ active, onSelect }: Props) {
   return (
-    <section aria-label="Find a drink" className="flex flex-col gap-2 md:col-span-2 md:row-start-1">
+    <section aria-label="Find a drink" className="flex flex-col gap-2 md:col-span-2 md:row-start-1 md:gap-[var(--filters-gap,16px)]">
       {/* One row that scrolls sideways, edge to edge on a phone; both edges fade out (the left one only shows once you scroll). */}
       <div
         role="group"
@@ -48,7 +48,7 @@ export function FilterBar({ active, onSelect }: Props) {
               >
                 {i > 0 && <Slash />}
                 <span
-                  className={`whitespace-nowrap text-[10px] uppercase tracking-[0.08em] transition-colors group-focus-visible:outline-2 group-focus-visible:outline-offset-4 group-focus-visible:outline-[#F7F7F7] ${
+                  className={`whitespace-nowrap text-[10px] uppercase md:text-xs tracking-[0.08em] transition-colors group-focus-visible:outline-2 group-focus-visible:outline-offset-4 group-focus-visible:outline-[#F7F7F7] ${
                     selected ? "font-medium text-white" : "text-white/50 group-hover:text-white/80"
                   }`}
                 >

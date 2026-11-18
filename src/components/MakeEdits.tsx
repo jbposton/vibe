@@ -35,9 +35,10 @@ export function MakeEdits({ edits, lines, onAdjust, onSubstitute }: Props) {
   return (
     <section aria-label="Make edits">
       {/* More room inside each button (16px at the sides), so the row can be wider than the screen:
-          it scrolls sideways (JP, 2026-11-17). */}
-      <div className="-mx-[19px] overflow-x-auto px-[19px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      <div className="flex w-max gap-[7px] pr-[19px]">
+          it scrolls sideways on a phone (JP, 2026-11-17). Wide screens wrap the pills onto more lines instead
+          (JP, 2026-11-18). */}
+      <div className="-mx-[19px] overflow-x-auto px-[19px] [scrollbar-width:none] md:mx-0 md:overflow-visible md:px-0 [&::-webkit-scrollbar]:hidden">
+      <div className="flex w-max gap-[7px] pr-[19px] md:w-auto md:flex-wrap md:gap-y-2 md:pr-0">
         <button type="button" className={`${PILL} px-4`} onClick={onSubstitute}>
           Make a substitute
         </button>
