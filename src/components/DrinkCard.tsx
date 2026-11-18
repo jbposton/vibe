@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Drink, RecipeLine } from "@/data/drinks";
 import { INGREDIENTS } from "@/data/ingredients";
 import {
@@ -76,10 +76,11 @@ const PAGE_BACKGROUND = "#1A1612";
 
 /** The tallest the base ingredient's wave can rise (px) above its top line. */
 const WAVE_AMPLITUDE = 26;
-/** How long the wave plays when a drink comes into view: it starts big, then settles down to flat. */
-const WAVE_PLAY_MS = 3000;
-/** How many times the wave slides along its own length while it plays (it slows as it settles). */
-const WAVE_SLIDES = 1.5;
+/** How fast the wave slides along at full size (radians per second: about one hump every 3 seconds). */
+const WAVE_SPEED = 2;
+/** How long the wave takes to settle to a still, flat line when you start dragging, and to come back after. */
+const WAVE_DOWN_MS = 1200;
+const WAVE_UP_MS = 2400;
 /** Room (px) kept free at the top of the layer above for its label (14px down + 32px row + a margin). */
 const WAVE_TEXT_ROOM = 52;
 
@@ -184,35 +185,74 @@ export const DrinkCard = memo(function DrinkCard({
     return () => observer.disconnect();
   }, []);
 
-  // The base wave plays for 3 seconds each time this drink comes into view: it starts at full size,
-  // slides along as it goes, and eases down to a flat line (gently at the end, with no pop).
-  // `wave.k` is how big it is now (0 to 1) and `wave.phase` how far it has slid.
-  const [wave, setWave] = useState({ k: 0, phase: 0 });
+  // The base wave runs all the time (JP, 2026-11-18): it slides along at full size, and while you
+  // drag a layer it eases down to a still, flat line, then slowly comes back when you let go. It is
+  // drawn straight onto the SVG every frame (no React render per frame). `k` is its size (0 to 1).
+  const waveSvg = useRef<SVGSVGElement | null>(null);
+  const waveRect = useRef<SVGRectElement | null>(null);
+  const wavePathEl = useRef<SVGPathElement | null>(null);
+  const waveState = useRef({ k: 1, phase: 0, from: 1, to: 1, t0: 0 });
+  const waveGeom = useRef({ maxAmp: 0, seed: "" });
+  const waveTarget = useRef(1);
+  const drawWave = useCallback(() => {
+    const svg = waveSvg.current;
+    const rect = waveRect.current;
+    const path = wavePathEl.current;
+    if (!svg || !rect || !path) return;
+    const { maxAmp, seed } = waveGeom.current;
+    const amp = maxAmp * waveState.current.k;
+    // Hidden when it is too short to matter or has settled flat (not at 2px, which popped).
+    if (!(maxAmp >= 2) || !(amp >= 0.05)) {
+      svg.style.display = "none";
+      return;
+    }
+    svg.style.display = "";
+    const { d, h } = wavePath(seed, amp, waveState.current.phase);
+    svg.setAttribute("height", String(h));
+    svg.setAttribute("viewBox", `0 0 100 ${h}`);
+    rect.setAttribute("height", String(Math.max(0, h - 1)));
+    path.setAttribute("d", d);
+  }, []);
   useEffect(() => {
-    if (!inView) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      waveState.current.k = 0; // with "reduce motion" the line stays flat
+      drawWave();
+      return;
+    }
+    if (!inView) return; // only the drink on screen moves
     let frame = 0;
-    const start = performance.now();
+    let last = performance.now();
     const tick = (now: number) => {
-      const t = Math.min(1, (now - start) / WAVE_PLAY_MS);
-      if (t >= 1) {
-        setWave({ k: 0, phase: 0 });
-        return;
+      const w = waveState.current;
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      if (waveTarget.current !== w.to) {
+        w.from = w.k;
+        w.to = waveTarget.current;
+        w.t0 = now;
       }
-      setWave({
-        k: Math.pow(Math.cos((Math.PI * t) / 2), 2), // full size at the start, easing down to flat
-        phase: Math.PI * 2 * WAVE_SLIDES * (1 - Math.pow(1 - t, 2)),
-      });
+      const p = Math.min(1, (now - w.t0) / (w.to < w.from ? WAVE_DOWN_MS : WAVE_UP_MS));
+      w.k = w.from + (w.to - w.from) * (0.5 - 0.5 * Math.cos(Math.PI * p)); // smooth at both ends
+      w.phase += dt * WAVE_SPEED * w.k; // it slows as it shrinks, so it comes to a stop
+      drawWave();
       frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [inView, drink.id]);
-  const waveK = inView ? wave.k : 0;
+  }, [inView, drawWave]);
 
   const ordered = orderLines(lines);
   const heights = layerHeights(ordered, panelHeight);
   const bottoms = layerBottoms(heights);
+
+  // Tell the wave how tall it may get (it stays clear of the label in the layer above) and redraw it
+  // after every render, so it follows the layers as they change.
+  const waveMax = ordered[1] ? Math.max(0, Math.min(WAVE_AMPLITUDE, heights[1] - WAVE_TEXT_ROOM)) : 0;
+  const waveSeed = ordered[0] ? `${drink.id}-${ordered[0].key}` : "";
+  useLayoutEffect(() => {
+    waveGeom.current = { maxAmp: waveMax, seed: waveSeed };
+    drawWave();
+  });
 
   // The drink for the liquid shader: each layer's band (with the v4 overlap)
   // and blur, in px above the stack bottom.
@@ -299,6 +339,11 @@ export const DrinkCard = memo(function DrinkCard({
 
   const animate = draggingKey === null ? undefined : "none";
 
+  // The wave settles while a layer is being dragged and comes back after.
+  useEffect(() => {
+    waveTarget.current = draggingKey === null ? 1 : 0;
+  }, [draggingKey]);
+
   // Which layers are at their smallest height on screen (the 60px minimum); outside a drag
   // their text is centered (the top layer is the exception: see where the label is drawn).
   const smallNow: Record<number, boolean> = {};
@@ -382,29 +427,25 @@ export const DrinkCard = memo(function DrinkCard({
 
           {/* A wave along the top of the base ingredient: its color rises into the layer above in
               smooth round humps (JP, 2026-11-16). The shape is random but fixed for each drink, and
-              it follows the layer as you drag. It plays for 3 seconds when the drink comes into view, then is flat. It is shorter when the layer above is short, so it
+              it follows the layer as you drag. It runs all the time and settles flat while you drag a layer. It is shorter when the layer above is short, so it
               never runs under that layer's label. Not drawn when the layer above is a garnish. */}
           {(() => {
             const base = ordered[0];
             const above = ordered[1];
             if (!base || !above || above.amount.kind === "garnish") return null;
-            const maxAmp = Math.max(0, Math.min(WAVE_AMPLITUDE, heights[1] - WAVE_TEXT_ROOM));
-            const amp = maxAmp * waveK;
-            // Only skip it when it is too short to matter or has fully settled (not at 2px, which popped).
-            if (!(maxAmp >= 2) || !(amp >= 0.05)) return null;
-            const { d, h } = wavePath(`${drink.id}-${base.key}`, amp, wave.phase);
             return (
               <svg
                 key={`wave-${drink.id}-${base.key}`}
+                ref={waveSvg}
                 aria-hidden
-                // No height transition here: the wave's size is animated frame by frame, and a CSS
-                // transition on top of that made it lag behind and then snap when it was removed.
+                // Size, viewBox and shape are written by drawWave every frame, not by React.
                 className="pointer-events-none absolute inset-x-0"
                 width="100%"
-                height={h}
-                viewBox={`0 0 100 ${h}`}
+                height={1}
+                viewBox="0 0 100 1"
                 preserveAspectRatio="none"
                 style={{
+                  display: "none",
                   bottom: bottoms[0] + heights[0] - 1,
                   transition: animate ?? "bottom 180ms ease-out",
                 }}
@@ -412,8 +453,8 @@ export const DrinkCard = memo(function DrinkCard({
                 {/* The layer-above color stops 1px short of the strip's bottom edge: the wave shape covers
                     that last pixel row completely, so no thin line of the upper color shows along the edge
                     (two shapes sharing an edge both blend with what is under them, leaving a faint line). */}
-                <rect width="100" height={h - 1} fill={INGREDIENTS[above.ingredient].color} />
-                <path d={d} fill={INGREDIENTS[base.ingredient].color} />
+                <rect ref={waveRect} width="100" height={0} fill={INGREDIENTS[above.ingredient].color} />
+                <path ref={wavePathEl} fill={INGREDIENTS[base.ingredient].color} />
               </svg>
             );
           })()}
@@ -449,9 +490,9 @@ export const DrinkCard = memo(function DrinkCard({
                 style={{ color: ink, top: small ? "calc(50% - 16px)" : lineTop }}
               >
                 {/* The name in capitals, medium weight, at 60% (Figma 187:43). */}
-                <span className="text-[10px] font-medium uppercase tracking-[0.008em] opacity-60">{ingredient.name}</span>
+                <span className="text-[11px] font-medium uppercase tracking-[0.008em] opacity-60 md:text-[length:var(--layer-name-size,11px)]">{ingredient.name}</span>
                 {isGarnish ? (
-                  <span className="opacity-60">Garnish</span>
+                  <span className="opacity-60 md:text-[length:var(--layer-unit-size,14px)]">Garnish</span>
                 ) : (
                   <span
                     // -mr-2 cancels the button's right padding, so the "oz" text ends exactly where
@@ -460,8 +501,8 @@ export const DrinkCard = memo(function DrinkCard({
                     style={amountButtonStyle(lightLayer, pressing)}
                   >
                     <GlassTopEdge shown={pressing} />
-                    <span className="text-[13px]">{amountNumber}</span>
-                    <span className="opacity-60">{amountUnit.join(" ")}</span>
+                    <span className="text-[13px] md:text-[length:var(--layer-amount-size,16px)]">{amountNumber}</span>
+                    <span className="opacity-60 md:text-[length:var(--layer-unit-size,14px)]">{amountUnit.join(" ")}</span>
                   </span>
                 )}
               </span>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FILTERS } from "@/data/finder";
 
 /** The thin slash between two filters (Figma 132:35: 3.9 x 9.7, white at 50%). */
@@ -16,19 +17,80 @@ type Props = {
   onSelect: (id: string) => void;
 };
 
+/** A small round chevron button at one end of the filter row (wide screens only). */
+function Chevron({ dir, shown, onClick }: { dir: -1 | 1; shown: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={dir < 0 ? "Scroll the filters left" : "Scroll the filters right"}
+      tabIndex={shown ? 0 : -1}
+      aria-hidden={!shown}
+      className={`absolute top-1/2 z-10 hidden size-7 -translate-y-1/2 place-items-center rounded-full bg-[#21201E]/70 text-white backdrop-blur-md transition-[opacity,background-color] duration-200 hover:bg-[#2C2A27] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] md:grid ${
+        dir < 0 ? "left-0" : "right-0"
+      } ${shown ? "opacity-100" : "pointer-events-none opacity-0"}`}
+    >
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden>
+        <path d={dir < 0 ? "M10 3L5 8L10 13" : "M6 3L11 8L6 13"} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </button>
+  );
+}
+
 /**
  * Quick filters across the top: one row that scrolls sideways, as capitals split by thin
  * slashes (Figma 132:35). Start filters (Classics, Build my own) and taste come first, then
  * the occasion filters. Picking one swaps the carousel to that curated list.
  */
 export function FilterBar({ active, onSelect }: Props) {
+  // Wide screens: a mouse can't swipe sideways, so there are chevron buttons at the ends (each shows only
+  // when there is more in that direction), and the mouse wheel scrolls the row too (JP, 2026-11-18).
+  const rowRef = useRef<HTMLDivElement | null>(null);
+  const [more, setMore] = useState({ left: false, right: false });
+  const check = useCallback(() => {
+    const el = rowRef.current;
+    if (!el) return;
+    const left = el.scrollLeft > 2;
+    const right = el.scrollLeft < el.scrollWidth - el.clientWidth - 2;
+    setMore((m) => (m.left === left && m.right === right ? m : { left, right }));
+  }, []);
+  useEffect(() => {
+    const el = rowRef.current;
+    if (!el) return;
+    check();
+    const observer = new ResizeObserver(check);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [check]);
+  const edgeFade = `linear-gradient(to right, ${more.left ? "transparent" : "black"}, black 28px, black calc(100% - 28px), ${
+    more.right ? "transparent" : "black"
+  })`;
+    const scrollByPage = (dir: -1 | 1) => {
+    const el = rowRef.current;
+    if (!el) return;
+    const smooth = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    el.scrollBy({ left: dir * el.clientWidth * 0.6, behavior: smooth ? "smooth" : "auto" });
+  };
+
   return (
-    <section aria-label="Find a drink" className="flex flex-col gap-2 md:col-span-2 md:row-start-1">
-      {/* One row that scrolls sideways, edge to edge on a phone; both edges fade out (the left one only shows once you scroll). */}
+    <section aria-label="Find a drink" className="flex flex-col gap-2 md:col-span-2 md:row-start-1 md:gap-[var(--filters-gap,16px)]">
+      {/* One row that scrolls sideways, edge to edge on a phone; an edge fades out only when there is more past it. */}
+      <div className="relative">
+      <Chevron dir={-1} shown={more.left} onClick={() => scrollByPage(-1)} />
+      <Chevron dir={1} shown={more.right} onClick={() => scrollByPage(1)} />
       <div
+        ref={rowRef}
+        onScroll={check}
+        onWheel={(e) => {
+          // A plain mouse wheel (up / down) moves the row sideways.
+          if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) e.currentTarget.scrollLeft += e.deltaY;
+        }}
         role="group"
         aria-label="Filters"
-        className="-mx-4 -my-1.5 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [mask-image:linear-gradient(to_right,transparent,black_16px,black_calc(100%-28px),transparent)] md:mx-0 md:px-0"
+        className="-mx-4 -my-1.5 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:px-0"
+        // Each edge fades out only when there are more filters past it, so "Classics" isn't faded before
+        // you scroll (JP, 2026-11-18).
+        style={{ maskImage: edgeFade, WebkitMaskImage: edgeFade }}
       >
         <div className="flex w-max items-center pr-10">
           {FILTERS.map((f, i) => {
@@ -48,7 +110,7 @@ export function FilterBar({ active, onSelect }: Props) {
               >
                 {i > 0 && <Slash />}
                 <span
-                  className={`whitespace-nowrap text-[10px] uppercase tracking-[0.08em] transition-colors group-focus-visible:outline-2 group-focus-visible:outline-offset-4 group-focus-visible:outline-[#F7F7F7] ${
+                  className={`whitespace-nowrap text-[10px] uppercase md:text-[length:var(--filter-size,12px)] tracking-[0.08em] transition-colors group-focus-visible:outline-2 group-focus-visible:outline-offset-4 group-focus-visible:outline-[#F7F7F7] ${
                     selected ? "font-medium text-white" : "text-white/50 group-hover:text-white/80"
                   }`}
                 >
@@ -58,6 +120,7 @@ export function FilterBar({ active, onSelect }: Props) {
             );
           })}
         </div>
+      </div>
       </div>
 
       {/* A squiggly line under the filters, 16px in from each side of the screen (the screen's own padding),

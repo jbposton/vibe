@@ -46,7 +46,7 @@ export function EditPanel({ edits, lines, onAdjust, onSubstitute, onPick, floati
   if (!floating) {
     // Wide screens: the buttons, then the ingredients, in the column.
     return (
-      <section aria-label="Edit this drink" className="rounded-[30px] bg-[#21201E] px-[19px] py-6">
+      <section aria-label="Edit this drink" className="rounded-[30px] bg-[#21201E] px-[19px] pb-20 pt-6">
         {buttons}
         <div className="mt-6">
           <IngredientDrawer lines={lines} onPick={onPick} />

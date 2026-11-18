@@ -10,6 +10,106 @@ Visible before-and-after changes, newest first.
 - The other drinks are off screen. Three dots under the stack (before, this one, after); tapping a side dot, a sideways swipe, or the arrow keys switch drinks. A small reset button sits bottom right once the drink is changed.
 - `EXPLODED` in `DrinkPanel.tsx` switches back to the flat card and peeking carousel.
 - OPEN: which layers get the dot grid (base and modifier is a guess from the Negroni design); amounts show as fractions ("1¾ oz") where the design shows decimals ("1.5 oz"); three dots rather than one per drink, as drawn; the pale cluster (Gin, Vodka, White rum, Soda water, Simple syrup) is hard to tell apart as slabs too; not yet tried on a real phone for smoothness.
+## 2026-11-18: Wide screens: chevrons for the browse filters
+
+- A mouse can't swipe the filter row sideways, so on wide screens there is now a small round frosted chevron button at each end (28px, the drawer's dark color at 70% with a blur). Each one only shows when there are more filters in its direction, and a click glides the row about two-thirds of its width. The mouse wheel also scrolls the row sideways. Phones are unchanged (you swipe).
+- Each end of the filter row now fades out only when there are more filters past it. On wide screens the left fade had been cutting into "Classics" before you scrolled.
+
+## 2026-11-18: Wide screens: smaller prep icons
+
+- The Stirred / Rocks illustrations in the header are 36×36px on wide screens (were 42). Phones keep 42. The size is also a slider in the design editor (Layout: "Stirred / Rocks icons").
+
+## 2026-11-18: Desktop values from the design editor (third pass)
+
+- Spacing: card to serving buttons 16px (was 8), card to ‹ › buttons 12px (was 8); the rest unchanged (24 / 16 / 16 / 24). Layout unchanged (fade 165px, card 0.89, height cap 1000px).
+- Text on wide screens: browse filters 10px (was 12), drink name 50px, label under the name 12px (was 14), Stirred / Rocks 12px (was 14), card ingredient names 10px (was 11), card amounts 14px (was 16), card oz / Garnish 12px (was 14), serving buttons 12px, "Servings" 12px, total 18px, line under it 12px, edit pills, categories and ingredient names 10px.
+
+## 2026-11-18: The spacing panel is now the design editor
+
+- Renamed to "Design editor" (the button reads DESIGN). Its sliders are grouped into Spacing, Layout and Text, and Text now covers every piece of type on wide screens: browse filters, drink name, the label under it, Stirred / Rocks, the card's ingredient names, amounts and oz / Garnish, the serving buttons, "Servings", the total and the line under it, the edit pills, ingredient categories and ingredient names. Drag its header to move it anywhere (it remembers where; double-click the header to put it back in the corner). "Copy values" copies every value, grouped. Still dev only.
+
+## 2026-11-18: Desktop spacing, second tuning pass
+
+- Wide screens: the MAKE A SUBSTITUTE pill is gone (the ingredients are always shown under the pills there, so it had nothing to open). Phones keep it.
+
+- JP's new values from the spacing panel: 24px above the filters (was 30), 16px filters to the squiggly line (was 22), 16px line to the drink name (was 30), 24px label to the edit panel (was 30), 8px card to the serving buttons (was 24), 8px card to the ‹ › buttons (was 16), 165px side fade (was 240), card size 0.89 (was 0.8), height cap 1000px (same); text: total 18px (was 22), the line under it 12px (was 14), "Servings" 12px (was 14).
+
+## 2026-11-18: Frosted ‹ › buttons; slightly bigger layer names
+
+- Wide screens: the ‹ › buttons beside the card are now see-through (the drawer's dark color at 50%) with a background blur, so the side drinks show softly through them.
+- On the drink card the ingredient names are 11px (were 10), on every screen size. The names in the drawer are unchanged.
+- Wide screens: the pills at the top of the edit panel (MAKE A SUBSTITUTE, MORE SWEET...) wrap onto more lines instead of scrolling sideways (8px between lines). Phones keep the single scrolling row, so the closed drawer stays one row tall.
+
+## 2026-11-18: The edit panel's scrollbar is drawn by the app
+
+- JP wanted the bar longer, smoother and fully rounded. The browser's own scrollbar can't do that reliably (the earlier trick made it move unevenly), so it is hidden and the app draws its own: a 4px fully rounded bar in faint white (brighter on hover) inside the panel's right edge, 80% of the length the browser would give it, running the full height (24px clear of the rounded corners). It moves exactly with the scroll and can be dragged. Setting: `THUMB_SCALE` in DrinkPanel.tsx.
+
+## 2026-11-18: Serving row text sizes; scrollbar runs the full height again
+
+- From the spacing panel: on wide screens the total is 22px, the line under it 14px and "Servings" 14px.
+- The edit panel's scrollbar runs the full height of the panel again. Before, its track had been shortened to the middle half to make the bar half as tall, so it never reached the top or bottom. Now the track is full height and only half of the bar is drawn: at the top of the list the bar sits at the very top, at the end it sits at the very bottom, so it is still half as tall but travels all the way.
+
+## 2026-11-18: "Servings" under the serving buttons
+
+- A small "Servings" label sits 8px under the 1 / 2 / 4 / + buttons, in the same style as the line under the total (10px on phones, 12px on wide screens, 50% white). The total now lines up with the bottom of the row, so its second line sits level with "Servings". The drink card is a little shorter to make room.
+- The spacing panel (dev only) has three new sliders for wide screens: the total's text size (16px), the line under it (12px) and "Servings" (12px).
+
+## 2026-11-18: The base wave runs all the time
+
+- The wave along the top of the base ingredient no longer plays for 3 seconds and stops: it keeps sliding along at full size (about one hump every 3 seconds) on every screen size. When you start dragging a layer it eases down to a still, flat line over 1.2 seconds (smooth at both ends), and after you let go it slowly comes back over 2.4 seconds. Only the drink on screen moves; with "reduce motion" it stays flat. It is now drawn directly each frame instead of through React, so running continuously stays light.
+- OPEN: the speed and the two timings are first guesses (WAVE_SPEED, WAVE_DOWN_MS, WAVE_UP_MS in DrinkCard.tsx); not yet checked for battery or smoothness on a real phone.
+
+## 2026-11-18: Desktop spacing tuned with the spacing panel
+
+- JP's values from the panel are now the defaults: 30px above the filters (was 36), 22px filters to the squiggly line (was 24), 30px line to the drink name (was 36), 30px label to the edit panel (was 24), 24px card to the serving buttons (was 16), 16px card to the ‹ › buttons (same), 240px side fade (was 200), card size 0.8 (same), page height cap 1000px (was 900).
+
+## 2026-11-18: A spacing panel for tuning the desktop layout (dev only)
+
+- When the app runs on JP's computer (`npm run dev`), a small SPACING button sits bottom right. It opens sliders for the wide-screen gaps (above the filters, filters to the squiggly line, line to the drink name, label to the edit panel, card to the serving buttons and to the ‹ › buttons), the side drinks' fade, the card size and the page height cap. The layout follows the sliders live; "Copy values" copies them to paste to Claude, and a refresh undoes everything. It never appears on the live site. The values live in `src/lib/tuning.ts`.
+
+## 2026-11-18: Wide screens: more room around the header
+
+- On wide screens the browse filters sit 36px below the top of the window (was 24) with 24px (was 16) between them and the squiggly line. There are 36px (was 16) between the squiggly line under the filters and the drink name, and 24px (was 16) between the label and the edit panel. The right side moves down with the header, so the two sides stay centered on each other. Phones are unchanged.
+
+## 2026-11-18: Wide screens: bigger type in the header and filters
+
+- On wide screens the drink name is 50px (was 40), the label under it and the prep labels (Stirred, Rocks) 14px (were 12), and the browse filters 12px (were 10). Phones are unchanged.
+
+## 2026-11-18: Wide screens: the edit panel runs to the bottom again
+
+- The edit panel no longer stops at the serving row's line: it runs to the bottom of the page (the page is at most 900px tall). The card and serving row, together, are centered top to bottom against the left side (from the drink name to the bottom of the edit panel), at any window size.
+
+## 2026-11-18: Wide screens: one bottom line, and at most 900px tall
+
+- On wide screens the drink card now starts at the top of the right column, level with the drink name, with the serving row 16px under it; the edit panel in the left column ends on the same line as the serving row, so both sides start and end together (this replaces the "40px shorter" panel from earlier today, and a first version where the card sat at the bottom of the page). The whole layout stops growing at 900px tall and stays at the top of taller windows, like the 1440px width cap.
+
+## 2026-11-18: Wide screens: bigger amounts on the card
+
+- On wide screens the amount on each layer is 16px (was 13) and its "oz", like "Garnish", 14px (was 12). The ingredient names stay 10px. Phones are unchanged.
+
+## 2026-11-18: Wide screens: the serving buttons sit right under the card
+
+- On wide screens the serving buttons (1, 2, 4, +) and the total line up with the card's left and right edges and sit 16px under it, instead of running along the bottom of the whole right column. On wide screens the total is 16px (was 14) and the line under it 12px (was 10).
+
+## 2026-11-18: Wide screens: the edit panel is 40px shorter
+
+- On wide screens the edit panel in the left column stops 40px higher than before (its scrolling area is 40px shorter, leaving room under it), and its bottom corners are rounded (30px, like the top) instead of cut off by the scrolling. An 80px fade in the panel's color sits at the bottom (eased, like the side drinks' fade) to show the list scrolls; the panel has 80px of room at the end so the last ingredients can scroll clear of it. A thin rounded scrollbar in faint white (18%, brighter on hover) runs inside the panel along its right edge (the scrolling area has the panel's color), along the middle half of the panel's height, so the bar is half as tall as before. Phones are unchanged.
+
+## 2026-11-18: The page is at most 1440px wide
+
+- On screens wider than 1440px the whole layout stops growing at 1440px and sits centered, with the same dark background on either side.
+
+## 2026-11-18: Wide screens: the side drinks show, fading out
+
+- On wide screens the drinks before and after now show beside the card, as on a phone: smaller (86%), darkened, and fading out toward the panel's edges (a fade that starts at the middle card's edges and is gone 200px past them, dropping quickly in the gap beside the card and then trailing off very gently, so only a soft strip of each side drink shows; JP asked for less of them after a first, wider fade, then for a smoother gradient than the first straight one). The ‹ › buttons sit on top of them. Switching drinks now slides the row (it used to jump), and a sideways mouse drag or a click on a side drink also works. 32px between the card and a side drink.
+
+## 2026-11-18: Wide screens: the drink card is 80% of its size
+
+- On wide screens the drink card is 80% as big as before (width and height, same shape), centered in the right panel; the ‹ › buttons follow it. (Half size was tried first and reverted.) Phones are unchanged. Setting: `DESKTOP_CARD_SCALE` in `DrinkPanel.tsx`.
+
+## 2026-11-18: Wide screens: ‹ › buttons beside the drink card
+
+- On wide screens the previous / next buttons moved from the top of the left column to the right panel: a 44px round button on each side of the drink card, vertically centered, 16px from it. They use the drawer's dark fill (#21201E, a little lighter on hover) with a thin chevron. The card leaves room for them. Phones are unchanged (you swipe; the old buttons stay for screen readers only).
 
 ## 2026-11-16: Edit panel: no glass look, the app's own background color with a blur
 

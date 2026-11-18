@@ -130,3 +130,11 @@ body {
     animation: none;
   }
 }
+
+/* Wide screens: the edit panel hides the browser's scrollbar; DrinkPanel draws its own bar instead. */
+.panel-scroll {
+  scrollbar-width: none;
+}
+.panel-scroll::-webkit-scrollbar {
+  display: none;
+}

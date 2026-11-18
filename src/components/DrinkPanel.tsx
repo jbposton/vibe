@@ -11,6 +11,8 @@ import {
 } from "react";
 import { DRINKS, type RecipeLine } from "@/data/drinks";
 import { flavorProfile } from "@/lib/flavor";
+import { useTuning } from "@/lib/tuning";
+import { DesignEditor } from "./dev/DesignEditor";
 import { DrinkCard } from "./DrinkCard";
 import { ExplodedDrink } from "./ExplodedDrink";
 import { CLASSICS_ID, FILTERS, filterList } from "@/data/finder";
@@ -45,6 +47,8 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
  * OPEN: the exact proportion (JP, 2026-11-16: "fixed proportion, scales down a bit").
  */
 const CARD_ASPECT = 0.9;
+/** Wide screens: the edit panel's scrollbar, as a share of the length the browser would give it. */
+const THUMB_SCALE = 0.8;
 
 /**
  * The swipe-up drawer (Figma 187:43). At --p = 1 the edit panel has gone all the way up to just under
@@ -63,7 +67,34 @@ const SHEET = {
 const SIDE_SCALE = EXPLODED ? 1 : 0.86; // size of the cards beside the middle one (concept B: no peeking)
 const CARD_MARGIN = 25; // px between the middle card and each side of the screen (Figma 187:43: 352px on a 402px screen)
 const GAP = 8; // px between the middle card and a side card (more space = a smaller sliver of the side card shows)
-const SIDE_DIM = EXPLODED ? 0 : 0.6; // how dark a card at the side gets (black overlay opacity)
+const DESKTOP_GAP = 32; // the same on wide screens
+
+/**
+ * The mask that fades the side drinks on wide screens: full strength across the middle card, then
+ * an eased fall-off on each side over `fade` px (fast near the card, a long gentle tail),
+ * drawn with many small steps so it reads as one soft gradient rather than a hard line.
+ */
+/** Wide screens: the fade at the bottom of the edit panel, from clear to the panel's color on an eased curve. */
+const BOTTOM_SCRIM = `linear-gradient(to bottom, ${Array.from({ length: 13 }, (_, k) => {
+  const t = k / 12;
+  return `rgba(33,32,30,${(1 - Math.pow(1 - t, 2.5)).toFixed(3)}) ${(t * 100).toFixed(1)}%`;
+}).join(", ")})`;
+
+function sideFadeMask(cardWidth: number, fade: number): string {
+  const steps = 20;
+  const half = cardWidth / 2;
+  const stop = (k: number, side: -1 | 1) => {
+    const t = k / steps; // 0 at the card's edge, 1 where the fade ends
+    // Drops quickly near the card (in the gap, where nothing shows) and then trails off very gently,
+    // so the side drinks are mostly hidden but there is no visible edge.
+    const a = Math.pow(1 - t, 2.5);
+    return `rgba(0,0,0,${a.toFixed(3)}) calc(50% ${side < 0 ? "-" : "+"} ${(half + fade * t).toFixed(1)}px)`;
+  };
+  const left = Array.from({ length: steps + 1 }, (_, k) => stop(steps - k, -1));
+  const right = Array.from({ length: steps + 1 }, (_, k) => stop(k, 1));
+  return `linear-gradient(to right, ${[...left, ...right].join(", ")})`;
+}
+const SIDE_DIM = EXPLODED ? 0 : 0.6; // how dark a card at the side gets (black overlay opacity; concept B: none)
 /** How far a finger moves (px) before it counts as a swipe rather than a tap. */
 const SLOP = 6;
 /** A swipe this fast (px/ms) flips to the next drink even if it was short. */
@@ -85,6 +116,10 @@ export function DrinkPanel() {
   // On a wide screen there's one big card and ‹ › buttons, as before. On a
   // phone the cards sit in a row and you swipe through them.
   const isDesktop = useSyncExternalStore(subscribeDesktop, getDesktop, () => false);
+  // Wide-screen spacing and sizes (lib/tuning.ts); the dev-only spacing panel can change them live.
+  const tune = useTuning();
+  // Room under the card for the serving row: the gap, the 36px buttons, 8px, and the "Servings" line.
+  const SERVING_ROOM = tune.cardToServings + 36 + 8 + Math.round(tune.servingsSize * 1.33);
 
   // The swipe-up edit sheet. It drives `--p` (0 closed, 1 open) on <main>; the CSS
   // below reads it, so nothing re-renders while it moves.
@@ -100,6 +135,70 @@ export function DrinkPanel() {
     return () => observer.disconnect();
   }, []);
   const travel = Math.max(240, mainHeight - DRAWER_TOP - PANEL_CLOSED_HEIGHT);
+
+  // Wide screens: the edit panel's scrollbar is our own (the browser's is hidden): a fully rounded bar
+  // that is THUMB_SCALE of the length the browser would give it, running the panel's full height (24px
+  // clear of each rounded corner). It is moved straight from the scroll position, so it glides with it.
+  const thumbRef = useRef<HTMLDivElement | null>(null);
+  const scrollEl = useRef<HTMLDivElement | null>(null);
+  const thumbGeom = useRef({ len: 0, travel: 0 });
+  const placeThumb = useCallback(() => {
+    const el = scrollEl.current;
+    const thumb = thumbRef.current;
+    if (!el || !thumb) return;
+    const track = Math.max(0, el.clientHeight - 48);
+    const room = el.scrollHeight - el.clientHeight;
+    if (room <= 1) {
+      thumb.style.display = "none";
+      return;
+    }
+    thumb.style.display = "";
+    const len = Math.max(48, (track * el.clientHeight * THUMB_SCALE) / el.scrollHeight);
+    const travel = Math.max(0, track - len);
+    thumbGeom.current = { len, travel };
+    thumb.style.height = `${len}px`;
+    thumb.style.transform = `translateY(${(24 + (travel * el.scrollTop) / room).toFixed(2)}px)`;
+  }, []);
+  const panelScrollRef = useCallback(
+    (el: HTMLDivElement | null) => {
+      scrollEl.current = el;
+      if (!el) return;
+      placeThumb();
+      const observer = new ResizeObserver(placeThumb);
+      observer.observe(el);
+      if (el.firstElementChild) observer.observe(el.firstElementChild);
+      el.addEventListener("scroll", placeThumb, { passive: true });
+      return () => {
+        observer.disconnect();
+        el.removeEventListener("scroll", placeThumb);
+      };
+    },
+    [placeThumb],
+  );
+  useLayoutEffect(placeThumb); // the bar appears on desktop after the first render
+  // Dragging the bar scrolls the list.
+  const thumbDrag = useRef<{ id: number; y: number; top: number } | null>(null);
+  const onThumbDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    const el = scrollEl.current;
+    if (!el) return;
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // the pointer already ended
+    }
+    thumbDrag.current = { id: e.pointerId, y: e.clientY, top: el.scrollTop };
+  };
+  const onThumbMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const d = thumbDrag.current;
+    const el = scrollEl.current;
+    if (!d || !el || d.id !== e.pointerId) return;
+    const { travel } = thumbGeom.current;
+    const room = el.scrollHeight - el.clientHeight;
+    if (travel > 0) el.scrollTop = d.top + ((e.clientY - d.y) * room) / travel;
+  };
+  const onThumbUp = () => {
+    thumbDrag.current = null;
+  };
   const sheet = useSheet({ distance: travel, rootRef: mainRef, enabled: !isDesktop });
 
   // Which quick filter is picked, and so which drinks are in the row. `list`
@@ -133,19 +232,35 @@ export function DrinkPanel() {
   // Card sizes: the middle card leaves room for a sliver of its neighbors.
   // On a wide screen the card keeps one fixed shape (CARD_ASPECT) and shrinks to fit when there
   // isn't room, instead of stretching to fill whatever height is left.
-  const maxCardWidth = isDesktop ? trackSize.width : Math.max(0, trackSize.width - (EXPLODED ? 0 : 2 * CARD_MARGIN));
+  // Wide screens leave room beside the card for the round ‹ › buttons (44px plus a 16px gap, each side).
+  // Concept B on a phone: the stack takes the whole width (no peeking neighbors).
+  const maxCardWidth = isDesktop
+    ? Math.max(0, trackSize.width - 2 * (44 + 16))
+    : Math.max(0, trackSize.width - (EXPLODED ? 0 : 2 * CARD_MARGIN));
   // On a phone the card is always as wide as the edit panel (the screen less the 16px margins) and
   // gets shorter, not narrower, when the screen is short (JP, 2026-11-16). Wide screens keep the shape.
+  // Wide screens: the card is 80% of the size it could be (JP, 2026-11-18), centered in its panel.
   const cardWidth = isDesktop
-    ? Math.max(0, Math.min(maxCardWidth, trackSize.height * CARD_ASPECT))
+    ? Math.max(0, Math.min(maxCardWidth, (trackSize.height - SERVING_ROOM) * CARD_ASPECT)) * tune.cardScale
     : maxCardWidth;
-  const cardHeight = EXPLODED
-    ? trackSize.height
-    : isDesktop
-      ? cardWidth / CARD_ASPECT
+  const cardHeight = isDesktop
+    ? cardWidth / CARD_ASPECT
+    : EXPLODED
+      ? trackSize.height
       : Math.min(cardWidth / CARD_ASPECT, trackSize.height);
-  // Concept B: a whole screen width per drink, so the neighbors stay out of view.
-  const step = isDesktop ? 0 : EXPLODED ? cardWidth : cardWidth / 2 + (cardWidth * SIDE_SCALE) / 2 + GAP;
+  // Wide screens: the card and the serving row under it, as one group, sit centered top to bottom in the
+  // right column. That column spans the same height as everything on the left (the drink name down to
+  // the bottom of the edit panel), so the two sides share a middle line at any window size (JP, 2026-11-18).
+  const cardTop = Math.max(0, (trackSize.height - SERVING_ROOM - cardHeight) / 2);
+  // Concept B keeps the other drinks out of view: a whole screen width apart on a phone, and on wide
+  // screens far enough out that they sit past the side fade.
+  const step = isDesktop
+    ? EXPLODED
+      ? cardWidth + 2 * tune.sideFade
+      : cardWidth / 2 + (cardWidth * SIDE_SCALE) / 2 + DESKTOP_GAP
+    : EXPLODED
+      ? cardWidth
+      : cardWidth / 2 + (cardWidth * SIDE_SCALE) / 2 + GAP;
 
   // ── Carousel motion ─────────────────────────────────────────────────────
   // Positions are written straight to the card elements (no React render per
@@ -175,15 +290,16 @@ export function DrinkPanel() {
       const h = Math.floor((c.n - 1) / 2);
       const r = mod(j - c.index + h, c.n) - h; // card's place relative to the middle one
       const t = r + c.p; // 0 = in the middle, ±1 = one card over
-      const scale = c.desktop ? 1 : 1 - (1 - SIDE_SCALE) * Math.min(Math.abs(t), 1);
-      const x = c.desktop ? 0 : t * c.step;
+      // Wide screens show the side drinks too (JP, 2026-11-18), so both layouts move the same way.
+      const scale = 1 - (1 - SIDE_SCALE) * Math.min(Math.abs(t), 1);
+      const x = t * c.step;
       el.style.transform = `translate3d(${(x - c.cardWidth / 2).toFixed(2)}px,0,0) scale(${scale.toFixed(4)})`;
       // The cards beside the middle one fade out as the edit sheet comes up (--p), so only
       // the drink in view stays.
-      el.style.opacity = c.desktop || Math.abs(t) < 0.5 ? "1" : "calc(1 - var(--p, 0) * 3)";
+      el.style.opacity = Math.abs(t) < 0.5 ? "1" : "calc(1 - var(--p, 0) * 3)";
       // Cards fade to dark the further they are from the middle, and back up as they arrive.
       const dim = el.querySelector<HTMLElement>("[data-dim]");
-      if (dim) dim.style.opacity = c.desktop ? "0" : String((SIDE_DIM * Math.min(Math.abs(t), 1)).toFixed(3));
+      if (dim) dim.style.opacity = String((SIDE_DIM * Math.min(Math.abs(t), 1)).toFixed(3));
       el.style.zIndex = String(10 - Math.round(Math.abs(t) * 3));
       el.style.visibility = Math.abs(t) > 2.2 ? "hidden" : "visible";
     });
@@ -259,7 +375,6 @@ export function DrinkPanel() {
     () => ({
       begin(x: number) {
         const c = ctl.current;
-        if (c.desktop) return;
         cancelAnimationFrame(c.raf); // catch a row that's still settling
         c.animating = false;
         c.swiping = true;
@@ -303,13 +418,6 @@ export function DrinkPanel() {
     (delta: number) => {
       const c = ctl.current;
       if (c.n < 2) return;
-      if (c.desktop) {
-        c.index = mod(c.index + delta, c.n);
-        c.info = c.index;
-        setIndex(c.index);
-        setInfoIndex(c.index);
-        return;
-      }
       if (c.swiping || c.animating) return;
       settleTo(delta > 0 ? -1 : 1);
     },
@@ -336,7 +444,7 @@ export function DrinkPanel() {
   // anywhere else on the row, such as a peeking card, is ours from the start.
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     const c = ctl.current;
-    if (c.desktop || (e.pointerType === "mouse" && e.button !== 0)) return;
+    if (e.pointerType === "mouse" && e.button !== 0) return;
     if (sheet.open) return; // with the edit panel up, only the one drink is in focus
     // The reset button handles its own taps.
     if ((e.target as Element).closest("[data-no-swipe]")) return;
@@ -450,9 +558,8 @@ export function DrinkPanel() {
   // With a short list (a filter with few drinks) fewer cards are shown, so the
   // same drink never appears twice.
   const spread = Math.floor((N - 1) / 2);
-  const offsets = isDesktop
-    ? [0]
-    : N >= 5
+  const offsets =
+    N >= 5
       ? [-2, -1, 0, 1, 2]
       : Array.from({ length: N }, (_, k) => k - spread);
 
@@ -488,18 +595,45 @@ export function DrinkPanel() {
   return (
     <main
       ref={mainRef}
-      className="fixed inset-0 flex flex-col gap-4 overflow-hidden bg-[#1A1612] p-4 text-[#F7F7F7] select-none [-webkit-touch-callout:none] md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] md:grid-rows-[auto_auto_minmax(0,1fr)] md:gap-x-8 md:gap-y-4"
-      style={phone ? { perspective: 1000, perspectiveOrigin: "50% 30%" } : undefined}
+      className="fixed inset-0 mx-auto flex max-w-[1440px] flex-col gap-4 overflow-hidden bg-[#1A1612] p-4 text-[#F7F7F7] select-none [-webkit-touch-callout:none] md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] md:grid-rows-[auto_auto_minmax(0,1fr)] md:gap-x-8 md:gap-y-4"
+      style={
+        phone
+          ? { perspective: 1000, perspectiveOrigin: "50% 30%" }
+          : ({
+              maxHeight: tune.maxHeight,
+              "--filters-gap": `${tune.filtersToLine - 8}px`,
+              "--total-size": `${tune.totalSize}px`,
+              "--sub-size": `${tune.subSize}px`,
+              "--servings-size": `${tune.servingsSize}px`,
+              "--name-size": `${tune.nameSize}px`,
+              "--label-size": `${tune.labelSize}px`,
+              "--prep-size": `${tune.prepSize}px`,
+              "--prep-icon-size": `${tune.prepIconSize}px`,
+              "--filter-size": `${tune.filterSize}px`,
+              "--layer-name-size": `${tune.layerNameSize}px`,
+              "--layer-amount-size": `${tune.layerAmountSize}px`,
+              "--layer-unit-size": `${tune.layerUnitSize}px`,
+              "--serving-num-size": `${tune.servingNumSize}px`,
+              "--pill-size": `${tune.pillSize}px`,
+              "--category-size": `${tune.categorySize}px`,
+              "--chip-size": `${tune.chipSize}px`,
+            } as React.CSSProperties)
+      }
     >
       {/* The browse filters: they move back (z) and disappear when the edit panel comes up. */}
-      <div className="md:col-span-2 md:row-start-1" style={zFilters} inert={phone && sheet.open}>
+      <div
+        className="md:col-span-2 md:row-start-1"
+        // Wide screens: the gap above the filters (16px page padding + 8px of their tap area, plus this) and the gap from the squiggly line to the name.
+        style={phone ? zFilters : { paddingTop: tune.filtersTop - 24, marginBottom: tune.lineToName - 16 }}
+        inert={phone && sheet.open}
+      >
         <FilterBar active={filterId} onSelect={selectFilter} />
       </div>
 
       {/* ── Controls ──────────────────────────────────────────────── */}
-      <header className="flex flex-col md:col-start-1 md:row-start-2" style={zHeader}>
-        {/* On a phone you swipe; these stay for screen readers and wide screens. */}
-        <div className="flex justify-end md:-mr-3">
+      <header className="flex flex-col md:col-start-1 md:row-start-2" style={phone ? zHeader : { marginBottom: tune.labelToPanel - 16 }}>
+        {/* On a phone you swipe; these stay for screen readers. Wide screens have round buttons beside the card. */}
+        <div className="flex justify-end md:hidden">
           <button type="button" onClick={() => goBy(-1)} aria-label="Previous drink" className={navButton}>
             ‹
           </button>
@@ -511,11 +645,11 @@ export function DrinkPanel() {
         {/* The name and family on the left; how it's made and what it's served in, bottom right, level with the family label (Figma 135:107). */}
         <div className="relative flex items-end justify-between gap-2">
           <div className="min-w-0">
-            <h1 className="font-serif text-[40px] leading-[52px]" style={zTitle}>
+            <h1 className="font-serif text-[40px] leading-[52px] md:text-[length:var(--name-size,50px)] md:leading-[1.28]" style={zTitle}>
               {infoDrink.name}
             </h1>
             {/* The taste summary, a dot, then the drink's alcohol (both follow your edits). */}
-            <p className="mt-1 flex items-center gap-[5px] text-xs opacity-55" style={zFamily}>
+            <p className="mt-1 flex items-center gap-[5px] text-xs opacity-55 md:text-[length:var(--label-size,14px)]" style={zFamily}>
               <span>{tasteSummary(profile)}</span>
               <span aria-hidden className="size-0.5 shrink-0 rounded-full bg-[#7f7f7f]" />
               <span>{Math.round(profile.strength)}% ABV</span>
@@ -540,7 +674,7 @@ export function DrinkPanel() {
 
       {/* ── The row of drinks (it moves back and shrinks when the edit panel is up) ── */}
       <div
-        className="flex min-h-0 flex-1 flex-col md:col-start-2 md:row-span-2 md:row-start-2 md:h-full"
+        className="relative flex min-h-0 flex-1 flex-col md:col-start-2 md:row-span-2 md:row-start-2 md:h-full"
         style={zDrink}
       >
       <div
@@ -549,6 +683,15 @@ export function DrinkPanel() {
         aria-roledescription="carousel"
         aria-label="Drinks"
         className="relative -mx-4 min-h-0 flex-1 touch-none overflow-hidden select-none md:mx-0"
+        // Wide screens: the side drinks fade out within tune.sideFade px of the card; the middle card stays at full strength.
+        style={
+          isDesktop
+            ? {
+                maskImage: sideFadeMask(cardWidth, tune.sideFade),
+                WebkitMaskImage: sideFadeMask(cardWidth, tune.sideFade),
+              }
+            : undefined
+        }
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerEnd}
@@ -566,7 +709,8 @@ export function DrinkPanel() {
               }}
               inert={j !== infoIndex}
               className="absolute left-1/2 top-1/2 will-change-transform"
-              style={{ width: cardWidth, height: cardHeight, marginTop: -cardHeight / 2 }}
+              // Wide screens: the card sits just above the serving row, which ends at the bottom of the page.
+              style={{ width: cardWidth, height: cardHeight, marginTop: isDesktop ? 0 : -cardHeight / 2, ...(isDesktop ? { top: cardTop } : {}) }}
             >
               {(() => {
                 const Card = EXPLODED ? ExplodedDrink : DrinkCard;
@@ -592,8 +736,9 @@ export function DrinkPanel() {
         })}
 
         {/* Concept B: three dots under the stack (Figma 230:495), the drink before, this one (bright) and the
-            one after. Tapping a side dot goes there. OPEN: three dots, not one per drink, as drawn. */}
-        {EXPLODED && N > 1 && (
+            one after. Tapping a side dot goes there. Phones only: wide screens have the ‹ › buttons. OPEN: three dots, not one
+            per drink, as drawn. */}
+        {EXPLODED && !isDesktop && N > 1 && (
           <div data-no-swipe className="absolute inset-x-0 bottom-0 z-20 flex h-9 items-center justify-center">
             {[-1, 0, 1].map((delta) => (
               <button
@@ -612,8 +757,38 @@ export function DrinkPanel() {
         )}
       </div>
 
-      {/* Serving size and the total under the drink (Figma 187:43). */}
-      <div className="mt-[23px] shrink-0 px-[9px] md:mx-0 md:px-0">
+      {/* Wide screens: a round button on each side of the card, over the faded side drinks (outside the
+          row, so the fade doesn't reach them). */}
+      {isDesktop &&
+        N > 1 &&
+        ([
+          [-1, "Previous drink", "M10 3L5 8L10 13"],
+          [1, "Next drink", "M6 3L11 8L6 13"],
+        ] as const).map(([delta, label, d]) => (
+          <button
+            key={delta}
+            type="button"
+            onClick={() => goBy(delta)}
+            aria-label={label}
+            className="absolute z-20 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-[#21201E]/50 text-white backdrop-blur-md transition-colors hover:bg-[#2C2A27]/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7]"
+            style={{ top: cardTop + cardHeight / 2, ...(delta < 0 ? { right: `calc(50% + ${cardWidth / 2 + tune.cardToArrows}px)` } : { left: `calc(50% + ${cardWidth / 2 + tune.cardToArrows}px)` }) }}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+              <path d={d} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        ))}
+
+      {/* Serving size and the total under the drink (Figma 187:43). Wide screens: exactly as wide as the
+          card and 16px under it (JP, 2026-11-18). */}
+      <div
+        className="mt-[23px] shrink-0 px-[9px] md:mx-0 md:px-0"
+        style={
+          isDesktop
+            ? { position: "absolute", marginTop: 0, left: `calc(50% - ${cardWidth / 2}px)`, width: cardWidth, top: cardTop + cardHeight + tune.cardToServings }
+            : undefined
+        }
+      >
         <ServingsRow
           servings={infoServings}
           total={formatTotal(totalParts(infoLines), DEFAULT_UNIT, infoServings)}
@@ -641,7 +816,11 @@ export function DrinkPanel() {
       )}
 
       {/* ── The edit panel: the buttons, and the ingredients when it is open ── */}
-      <div className="md:col-start-1 md:row-start-3 md:min-h-0 md:overflow-y-auto">
+      <div className="md:relative md:col-start-1 md:row-start-3 md:min-h-0">
+      <div
+        ref={panelScrollRef}
+        className="panel-scroll md:h-full md:overflow-y-auto md:rounded-[30px] md:bg-[#21201E]"
+      >
         <EditPanel
           edits={editsForDrink}
           lines={infoLines}
@@ -656,7 +835,30 @@ export function DrinkPanel() {
           travel={travel}
           bind={sheet.bind}
         />
+        {/* Wide screens: a soft fade at the bottom of the panel (in its own color) that hints there is
+            more to scroll. It stays put while the list scrolls under it. */}
+        {isDesktop && (
+          <div aria-hidden className="pointer-events-none sticky bottom-0 -mt-20 h-20 rounded-b-[30px]" style={{ background: BOTTOM_SCRIM }} />
+        )}
       </div>
+      {/* Wide screens: our own scrollbar (the browser's is hidden): a fully rounded bar in faint white inside
+          the panel's right edge. It follows the scroll exactly and can be dragged. */}
+      {isDesktop && (
+        <div
+          ref={thumbRef}
+          aria-hidden
+          className="group absolute right-1 top-0 z-10 w-3 cursor-grab touch-none active:cursor-grabbing"
+          onPointerDown={onThumbDown}
+          onPointerMove={onThumbMove}
+          onPointerUp={onThumbUp}
+          onPointerCancel={onThumbUp}
+        >
+          <span className="mx-auto block h-full w-1 rounded-full bg-white/20 transition-colors group-hover:bg-white/35" />
+        </div>
+      )}
+      </div>
+      {/* Dev only: the design editor, sliders for the wide-screen spacing and text sizes (never on the live site). */}
+      <DesignEditor />
     </main>
   );
 }
