@@ -12,6 +12,7 @@ import {
 import { DRINKS, type RecipeLine } from "@/data/drinks";
 import { flavorProfile } from "@/lib/flavor";
 import { DrinkCard } from "./DrinkCard";
+import { ExplodedDrink } from "./ExplodedDrink";
 import { CLASSICS_ID, FILTERS, filterList } from "@/data/finder";
 import { FilterBar } from "./FilterBar";
 import { PrepTags } from "./PrepIcons";
@@ -26,6 +27,13 @@ import { tasteSummary } from "@/lib/flavor";
 
 // OPEN: which drink a visitor sees first (brief §1 flow). Placeholder: Negroni.
 const START_DRINK = Math.max(0, DRINKS.findIndex((d) => d.id === "negroni"));
+
+/**
+ * Concept B (JP, 2026-11-18, Figma 230:495): the drink as an exploded stack of turning 3D slabs
+ * (ExplodedDrink) instead of the flat card (DrinkCard). The other drinks are off screen, with
+ * dots under the stack. Set to false to bring the flat card and the peeking carousel back.
+ */
+const EXPLODED = true;
 
 const mod = (a: number, n: number) => ((a % n) + n) % n;
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
@@ -52,10 +60,10 @@ const SHEET = {
 };
 
 /** Phone layout: the middle card with its neighbors peeking in at the sides. */
-const SIDE_SCALE = 0.86; // size of the cards beside the middle one
+const SIDE_SCALE = EXPLODED ? 1 : 0.86; // size of the cards beside the middle one (concept B: no peeking)
 const CARD_MARGIN = 25; // px between the middle card and each side of the screen (Figma 187:43: 352px on a 402px screen)
 const GAP = 8; // px between the middle card and a side card (more space = a smaller sliver of the side card shows)
-const SIDE_DIM = 0.6; // how dark a card at the side gets (black overlay opacity)
+const SIDE_DIM = EXPLODED ? 0 : 0.6; // how dark a card at the side gets (black overlay opacity)
 /** How far a finger moves (px) before it counts as a swipe rather than a tap. */
 const SLOP = 6;
 /** A swipe this fast (px/ms) flips to the next drink even if it was short. */
@@ -125,14 +133,19 @@ export function DrinkPanel() {
   // Card sizes: the middle card leaves room for a sliver of its neighbors.
   // On a wide screen the card keeps one fixed shape (CARD_ASPECT) and shrinks to fit when there
   // isn't room, instead of stretching to fill whatever height is left.
-  const maxCardWidth = isDesktop ? trackSize.width : Math.max(0, trackSize.width - 2 * CARD_MARGIN);
+  const maxCardWidth = isDesktop ? trackSize.width : Math.max(0, trackSize.width - (EXPLODED ? 0 : 2 * CARD_MARGIN));
   // On a phone the card is always as wide as the edit panel (the screen less the 16px margins) and
   // gets shorter, not narrower, when the screen is short (JP, 2026-11-16). Wide screens keep the shape.
   const cardWidth = isDesktop
     ? Math.max(0, Math.min(maxCardWidth, trackSize.height * CARD_ASPECT))
     : maxCardWidth;
-  const cardHeight = isDesktop ? cardWidth / CARD_ASPECT : Math.min(cardWidth / CARD_ASPECT, trackSize.height);
-  const step = isDesktop ? 0 : cardWidth / 2 + (cardWidth * SIDE_SCALE) / 2 + GAP;
+  const cardHeight = EXPLODED
+    ? trackSize.height
+    : isDesktop
+      ? cardWidth / CARD_ASPECT
+      : Math.min(cardWidth / CARD_ASPECT, trackSize.height);
+  // Concept B: a whole screen width per drink, so the neighbors stay out of view.
+  const step = isDesktop ? 0 : EXPLODED ? cardWidth : cardWidth / 2 + (cardWidth * SIDE_SCALE) / 2 + GAP;
 
   // ── Carousel motion ─────────────────────────────────────────────────────
   // Positions are written straight to the card elements (no React render per
@@ -555,23 +568,48 @@ export function DrinkPanel() {
               className="absolute left-1/2 top-1/2 will-change-transform"
               style={{ width: cardWidth, height: cardHeight, marginTop: -cardHeight / 2 }}
             >
-              <DrinkCard
-                drink={DRINKS[d]}
-                drinkIndex={d}
-                lines={edits[d] ?? DRINKS[d].lines}
-                onEdit={onEdit}
-                interactive={j === infoIndex && !busy && !sheet.open}
-                inView={j === infoIndex}
-                onHorizontal={onHorizontal}
-                servings={servings[d] ?? 1}
-                modified={d in edits || (servings[d] ?? 1) !== 1}
-                onReset={resetDrink}
-              />
+              {(() => {
+                const Card = EXPLODED ? ExplodedDrink : DrinkCard;
+                return (
+                  <Card
+                    drink={DRINKS[d]}
+                    drinkIndex={d}
+                    lines={edits[d] ?? DRINKS[d].lines}
+                    onEdit={onEdit}
+                    interactive={j === infoIndex && !busy && !sheet.open}
+                    inView={j === infoIndex}
+                    onHorizontal={onHorizontal}
+                    servings={servings[d] ?? 1}
+                    modified={d in edits || (servings[d] ?? 1) !== 1}
+                    onReset={resetDrink}
+                  />
+                );
+              })()}
               {/* Dims the card when it's at the side; its opacity is set as the row moves. */}
               <div aria-hidden data-dim className="pointer-events-none absolute inset-0 rounded-[38px] bg-black opacity-0" />
             </div>
           );
         })}
+
+        {/* Concept B: three dots under the stack (Figma 230:495), the drink before, this one (bright) and the
+            one after. Tapping a side dot goes there. OPEN: three dots, not one per drink, as drawn. */}
+        {EXPLODED && N > 1 && (
+          <div data-no-swipe className="absolute inset-x-0 bottom-0 z-20 flex h-9 items-center justify-center">
+            {[-1, 0, 1].map((delta) => (
+              <button
+                key={delta}
+                type="button"
+                tabIndex={delta === 0 ? -1 : 0}
+                aria-label={delta === 0 ? `${infoDrink.name}, current drink` : delta < 0 ? "Previous drink" : "Next drink"}
+                aria-current={delta === 0 ? "true" : undefined}
+                onClick={() => delta !== 0 && goBy(delta)}
+                className="grid h-9 w-[9px] place-items-center rounded-full focus-visible:outline-2 focus-visible:outline-[#F7F7F7]"
+              >
+                <span aria-hidden className={`block size-[3px] rounded-full ${delta === 0 ? "bg-[#F7F7F7]" : "bg-[#F7F7F7]/40"}`} />
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Serving size and the total under the drink (Figma 187:43). */}

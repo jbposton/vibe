@@ -2,6 +2,15 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-18: Concept B: the drink as an exploded stack of turning 3D slabs (branch concept-b)
+
+- On the `concept-b` branch only (the flat card is kept at the `mixer-v1` tag and on `main`). Figma 230:495.
+- Each ingredient is a 3D slab, base at the bottom, spaced apart. Its thickness is its amount (10px per part); garnishes are a smaller, thin slab. The top face is the ingredient color as a light-to-dark gradient with grain, an edge highlight and a soft glow; the sides darken downward. Base and modifier slabs also carry a fine dot grid. The whole stack turns slowly (one turn every 40 seconds).
+- Names on the left, the amount on the right in a soft pill. Pressing anywhere in a layer's band (the full width, invisible) starts the drag state: the other layers fade to 30%, the pill gets a white outline and up/down arrows appear beside it, and the turning pauses. Dragging down makes the layer thicker, up thinner; the others rescale exactly as on the flat card, and amounts snap on release. Arrow keys still step a focused layer.
+- The other drinks are off screen. Three dots under the stack (before, this one, after); tapping a side dot, a sideways swipe, or the arrow keys switch drinks. A small reset button sits bottom right once the drink is changed.
+- `EXPLODED` in `DrinkPanel.tsx` switches back to the flat card and peeking carousel.
+- OPEN: which layers get the dot grid (base and modifier is a guess from the Negroni design); amounts show as fractions ("1¾ oz") where the design shows decimals ("1.5 oz"); three dots rather than one per drink, as drawn; the pale cluster (Gin, Vodka, White rum, Soda water, Simple syrup) is hard to tell apart as slabs too; not yet tried on a real phone for smoothness.
+
 ## 2026-11-16: Edit panel: no glass look, the app's own background color with a blur
 
 - The edit panel's lighter translucent gray and the extra color saturation behind it are gone. It is now the app's background color (#1A1612) at 80% opacity with a 20px background blur, so it reads as the same dark as the page while still softening what passes behind it. The white 0.5px border and the soft shadow stay. The fallback (no blur support, or "reduce transparency") is solid #1A1612.
