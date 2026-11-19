@@ -110,6 +110,27 @@ body {
   }
 }
 
+/* The 3D drink stack (concepts B, C, D): each slab turns slowly around its own vertical axis. All slabs
+   start together, so the stack turns as one. Still with "reduce motion". */
+@keyframes slab-spin {
+  from {
+    transform: rotateX(var(--slab-tilt, 64.5deg)) rotateZ(45deg);
+  }
+  to {
+    transform: rotateX(var(--slab-tilt, 64.5deg)) rotateZ(405deg);
+  }
+}
+.slab-spin {
+  animation-name: slab-spin;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .slab-spin {
+    animation: none;
+  }
+}
+
 /* Wide screens: the edit panel hides the browser's scrollbar; DrinkPanel draws its own bar instead. */
 .panel-scroll {
   scrollbar-width: none;

@@ -2,6 +2,11 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-18: Concept D: the card as a turning 3D block (branch concept-d)
+
+- Built from prototype "B". Today's drink card given depth: the layers are equal-width square slabs touching each other, so the drink reads as one solid layered block (250px of liquid in all, each layer's share its amount; the garnish is a thin 12px layer on top). It turns slowly, seen from 14 degrees above, and pauses while you drag a layer. Names and amounts sit level with each layer. Same drag, dots, reset and wide-screen layout as Concepts B and C (it shares their code, with `STACK_STYLE` set to "block").
+- OPEN: no "pull apart" setting yet (the layers always touch); the prototype's slider for it can come back if wanted.
+
 ## 2026-11-18: Wide screens: chevrons for the browse filters
 
 - A mouse can't swipe the filter row sideways, so on wide screens there is now a small round frosted chevron button at each end (28px, the drawer's dark color at 70% with a blur). Each one only shows when there are more filters in its direction, and a click glides the row about two-thirds of its width. The mouse wheel also scrolls the row sideways. Phones are unchanged (you swipe).
