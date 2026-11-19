@@ -14,6 +14,7 @@ import { flavorProfile } from "@/lib/flavor";
 import { useTuning } from "@/lib/tuning";
 import { DesignEditor } from "./dev/DesignEditor";
 import { DrinkCard } from "./DrinkCard";
+import { ExplodedDrink } from "./ExplodedDrink";
 import { CLASSICS_ID, FILTERS, filterList } from "@/data/finder";
 import { FilterBar } from "./FilterBar";
 import { PrepTags } from "./PrepIcons";
@@ -28,6 +29,13 @@ import { tasteSummary } from "@/lib/flavor";
 
 // OPEN: which drink a visitor sees first (brief §1 flow). Placeholder: Negroni.
 const START_DRINK = Math.max(0, DRINKS.findIndex((d) => d.id === "negroni"));
+
+/**
+ * Concept B (JP, 2026-11-18, Figma 230:495): the drink as an exploded stack of turning 3D slabs
+ * (ExplodedDrink) instead of the flat card (DrinkCard). The other drinks are off screen, with
+ * dots under the stack. Set to false to bring the flat card and the peeking carousel back.
+ */
+const EXPLODED = true;
 
 const mod = (a: number, n: number) => ((a % n) + n) % n;
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
@@ -56,7 +64,7 @@ const SHEET = {
 };
 
 /** Phone layout: the middle card with its neighbors peeking in at the sides. */
-const SIDE_SCALE = 0.86; // size of the cards beside the middle one
+const SIDE_SCALE = EXPLODED ? 1 : 0.86; // size of the cards beside the middle one (concept B: no peeking)
 const CARD_MARGIN = 25; // px between the middle card and each side of the screen (Figma 187:43: 352px on a 402px screen)
 const GAP = 8; // px between the middle card and a side card (more space = a smaller sliver of the side card shows)
 const DESKTOP_GAP = 32; // the same on wide screens
@@ -86,7 +94,7 @@ function sideFadeMask(cardWidth: number, fade: number): string {
   const right = Array.from({ length: steps + 1 }, (_, k) => stop(k, 1));
   return `linear-gradient(to right, ${[...left, ...right].join(", ")})`;
 }
-const SIDE_DIM = 0.6; // how dark a card at the side gets (black overlay opacity)
+const SIDE_DIM = EXPLODED ? 0 : 0.6; // how dark a card at the side gets (black overlay opacity; concept B: none)
 /** How far a finger moves (px) before it counts as a swipe rather than a tap. */
 const SLOP = 6;
 /** A swipe this fast (px/ms) flips to the next drink even if it was short. */
@@ -225,19 +233,34 @@ export function DrinkPanel() {
   // On a wide screen the card keeps one fixed shape (CARD_ASPECT) and shrinks to fit when there
   // isn't room, instead of stretching to fill whatever height is left.
   // Wide screens leave room beside the card for the round ‹ › buttons (44px plus a 16px gap, each side).
-  const maxCardWidth = isDesktop ? Math.max(0, trackSize.width - 2 * (44 + 16)) : Math.max(0, trackSize.width - 2 * CARD_MARGIN);
+  // Concept B on a phone: the stack takes the whole width (no peeking neighbors).
+  const maxCardWidth = isDesktop
+    ? Math.max(0, trackSize.width - 2 * (44 + 16))
+    : Math.max(0, trackSize.width - (EXPLODED ? 0 : 2 * CARD_MARGIN));
   // On a phone the card is always as wide as the edit panel (the screen less the 16px margins) and
   // gets shorter, not narrower, when the screen is short (JP, 2026-11-16). Wide screens keep the shape.
   // Wide screens: the card is 80% of the size it could be (JP, 2026-11-18), centered in its panel.
   const cardWidth = isDesktop
     ? Math.max(0, Math.min(maxCardWidth, (trackSize.height - SERVING_ROOM) * CARD_ASPECT)) * tune.cardScale
     : maxCardWidth;
-  const cardHeight = isDesktop ? cardWidth / CARD_ASPECT : Math.min(cardWidth / CARD_ASPECT, trackSize.height);
+  const cardHeight = isDesktop
+    ? cardWidth / CARD_ASPECT
+    : EXPLODED
+      ? trackSize.height
+      : Math.min(cardWidth / CARD_ASPECT, trackSize.height);
   // Wide screens: the card and the serving row under it, as one group, sit centered top to bottom in the
   // right column. That column spans the same height as everything on the left (the drink name down to
   // the bottom of the edit panel), so the two sides share a middle line at any window size (JP, 2026-11-18).
   const cardTop = Math.max(0, (trackSize.height - SERVING_ROOM - cardHeight) / 2);
-  const step = cardWidth / 2 + (cardWidth * SIDE_SCALE) / 2 + (isDesktop ? DESKTOP_GAP : GAP);
+  // Concept B keeps the other drinks out of view: a whole screen width apart on a phone, and on wide
+  // screens far enough out that they sit past the side fade.
+  const step = isDesktop
+    ? EXPLODED
+      ? cardWidth + 2 * tune.sideFade
+      : cardWidth / 2 + (cardWidth * SIDE_SCALE) / 2 + DESKTOP_GAP
+    : EXPLODED
+      ? cardWidth
+      : cardWidth / 2 + (cardWidth * SIDE_SCALE) / 2 + GAP;
 
   // ── Carousel motion ─────────────────────────────────────────────────────
   // Positions are written straight to the card elements (no React render per
@@ -689,24 +712,49 @@ export function DrinkPanel() {
               // Wide screens: the card sits just above the serving row, which ends at the bottom of the page.
               style={{ width: cardWidth, height: cardHeight, marginTop: isDesktop ? 0 : -cardHeight / 2, ...(isDesktop ? { top: cardTop } : {}) }}
             >
-              <DrinkCard
-                drink={DRINKS[d]}
-                drinkIndex={d}
-                lines={edits[d] ?? DRINKS[d].lines}
-                onEdit={onEdit}
-                interactive={j === infoIndex && !busy && !sheet.open}
-                inView={j === infoIndex}
-                onHorizontal={onHorizontal}
-                servings={servings[d] ?? 1}
-                modified={d in edits || (servings[d] ?? 1) !== 1}
-                onReset={resetDrink}
-              />
+              {(() => {
+                const Card = EXPLODED ? ExplodedDrink : DrinkCard;
+                return (
+                  <Card
+                    drink={DRINKS[d]}
+                    drinkIndex={d}
+                    lines={edits[d] ?? DRINKS[d].lines}
+                    onEdit={onEdit}
+                    interactive={j === infoIndex && !busy && !sheet.open}
+                    inView={j === infoIndex}
+                    onHorizontal={onHorizontal}
+                    servings={servings[d] ?? 1}
+                    modified={d in edits || (servings[d] ?? 1) !== 1}
+                    onReset={resetDrink}
+                  />
+                );
+              })()}
               {/* Dims the card when it's at the side; its opacity is set as the row moves. */}
               <div aria-hidden data-dim className="pointer-events-none absolute inset-0 rounded-[38px] bg-black opacity-0" />
             </div>
           );
         })}
 
+        {/* Concept B: three dots under the stack (Figma 230:495), the drink before, this one (bright) and the
+            one after. Tapping a side dot goes there. Phones only: wide screens have the ‹ › buttons. OPEN: three dots, not one
+            per drink, as drawn. */}
+        {EXPLODED && !isDesktop && N > 1 && (
+          <div data-no-swipe className="absolute inset-x-0 bottom-0 z-20 flex h-9 items-center justify-center">
+            {[-1, 0, 1].map((delta) => (
+              <button
+                key={delta}
+                type="button"
+                tabIndex={delta === 0 ? -1 : 0}
+                aria-label={delta === 0 ? `${infoDrink.name}, current drink` : delta < 0 ? "Previous drink" : "Next drink"}
+                aria-current={delta === 0 ? "true" : undefined}
+                onClick={() => delta !== 0 && goBy(delta)}
+                className="grid h-9 w-[9px] place-items-center rounded-full focus-visible:outline-2 focus-visible:outline-[#F7F7F7]"
+              >
+                <span aria-hidden className={`block size-[3px] rounded-full ${delta === 0 ? "bg-[#F7F7F7]" : "bg-[#F7F7F7]/40"}`} />
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Wide screens: a round button on each side of the card, over the faded side drinks (outside the

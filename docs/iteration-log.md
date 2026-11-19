@@ -2,6 +2,13 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-18: Concept C: glass-shaped square slabs (branch concept-c)
+
+- Built from prototype "A". Like Concept B, each ingredient is a 3D square slab, base at the bottom, its thickness its amount (14px per part), turning slowly and pausing while you drag. New here: the camera is low (14 degrees above, nearly straight on), the slabs are spaced 26px apart, and each slab's width follows the drink's glass at that height: a coupe or martini flares toward the top, a highball is a narrow even column, a rocks glass is nearly even, a wine glass bulges in the middle. The stack is drawn from the base up so nearer slabs paint over lower ones, and each slab stays put while it turns (no bounce).
+- Names and amounts sit level with the middle of each slab's side. Dots on phones, ‹ › buttons on wide screens, as in Concept B.
+- `STACK_STYLE` in ExplodedDrink.tsx switches to "block" (Concept D). `EXPLODED` in DrinkPanel.tsx brings back the flat card.
+- OPEN: the glass shapes are first guesses per glass type; garnish slabs are 55% of the top layer's width.
+
 ## 2026-11-18: Wide screens: chevrons for the browse filters
 
 - A mouse can't swipe the filter row sideways, so on wide screens there is now a small round frosted chevron button at each end (28px, the drawer's dark color at 70% with a blur). Each one only shows when there are more filters in its direction, and a click glides the row about two-thirds of its width. The mouse wheel also scrolls the row sideways. Phones are unchanged (you swipe).
