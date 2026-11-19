@@ -136,6 +136,26 @@ Name of the app; flavor dimensions and drink families; what "feeling and vibe" c
 - Live site: https://vibe-delta-orpin.vercel.app. Every push to `main` deploys automatically, so push only after JP has seen a change in the preview.
 - Commands: `npm run dev` (preview at http://localhost:3000), `npm run build` and `npm run lint` before pushing.
 - Placeholders for open decisions (§7) are marked `// OPEN:` in the code. JP asked on 2026-11-14 to stop writing in `docs/decision-log.md` (it stays as a record up to that date). Visible changes still go in `docs/iteration-log.md`.
-- Code map: data in `src/data/` (ingredients, drinks, roles), stack math in `src/lib/stack.ts`, the mixer in `src/components/DrinkPanel.tsx`.
+- Code map: data in `src/data/` (ingredients, drinks, roles), stack math in `src/lib/stack.ts`, the mixer in `src/components/DrinkPanel.tsx`, desktop tuning values in `src/lib/tuning.ts`.
 - Since 2026-11-17 (Figma 187:43): serving buttons under the drink (`ServingsRow.tsx`), a full-width edit panel that swipes all the way up to an ingredient drawer (`EditPanel.tsx`, `IngredientDrawer.tsx`), and swapping ingredients by category (`src/lib/swap.ts`). The Sweet-to-Bitter slider is parked (`docs/parked.md`).
 - Drawing: since 2026-11-16 each layer is a **flat block** of its ingredient color. The blurred "v4" liquid shader (`src/components/LiquidCanvas.tsx`) is kept but off: flip `USE_SHADER` in `src/components/DrinkCard.tsx` to bring it back.
+
+### Branches and concepts (as of 2026-11-19)
+
+Every branch gets its own Vercel preview link; only `main` deploys to the live site.
+
+- `main`: the flat card (live). Tagged `mixer-v1` at 2026-11-18 before the concept work.
+- `concept-b`: "exploded" 3D slabs seen from above, turning (Figma 230:495). `src/components/ExplodedDrink.tsx`.
+- `concept-c`: square slabs spaced apart whose widths follow the drink's glass, low camera (14 degrees), turning. Same file, `STACK_STYLE = "glass"`.
+- `concept-d`: today's card as one solid turning block. Same file, `STACK_STYLE = "block"`.
+- In the concept branches `EXPLODED` in `DrinkPanel.tsx` switches between the 3D stack and the flat card. Concept branches don't get `main`'s later changes automatically: merge `main` into them when JP asks (concept-b was merged on 2026-11-18).
+- Each concept is logged in `docs/iteration-log.md` on its own branch.
+
+### Desktop layout and the design editor
+
+- Wide screens (768px and up) have their own layout: side drinks with an eased fade, frosted ‹ › buttons, the card centered against the left column, a rounded edit panel with a drawn scrollbar, and a page capped at 1440 x 1000px.
+- Desktop spacing and text sizes live in `src/lib/tuning.ts` (`TUNING_DEFAULTS`). JP tunes them in the **design editor** (`src/components/dev/DesignEditor.tsx`): a draggable slider panel that only appears in `npm run dev` (button "DESIGN", bottom right). JP pastes the copied values back; set them as the new defaults in `tuning.ts`. Phones keep their own fixed sizes.
+
+### Dev server gotcha
+
+- The dev server often keeps serving an old stylesheet after `globals.css` changes or new Tailwind classes. If a style change doesn't show up, stop the preview, delete the `.next` folder, and start it again. A freshly compiled page sometimes needs one reload before the drink card has its size.
