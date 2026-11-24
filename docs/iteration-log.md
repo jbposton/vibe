@@ -2,6 +2,11 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-24: Floating 3D toggle (Concept C on main)
+- **Before:** `main` only had the flat card.
+- **After:** a small "3D" pill floats at the right, under the browse filters and the prep icons. On, the drink becomes Concept C's turning glass-shaped slabs (`ExplodedDrink.tsx`, copied from `v2`) at full width, with three dots under it to move between drinks. Off (the default) is the flat card with the peeking neighbors. Edits are kept per drink in both views.
+- **Wide screens, 3D:** the stack's box takes the full column height (up to 560px wide) and the slabs grow up to 1.5x their phone size to fill it (`MAX_3D_SCALE`, `MAX_3D_WIDTH` in `DrinkPanel.tsx`).
+
 ## 2026-11-18: Wide screens: chevrons for the browse filters
 
 - A mouse can't swipe the filter row sideways, so on wide screens there is now a small round frosted chevron button at each end (28px, the drawer's dark color at 70% with a blur). Each one only shows when there are more filters in its direction, and a click glides the row about two-thirds of its width. The mouse wheel also scrolls the row sideways. Phones are unchanged (you swipe).

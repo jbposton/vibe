@@ -14,6 +14,7 @@ import { flavorProfile } from "@/lib/flavor";
 import { useTuning } from "@/lib/tuning";
 import { DesignEditor } from "./dev/DesignEditor";
 import { DrinkCard } from "./DrinkCard";
+import { ExplodedDrink } from "./ExplodedDrink";
 import { CLASSICS_ID, FILTERS, filterList } from "@/data/finder";
 import { FilterBar } from "./FilterBar";
 import { PrepTags } from "./PrepIcons";
@@ -56,6 +57,9 @@ const SHEET = {
 };
 
 /** Phone layout: the middle card with its neighbors peeking in at the sides. */
+/** Wide screens, 3D view: the widest the stack's box gets (px), and how far the stack may grow past its natural size. */
+const MAX_3D_WIDTH = 560;
+const MAX_3D_SCALE = 1.5;
 const SIDE_SCALE = 0.86; // size of the cards beside the middle one
 const CARD_MARGIN = 25; // px between the middle card and each side of the screen (Figma 187:43: 352px on a 402px screen)
 const GAP = 8; // px between the middle card and a side card (more space = a smaller sliver of the side card shows)
@@ -108,6 +112,11 @@ export function DrinkPanel() {
   // On a wide screen there's one big card and ‹ › buttons, as before. On a
   // phone the cards sit in a row and you swipe through them.
   const isDesktop = useSyncExternalStore(subscribeDesktop, getDesktop, () => false);
+  // The floating toggle: the flat card, or Concept C (turning 3D slabs shaped like the glass). In 3D the stack
+  // takes the whole width and the other drinks are off screen (dots under the stack stand in for the peeking cards).
+  const [view3d, setView3d] = useState(false);
+  const sideScale = view3d ? 1 : SIDE_SCALE;
+  const sideDim = view3d ? 0 : SIDE_DIM;
   // Wide-screen spacing and sizes (lib/tuning.ts); the dev-only spacing panel can change them live.
   const tune = useTuning();
   // Room under the card for the serving row: the gap, the 36px buttons, 8px, and the "Servings" line.
@@ -225,19 +234,36 @@ export function DrinkPanel() {
   // On a wide screen the card keeps one fixed shape (CARD_ASPECT) and shrinks to fit when there
   // isn't room, instead of stretching to fill whatever height is left.
   // Wide screens leave room beside the card for the round ‹ › buttons (44px plus a 16px gap, each side).
-  const maxCardWidth = isDesktop ? Math.max(0, trackSize.width - 2 * (44 + 16)) : Math.max(0, trackSize.width - 2 * CARD_MARGIN);
+  const maxCardWidth = isDesktop
+    ? Math.max(0, trackSize.width - 2 * (44 + 16))
+    : Math.max(0, trackSize.width - (view3d ? 0 : 2 * CARD_MARGIN));
   // On a phone the card is always as wide as the edit panel (the screen less the 16px margins) and
   // gets shorter, not narrower, when the screen is short (JP, 2026-11-16). Wide screens keep the shape.
   // Wide screens: the card is 80% of the size it could be (JP, 2026-11-18), centered in its panel.
+  // 3D on a wide screen: the stack gets all the height there is and a wide box (it grows past its natural size to fill it).
   const cardWidth = isDesktop
-    ? Math.max(0, Math.min(maxCardWidth, (trackSize.height - SERVING_ROOM) * CARD_ASPECT)) * tune.cardScale
+    ? view3d
+      ? Math.min(maxCardWidth, MAX_3D_WIDTH)
+      : Math.max(0, Math.min(maxCardWidth, (trackSize.height - SERVING_ROOM) * CARD_ASPECT)) * tune.cardScale
     : maxCardWidth;
-  const cardHeight = isDesktop ? cardWidth / CARD_ASPECT : Math.min(cardWidth / CARD_ASPECT, trackSize.height);
+  const cardHeight = isDesktop
+    ? view3d
+      ? Math.max(0, trackSize.height - SERVING_ROOM)
+      : cardWidth / CARD_ASPECT
+    : view3d
+      ? trackSize.height
+      : Math.min(cardWidth / CARD_ASPECT, trackSize.height);
   // Wide screens: the card and the serving row under it, as one group, sit centered top to bottom in the
   // right column. That column spans the same height as everything on the left (the drink name down to
   // the bottom of the edit panel), so the two sides share a middle line at any window size (JP, 2026-11-18).
   const cardTop = Math.max(0, (trackSize.height - SERVING_ROOM - cardHeight) / 2);
-  const step = cardWidth / 2 + (cardWidth * SIDE_SCALE) / 2 + (isDesktop ? DESKTOP_GAP : GAP);
+  // 3D keeps the other drinks out of view: a whole screen width apart on a phone, and on wide screens far
+  // enough out that they sit past the side fade.
+  const step = view3d
+    ? isDesktop
+      ? cardWidth + 2 * tune.sideFade
+      : cardWidth
+    : cardWidth / 2 + (cardWidth * SIDE_SCALE) / 2 + (isDesktop ? DESKTOP_GAP : GAP);
 
   // ── Carousel motion ─────────────────────────────────────────────────────
   // Positions are written straight to the card elements (no React render per
@@ -257,6 +283,8 @@ export function DrinkPanel() {
     desktop: false,
     cardWidth: 0,
     step: 0,
+    sideScale: SIDE_SCALE,
+    sideDim: SIDE_DIM,
     pointer: null as Pointer | null,
   });
   const cardEls = useRef(new Map<number, HTMLElement>());
@@ -268,7 +296,7 @@ export function DrinkPanel() {
       const r = mod(j - c.index + h, c.n) - h; // card's place relative to the middle one
       const t = r + c.p; // 0 = in the middle, ±1 = one card over
       // Wide screens show the side drinks too (JP, 2026-11-18), so both layouts move the same way.
-      const scale = 1 - (1 - SIDE_SCALE) * Math.min(Math.abs(t), 1);
+      const scale = 1 - (1 - c.sideScale) * Math.min(Math.abs(t), 1);
       const x = t * c.step;
       el.style.transform = `translate3d(${(x - c.cardWidth / 2).toFixed(2)}px,0,0) scale(${scale.toFixed(4)})`;
       // The cards beside the middle one fade out as the edit sheet comes up (--p), so only
@@ -276,7 +304,7 @@ export function DrinkPanel() {
       el.style.opacity = Math.abs(t) < 0.5 ? "1" : "calc(1 - var(--p, 0) * 3)";
       // Cards fade to dark the further they are from the middle, and back up as they arrive.
       const dim = el.querySelector<HTMLElement>("[data-dim]");
-      if (dim) dim.style.opacity = String((SIDE_DIM * Math.min(Math.abs(t), 1)).toFixed(3));
+      if (dim) dim.style.opacity = String((c.sideDim * Math.min(Math.abs(t), 1)).toFixed(3));
       el.style.zIndex = String(10 - Math.round(Math.abs(t) * 3));
       el.style.visibility = Math.abs(t) > 2.2 ? "hidden" : "visible";
     });
@@ -289,6 +317,8 @@ export function DrinkPanel() {
     c.desktop = isDesktop;
     c.cardWidth = cardWidth;
     c.step = step;
+    c.sideScale = sideScale;
+    c.sideDim = sideDim;
     applyTransforms();
   });
 
@@ -607,6 +637,18 @@ export function DrinkPanel() {
         <FilterBar active={filterId} onSelect={selectFilter} />
       </div>
 
+      {/* A small floating toggle in the right-hand corner, under the browse filters: flat card or Concept C. */}
+      <button
+        type="button"
+        aria-pressed={view3d}
+        onClick={() => setView3d((v) => !v)}
+        inert={phone && sheet.open}
+        className="absolute right-4 top-[158px] z-30 flex h-7 items-center gap-1.5 rounded-full bg-[#21201E]/70 px-3 text-[10px] uppercase tracking-[0.08em] text-[#F7F7F7]/80 backdrop-blur-md transition-colors hover:bg-[#2C2A27] hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] md:right-8 md:top-[112px]"
+      >
+        <span aria-hidden className={`size-1.5 rounded-full ${view3d ? "bg-[#F7F7F7]" : "bg-[#F7F7F7]/30"}`} />
+        3D
+      </button>
+
       {/* ── Controls ──────────────────────────────────────────────── */}
       <header className="flex flex-col md:col-start-1 md:row-start-2" style={phone ? zHeader : { marginBottom: tune.labelToPanel - 16 }}>
         {/* On a phone you swipe; these stay for screen readers. Wide screens have round buttons beside the card. */}
@@ -689,24 +731,49 @@ export function DrinkPanel() {
               // Wide screens: the card sits just above the serving row, which ends at the bottom of the page.
               style={{ width: cardWidth, height: cardHeight, marginTop: isDesktop ? 0 : -cardHeight / 2, ...(isDesktop ? { top: cardTop } : {}) }}
             >
-              <DrinkCard
-                drink={DRINKS[d]}
-                drinkIndex={d}
-                lines={edits[d] ?? DRINKS[d].lines}
-                onEdit={onEdit}
-                interactive={j === infoIndex && !busy && !sheet.open}
-                inView={j === infoIndex}
-                onHorizontal={onHorizontal}
-                servings={servings[d] ?? 1}
-                modified={d in edits || (servings[d] ?? 1) !== 1}
-                onReset={resetDrink}
-              />
+              {(() => {
+                const Card = view3d ? ExplodedDrink : DrinkCard;
+                return (
+                  <Card
+                    drink={DRINKS[d]}
+                    drinkIndex={d}
+                    lines={edits[d] ?? DRINKS[d].lines}
+                    onEdit={onEdit}
+                    interactive={j === infoIndex && !busy && !sheet.open}
+                    inView={j === infoIndex}
+                    onHorizontal={onHorizontal}
+                    servings={servings[d] ?? 1}
+                    modified={d in edits || (servings[d] ?? 1) !== 1}
+                    onReset={resetDrink}
+                    {...(view3d && isDesktop ? { maxScale: MAX_3D_SCALE } : {})}
+                  />
+                );
+              })()}
               {/* Dims the card when it's at the side; its opacity is set as the row moves. */}
               <div aria-hidden data-dim className="pointer-events-none absolute inset-0 rounded-[38px] bg-black opacity-0" />
             </div>
           );
         })}
 
+        {/* 3D on a phone: three dots under the stack, the drink before, this one (bright) and the one after.
+            Tapping a side dot goes there. Wide screens have the ‹ › buttons. */}
+        {view3d && !isDesktop && N > 1 && (
+          <div data-no-swipe className="absolute inset-x-0 bottom-0 z-20 flex h-9 items-center justify-center">
+            {[-1, 0, 1].map((delta) => (
+              <button
+                key={delta}
+                type="button"
+                tabIndex={delta === 0 ? -1 : 0}
+                aria-label={delta === 0 ? `${infoDrink.name}, current drink` : delta < 0 ? "Previous drink" : "Next drink"}
+                aria-current={delta === 0 ? "true" : undefined}
+                onClick={() => delta !== 0 && goBy(delta)}
+                className="grid h-9 w-[9px] place-items-center rounded-full focus-visible:outline-2 focus-visible:outline-[#F7F7F7]"
+              >
+                <span aria-hidden className={`block size-[3px] rounded-full ${delta === 0 ? "bg-[#F7F7F7]" : "bg-[#F7F7F7]/40"}`} />
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Wide screens: a round button on each side of the card, over the faded side drinks (outside the
