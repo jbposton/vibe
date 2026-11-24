@@ -2,6 +2,23 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-23: v2, a flow (branch `v2`)
+
+- **Before:** the app opened straight on the mixer: a carousel of flat drink cards with the edit panel under them.
+- **After:** the app is a flow, built beside the mixer (`src/components/flow/`; the old mixer is untouched, and `src/app/page.tsx` decides which one shows):
+  1. **Loader:** a dark screen with a glass silhouette in a slightly lighter dark that melts from a martini glass into a coupe, a wine glass and a highball, then dissolves into the next screen (about 3s; a still glass with "reduce motion").
+  2. **"What are you having?":** the browse filters and a carousel of the original flat drink cards (the middle one at full size with its wave, the others smaller and dimmer). Under it: name, taste, ABV, the sweet / bitter ladders and the prep illustrations. No edit panel. "Not sure? Build my own" sits at the bottom.
+  3. **Tap a drink:** the chosen card grows a little while the others fade, and the drink screen comes in with two panels: every ingredient (the drink's own outlined), and the drink's ingredients grouped by role (− / + for amounts, remove, add). A "Serve" button is there as a placeholder.
+  4. **Build my own:** the same zoom to an empty glass with a guide (a scripted chat: mood first, then one role at a time, with suggestions) and the roles panel. Each answer adds a layer live. Serve turns on once there are two liquids.
+- **Cubes tried and dropped (same day):** turning 3D cubes (plain, then rounded, then shader-drawn) were built and removed at JP's request. The choose screen uses the original flat cards again, so the 3D and spinning code is gone. Only the five nearest cards exist at a time.
+- **Opening screen changed (later the same day):** the "What are you having?" carousel is gone. After the loader you land on the empty glass, with the classic cocktails across the top as pills (tap one to fill the glass) and the guide and roles panels underneath. Starting the guide clears the glass and asks about every role.
+- Phones put both panels in one sheet with tabs; wide screens put them either side of the drink.
+- Not yet: the guide is scripted (no AI; the text box is a placeholder), Serve does nothing.
+
+## 2026-11-24: v2: Card / Glass / Block toggle (Concepts C and D in the flow)
+- **Before:** the glass in v2 was always the flat card.
+- **After:** the toggle has a third option, Block (Concept D: one solid turning block); `ExplodedDrink` now takes a `stackStyle` prop. Originally: a small Card | Glass toggle at the top left of the drink column. Glass shows Concept C's turning, glass-shaped 3D slabs (`ExplodedDrink.tsx`, copied from `concept-c`); dragging a slab, the arrow keys, servings and the roles panel all work the same. Card is the default.
+
 ## 2026-11-18: Wide screens: chevrons for the browse filters
 
 - A mouse can't swipe the filter row sideways, so on wide screens there is now a small round frosted chevron button at each end (28px, the drawer's dark color at 70% with a blur). Each one only shows when there are more filters in its direction, and a click glides the row about two-thirds of its width. The mouse wheel also scrolls the row sideways. Phones are unchanged (you swipe).

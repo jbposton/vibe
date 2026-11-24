@@ -156,6 +156,12 @@ Every branch gets its own Vercel preview link; only `main` deploys to the live s
 - Wide screens (768px and up) have their own layout: side drinks with an eased fade, frosted ‹ › buttons, the card centered against the left column, a rounded edit panel with a drawn scrollbar, and a page capped at 1440 x 1000px.
 - Desktop spacing and text sizes live in `src/lib/tuning.ts` (`TUNING_DEFAULTS`). JP tunes them in the **design editor** (`src/components/dev/DesignEditor.tsx`): a draggable slider panel that only appears in `npm run dev` (button "DESIGN", bottom right). JP pastes the copied values back; set them as the new defaults in `tuning.ts`. Phones keep their own fixed sizes.
 
+### v2: the flow (branch `v2`, started 2026-11-23)
+
+- A new direction on top of the same data and styles: loader (morphing glasses) → one screen (changed 2026-11-23): an empty glass with the classic cocktails across the top (tap one to fill the glass) and the guide chat + roles panel underneath. Serve is a placeholder. The old "What are you having?" carousel (`ChooseScreen`) was removed; `DrinkScreen` still has a premade-drink mode (ingredients panel) that nothing uses now.
+- Code: `src/components/flow/` (`Flow.tsx` holds the glass, servings and chat; `Loader`, `DrinkScreen`, `RolesPanel`, `BuilderChat`), the guide's questions and suggestions in `src/data/builder.ts`, motion CSS at the end of `globals.css`. `src/app/page.tsx` renders `<Flow />`; swap it back to `<DrinkPanel />` to see the old mixer.
+- The guide is scripted on purpose; a real AI chat needs an API route with the key in `.env.local` (never in the repo).
+
 ### Dev server gotcha
 
 - The dev server often keeps serving an old stylesheet after `globals.css` changes or new Tailwind classes. If a style change doesn't show up, stop the preview, delete the `.next` folder, and start it again. A freshly compiled page sometimes needs one reload before the drink card has its size.

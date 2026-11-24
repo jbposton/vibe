@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FILTERS } from "@/data/finder";
+import { FILTERS, type Filter } from "@/data/finder";
 
 /** The thin slash between two filters (Figma 132:35: 3.9 x 9.7, white at 50%). */
 function Slash() {
@@ -15,6 +15,8 @@ function Slash() {
 type Props = {
   active: string;
   onSelect: (id: string) => void;
+  /** Which filters to show (default: all of them). */
+  filters?: Filter[];
 };
 
 /** A small round chevron button at one end of the filter row (wide screens only). */
@@ -42,7 +44,7 @@ function Chevron({ dir, shown, onClick }: { dir: -1 | 1; shown: boolean; onClick
  * slashes (Figma 132:35). Start filters (Classics, Build my own) and taste come first, then
  * the occasion filters. Picking one swaps the carousel to that curated list.
  */
-export function FilterBar({ active, onSelect }: Props) {
+export function FilterBar({ active, onSelect, filters = FILTERS }: Props) {
   // Wide screens: a mouse can't swipe sideways, so there are chevron buttons at the ends (each shows only
   // when there is more in that direction), and the mouse wheel scrolls the row too (JP, 2026-11-18).
   const rowRef = useRef<HTMLDivElement | null>(null);
@@ -93,7 +95,7 @@ export function FilterBar({ active, onSelect }: Props) {
         style={{ maskImage: edgeFade, WebkitMaskImage: edgeFade }}
       >
         <div className="flex w-max items-center pr-10">
-          {FILTERS.map((f, i) => {
+          {filters.map((f, i) => {
             const selected = f.id === active;
             return (
               // Plain text in capitals, split by thin slashes (no pills). The chosen one is white and

@@ -117,3 +117,135 @@ body {
 .panel-scroll::-webkit-scrollbar {
   display: none;
 }
+
+/*
+ * The v2 flow's motion (loader, choose screen, zoom into a drink). The zoom plays in about 0.9s: the
+ * cards beside the chosen one fade, the chosen card grows a little, and the drink screen comes in on top with its
+ * panels sliding in a beat later. `scale` and `translate` are used (not `transform`) so these don't
+ * fight the inline positioning of the pieces they move.
+ */
+@keyframes flow-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes flow-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes flow-card-in {
+  from {
+    opacity: 0;
+    scale: 0.7;
+  }
+}
+@keyframes flow-panel-left {
+  from {
+    opacity: 0;
+    translate: -36px 0;
+  }
+}
+@keyframes flow-panel-right {
+  from {
+    opacity: 0;
+    translate: 36px 0;
+  }
+}
+@keyframes flow-sheet-in {
+  from {
+    opacity: 0;
+    translate: 0 48px;
+  }
+}
+.flow-choose-in {
+  animation: flow-fade-in 900ms ease-out both;
+}
+.flow-dissolve-out {
+  animation: flow-fade-out 1000ms ease-in-out forwards;
+  pointer-events: none;
+}
+.flow-info {
+  animation: flow-fade-in 420ms ease-out both;
+}
+.flow-card-in {
+  animation: flow-card-in 900ms cubic-bezier(0.22, 1, 0.36, 1) 150ms both;
+}
+.flow-panel-left {
+  animation: flow-panel-left 800ms cubic-bezier(0.22, 1, 0.36, 1) 350ms both;
+}
+.flow-panel-right {
+  animation: flow-panel-right 800ms cubic-bezier(0.22, 1, 0.36, 1) 450ms both;
+}
+.flow-sheet-in {
+  animation: flow-sheet-in 800ms cubic-bezier(0.22, 1, 0.36, 1) 350ms both;
+}
+.flow-fade-slow {
+  animation: flow-fade-in 700ms ease-out 400ms both;
+}
+.flow-screen-out {
+  animation: flow-fade-out 420ms ease-in forwards;
+  pointer-events: none;
+}
+.flow-fade {
+  transition: opacity 350ms ease-out;
+}
+.flow-leaving .flow-fade {
+  opacity: 0;
+  pointer-events: none;
+}
+.flow-side {
+  transition: opacity 400ms ease-out;
+}
+.flow-leaving .flow-side {
+  opacity: 0;
+}
+.flow-center {
+  transition:
+    transform 900ms cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 450ms ease-in 450ms;
+}
+.flow-leaving .flow-center {
+  transform: scale(1.12);
+  opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .flow-choose-in,
+  .flow-dissolve-out,
+  .flow-info,
+  .flow-card-in,
+  .flow-panel-left,
+  .flow-panel-right,
+  .flow-sheet-in,
+  .flow-fade-slow,
+  .flow-screen-out {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+  }
+  .flow-fade,
+  .flow-side,
+  .flow-center {
+    transition: none !important;
+  }
+}
+
+/* The 3D drink stack (Concept C, brought into v2): each slab turns slowly around its own vertical axis.
+   All slabs start together, so the stack turns as one. Still with "reduce motion". */
+@keyframes slab-spin {
+  from {
+    transform: rotateX(var(--slab-tilt, 64.5deg)) rotateZ(45deg);
+  }
+  to {
+    transform: rotateX(var(--slab-tilt, 64.5deg)) rotateZ(405deg);
+  }
+}
+.slab-spin {
+  animation-name: slab-spin;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .slab-spin {
+    animation: none;
+  }
+}
