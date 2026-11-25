@@ -144,7 +144,7 @@ Name of the app; flavor dimensions and drink families; what "feeling and vibe" c
 
 Every branch gets its own Vercel preview link; only `main` deploys to the live site.
 
-- `main`: the flat card (live). Tagged `mixer-v1` at 2026-11-18 before the concept work.
+- `main`: the v2 design since 2026-11-25. Tags: `mixer-v1` (2026-11-18, before the concept work) and `main-before-v2` (the flat card with the 3D toggle).
 - `concept-b`: "exploded" 3D slabs seen from above, turning (Figma 230:495). `src/components/ExplodedDrink.tsx`.
 - `concept-c`: square slabs spaced apart whose widths follow the drink's glass, low camera (14 degrees), turning. Same file, `STACK_STYLE = "glass"`.
 - `concept-d`: today's card as one solid turning block. Same file, `STACK_STYLE = "block"`.
@@ -155,6 +155,13 @@ Every branch gets its own Vercel preview link; only `main` deploys to the live s
 
 - Wide screens (768px and up) have their own layout: side drinks with an eased fade, frosted ‹ › buttons, the card centered against the left column, a rounded edit panel with a drawn scrollbar, and a page capped at 1440 x 1000px.
 - Desktop spacing and text sizes live in `src/lib/tuning.ts` (`TUNING_DEFAULTS`). JP tunes them in the **design editor** (`src/components/dev/DesignEditor.tsx`): a draggable slider panel that only appears in `npm run dev` (button "DESIGN", bottom right). JP pastes the copied values back; set them as the new defaults in `tuning.ts`. Phones keep their own fixed sizes.
+
+### v2 (started 2026-11-23, merged into `main` 2026-11-25)
+
+- `src/app/page.tsx` renders `<DrinkPanel />`. On wide screens it has Browse and Build modes (`BrowsePanel`, `EditShell`, `BuildButton`), Build my own with a guide, saved drinks (`src/lib/saved.ts`, kept in the browser), drink motion (swing, slosh in `DrinkCard.tsx`) and a lens over the side drinks (`SideLens.tsx`; `SideGlass.tsx` is the earlier version). Phones keep the earlier mixer with the new edit panel.
+- `src/components/flow/`: the Edit Panel uses `RolesPanel` and `BuilderChat`; the first one-screen flow (`Flow`, `Loader`, `DrinkScreen`) is no longer rendered.
+- The guide is scripted on purpose (`src/data/builder.ts`); a real AI chat needs an API route with the key in `.env.local` (never in the repo).
+- The drink descriptions in `src/data/blurbs.ts` are placeholders except the Negroni.
 
 ### Dev server gotcha
 

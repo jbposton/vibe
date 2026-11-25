@@ -23,7 +23,7 @@ export function IngredientDrawer({ lines, onPick }: Props) {
     <div className="flex flex-col gap-[30px]">
       {CATEGORIES.map((category) => (
         <section key={category} aria-label={category}>
-          <h2 className="mb-2 text-[10px] uppercase leading-[17px] tracking-[0.08em] text-[#F7F7F7]/50 md:text-[length:var(--category-size,10px)]">{category}</h2>
+          <h2 className="mb-2 text-[10px] uppercase leading-[17px] tracking-[1px] text-[#F7F7F7]/50 md:text-[length:var(--category-size,10px)]">{category}</h2>
           <div className="flex flex-wrap gap-x-3 gap-y-[11px]">
             {all
               .filter((i) => i.category === category)
@@ -35,7 +35,7 @@ export function IngredientDrawer({ lines, onPick }: Props) {
                     type="button"
                     aria-pressed={on}
                     onClick={() => onPick(i.id)}
-                    className={`flex h-14 items-center gap-[10px] rounded-full border bg-[#1A1612] py-2 pl-[7px] pr-[14px] text-[10px] uppercase tracking-[0.08em] text-white md:text-[length:var(--chip-size,10px)] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] ${
+                    className={`flex h-14 items-center gap-[10px] rounded-full border bg-[#1A1612] py-2 pl-[7px] pr-[14px] text-[10px] uppercase tracking-[1px] text-white md:text-[length:var(--chip-size,10px)] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] ${
                       on ? "border-white" : "border-transparent hover:bg-[#26221E]"
                     }`}
                   >

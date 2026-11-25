@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FILTERS } from "@/data/finder";
+import { BUILD_ID, FILTERS, type Filter } from "@/data/finder";
+import { BuildButton } from "./BuildButton";
 
 /** The thin slash between two filters (Figma 132:35: 3.9 x 9.7, white at 50%). */
 function Slash() {
@@ -15,6 +16,8 @@ function Slash() {
 type Props = {
   active: string;
   onSelect: (id: string) => void;
+  /** Which filters to show (default: all of them). */
+  filters?: Filter[];
 };
 
 /** A small round chevron button at one end of the filter row (wide screens only). */
@@ -42,7 +45,7 @@ function Chevron({ dir, shown, onClick }: { dir: -1 | 1; shown: boolean; onClick
  * slashes (Figma 132:35). Start filters (Classics, Build my own) and taste come first, then
  * the occasion filters. Picking one swaps the carousel to that curated list.
  */
-export function FilterBar({ active, onSelect }: Props) {
+export function FilterBar({ active, onSelect, filters = FILTERS }: Props) {
   // Wide screens: a mouse can't swipe sideways, so there are chevron buttons at the ends (each shows only
   // when there is more in that direction), and the mouse wheel scrolls the row too (JP, 2026-11-18).
   const rowRef = useRef<HTMLDivElement | null>(null);
@@ -75,7 +78,7 @@ export function FilterBar({ active, onSelect }: Props) {
   return (
     <section aria-label="Find a drink" className="flex flex-col gap-2 md:col-span-2 md:row-start-1 md:gap-[var(--filters-gap,16px)]">
       {/* One row that scrolls sideways, edge to edge on a phone; an edge fades out only when there is more past it. */}
-      <div className="relative">
+      <div className="intro-filters relative">
       <Chevron dir={-1} shown={more.left} onClick={() => scrollByPage(-1)} />
       <Chevron dir={1} shown={more.right} onClick={() => scrollByPage(1)} />
       <div
@@ -87,14 +90,17 @@ export function FilterBar({ active, onSelect }: Props) {
         }}
         role="group"
         aria-label="Filters"
-        className="-mx-4 -my-1.5 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:px-0"
+        // The padding (cancelled by the same negative margin) leaves room for the Build my own button's glow,
+        // which a scrolling box would otherwise cut off.
+        className="-mx-4 -my-[22px] overflow-x-auto px-4 py-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         // Each edge fades out only when there are more filters past it, so "Classics" isn't faded before
         // you scroll (JP, 2026-11-18).
         style={{ maskImage: edgeFade, WebkitMaskImage: edgeFade }}
       >
         <div className="flex w-max items-center pr-10">
-          {FILTERS.map((f, i) => {
+          {filters.map((f, i) => {
             const selected = f.id === active;
+            if (f.id === BUILD_ID) return <BuildButton key={f.id} selected={selected} onClick={() => onSelect(f.id)} />;
             return (
               // Plain text in capitals, split by thin slashes (no pills). The chosen one is white and
               // medium weight; the rest are 50% white. The button is an invisible 44px-tall tap area.
@@ -105,12 +111,13 @@ export function FilterBar({ active, onSelect }: Props) {
                 aria-disabled={f.placeholder || undefined}
                 title={f.placeholder ? "Coming soon" : undefined}
                 onClick={() => onSelect(f.id)}
-                // With a slash: 14px from the label before it to the slash, and 14px from the slash to its label.
-                className={`group flex h-11 shrink-0 items-center pr-2 outline-none ${i > 0 ? "gap-3.5 pl-1.5" : "pl-2"} ${f.placeholder ? "cursor-default" : ""}`}
+                // With a slash: 22px from the label before it to the slash, and 22px from the slash to its label (JP, 2026-11-24:
+                // room enough that the Build my own button, with its own 14px padding, stands 8px clear of the slash).
+                className={`group flex h-11 shrink-0 items-center pr-2 outline-none ${i > 0 ? "gap-[22px] pl-3.5" : "pl-2"} ${f.placeholder ? "cursor-default" : ""}`}
               >
                 {i > 0 && <Slash />}
                 <span
-                  className={`whitespace-nowrap text-[10px] uppercase md:text-[length:var(--filter-size,12px)] tracking-[0.08em] transition-colors group-focus-visible:outline-2 group-focus-visible:outline-offset-4 group-focus-visible:outline-[#F7F7F7] ${
+                  className={`whitespace-nowrap text-[10px] uppercase md:text-[length:var(--filter-size,12px)] tracking-[1px] transition-colors group-focus-visible:outline-2 group-focus-visible:outline-offset-4 group-focus-visible:outline-[#F7F7F7] ${
                     selected ? "font-medium text-white" : "text-white/50 group-hover:text-white/80"
                   }`}
                 >
@@ -125,7 +132,7 @@ export function FilterBar({ active, onSelect }: Props) {
 
       {/* A squiggly line under the filters, 16px in from each side of the screen (the screen's own padding),
           the same wave as the edit panel's edge. */}
-      <span aria-hidden className="relative block h-[7px]">
+      <span aria-hidden className="intro-line relative block h-[7px]">
         <span className="wave-line" style={{ top: 0 }} />
       </span>
     </section>

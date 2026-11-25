@@ -88,8 +88,6 @@ type Props = {
   onReset: (drinkIndex: number) => void;
   /** "glass" (Concept C) or "block" (Concept D). Defaults to STACK_STYLE. */
   stackStyle?: StackStyle;
-  /** How far the stack may grow past its natural size to fill a big space (wide screens). Defaults to 1. */
-  maxScale?: number;
 };
 
 /**
@@ -179,7 +177,6 @@ export const ExplodedDrink = memo(function ExplodedDrink({
   modified,
   onReset,
   stackStyle = STACK_STYLE,
-  maxScale = 1,
 }: Props) {
   const block = stackStyle === "block";
   // Width of a full-size slab's diamond on screen (px) and its height at this camera angle; garnish and gap sizes per style.
@@ -223,7 +220,7 @@ export const ExplodedDrink = memo(function ExplodedDrink({
     ? (rows[0]?.planeH ?? 0) + rows.reduce((s, r) => s + r.thick, 0)
     : rows.reduce((s, r) => s + r.planeH + r.thick, 0) + STACK_GAP * Math.max(0, rows.length - 1);
   const room = Math.max(0, box.h - DOTS_ROOM);
-  const scale = natural > 0 ? Math.max(0.45, Math.min(maxScale, (room - 8) / natural)) : 1;
+  const scale = natural > 0 ? Math.max(0.45, Math.min(1, (room - 8) / natural)) : 1;
   let cursor = Math.max(0, (room - natural * scale) / 2);
   const placed = rows.map((r) => {
     const planeTop = cursor;

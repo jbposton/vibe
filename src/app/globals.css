@@ -118,8 +118,119 @@ body {
   display: none;
 }
 
-/* The 3D drink stack (Concept C): each slab turns slowly around its own vertical axis. All slabs
-   start together, so the stack turns as one. Still with "reduce motion". */
+/*
+ * The v2 flow's motion (loader, choose screen, zoom into a drink). The zoom plays in about 0.9s: the
+ * cards beside the chosen one fade, the chosen card grows a little, and the drink screen comes in on top with its
+ * panels sliding in a beat later. `scale` and `translate` are used (not `transform`) so these don't
+ * fight the inline positioning of the pieces they move.
+ */
+@keyframes flow-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes flow-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes flow-card-in {
+  from {
+    opacity: 0;
+    scale: 0.7;
+  }
+}
+@keyframes flow-panel-left {
+  from {
+    opacity: 0;
+    translate: -36px 0;
+  }
+}
+@keyframes flow-panel-right {
+  from {
+    opacity: 0;
+    translate: 36px 0;
+  }
+}
+@keyframes flow-sheet-in {
+  from {
+    opacity: 0;
+    translate: 0 48px;
+  }
+}
+.flow-choose-in {
+  animation: flow-fade-in 900ms ease-out both;
+}
+.flow-dissolve-out {
+  animation: flow-fade-out 1000ms ease-in-out forwards;
+  pointer-events: none;
+}
+.flow-info {
+  animation: flow-fade-in 420ms ease-out both;
+}
+.flow-card-in {
+  animation: flow-card-in 900ms cubic-bezier(0.22, 1, 0.36, 1) 150ms both;
+}
+.flow-panel-left {
+  animation: flow-panel-left 800ms cubic-bezier(0.22, 1, 0.36, 1) 350ms both;
+}
+.flow-panel-right {
+  animation: flow-panel-right 800ms cubic-bezier(0.22, 1, 0.36, 1) 450ms both;
+}
+.flow-sheet-in {
+  animation: flow-sheet-in 800ms cubic-bezier(0.22, 1, 0.36, 1) 350ms both;
+}
+.flow-fade-slow {
+  animation: flow-fade-in 700ms ease-out 400ms both;
+}
+.flow-screen-out {
+  animation: flow-fade-out 420ms ease-in forwards;
+  pointer-events: none;
+}
+.flow-fade {
+  transition: opacity 350ms ease-out;
+}
+.flow-leaving .flow-fade {
+  opacity: 0;
+  pointer-events: none;
+}
+.flow-side {
+  transition: opacity 400ms ease-out;
+}
+.flow-leaving .flow-side {
+  opacity: 0;
+}
+.flow-center {
+  transition:
+    transform 900ms cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 450ms ease-in 450ms;
+}
+.flow-leaving .flow-center {
+  transform: scale(1.12);
+  opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .flow-choose-in,
+  .flow-dissolve-out,
+  .flow-info,
+  .flow-card-in,
+  .flow-panel-left,
+  .flow-panel-right,
+  .flow-sheet-in,
+  .flow-fade-slow,
+  .flow-screen-out {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+  }
+  .flow-fade,
+  .flow-side,
+  .flow-center {
+    transition: none !important;
+  }
+}
+
+/* The 3D drink stack (Concept C, brought into v2): each slab turns slowly around its own vertical axis.
+   All slabs start together, so the stack turns as one. Still with "reduce motion". */
 @keyframes slab-spin {
   from {
     transform: rotateX(var(--slab-tilt, 64.5deg)) rotateZ(45deg);
@@ -136,5 +247,194 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .slab-spin {
     animation: none;
+  }
+}
+
+
+/* Wide screens, Browse to Build: the drink zooms in, and the left panel eases in (JP's v2 flow, Figma 256:832). */
+.build-zoom {
+  transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes panel-fade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.panel-fade {
+  animation: panel-fade 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .build-zoom {
+    transition: none;
+  }
+  .panel-fade {
+    animation: none;
+  }
+}
+
+/* Wide screens: the Edit Panel slides up from the bottom of the page, and back down. */
+@keyframes panel-slide-up {
+  from {
+    transform: translateY(calc(100% + 24px));
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes panel-slide-down {
+  from {
+    transform: none;
+  }
+  to {
+    transform: translateY(calc(100% + 24px));
+  }
+}
+.panel-slide-up {
+  animation: panel-slide-up 450ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.panel-slide-down {
+  animation: panel-slide-down 450ms cubic-bezier(0.5, 0, 0.75, 0) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .panel-slide-up,
+  .panel-slide-down {
+    animation: none;
+  }
+}
+
+/* Wide screens: the drink's info fades out before the Edit Panel comes up. */
+@keyframes panel-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+.panel-out {
+  animation: panel-out 120ms ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .panel-out {
+    animation: none;
+    opacity: 0;
+  }
+}
+
+/* The side drinks' soft edge: its reach can be animated (it grows in when the Edit Panel has closed). */
+@property --side-fade {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 195px;
+}
+
+/* "intro": after loading, wide screens reveal the page in order (JP, 2026-11-24). <main data-intro> is set
+   only while it plays. 1. the top squiggly line; 2. together, the filters (from the right) and the drink info
+   (from the left); 3. together, the servings and total (from below) and the drink (growing a little from the
+   center, slowly); 4. just behind the drink, the side drinks slide in (timed in DrinkPanel.tsx, INTRO_SIDES_AT). Each value below: length, then delay. */
+@keyframes intro-line {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+@keyframes intro-from-right {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes intro-from-left {
+  from {
+    opacity: 0;
+    transform: translateX(-28px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes intro-from-below {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes intro-grow {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@media (min-width: 768px) and (prefers-reduced-motion: no-preference) {
+  [data-intro] .intro-line {
+    animation: intro-line 100ms ease-out both;
+  }
+  [data-intro] .intro-filters {
+    animation: intro-from-right 400ms cubic-bezier(0.22, 1, 0.36, 1) 100ms both;
+  }
+  [data-intro] .intro-info {
+    animation: intro-from-left 400ms cubic-bezier(0.22, 1, 0.36, 1) 100ms both;
+  }
+  [data-intro] .intro-servings {
+    animation: intro-from-below 350ms cubic-bezier(0.22, 1, 0.36, 1) 350ms both;
+  }
+  /* On the box holding the row of drinks and the lens over it, so the two grow as one. */
+  [data-intro] .intro-card {
+    /* Slower and softer than the other steps; the side drinks use the same curve (INTRO_EASE). */
+    animation: intro-grow 900ms cubic-bezier(0.25, 0.6, 0.3, 1) 350ms both;
+  }
+}
+
+/* The BUILD MY OWN button's drop shadow (Figma 262:3043): a thin strip of pink, orange and purple behind
+   the middle of the button, heavily blurred so only a soft colored halo shows around it. It doesn't move. */
+.build-glow {
+  position: absolute;
+  /* More vibrant than the Figma frame (JP, 2026-11-24): the frame has an 8px strip with a 15px blur. */
+  top: 11.5px;
+  left: 0;
+  width: 100%;
+  height: 13px;
+  background: linear-gradient(135.14deg, #db587a 36.37%, #f6a852 59.73%, #9a77bb 85.98%);
+  filter: blur(14px) saturate(1.25);
+  pointer-events: none;
+}
+
+/* Switching drinks: the new name and taste line fade in from the right. A long, strong ease-out: it moves
+   most of the way early, then settles very gently (JP, 2026-11-25). The length is matched to the drink card:
+   1630ms matched the title to the drink card exactly; JP then asked for slightly faster, so it looks still
+   a little before the card does. */
+@keyframes title-in {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .title-in {
+    animation: title-in 1350ms cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 }
