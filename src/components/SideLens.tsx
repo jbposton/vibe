@@ -161,12 +161,14 @@ function applyTransform(ctx: CanvasRenderingContext2D, el: HTMLElement, style: C
   ctx.translate(-el.offsetLeft - ox, -el.offsetTop - oy);
 }
 
-export function SideLens({ cardWidth }: { cardWidth: number }) {
+export function SideLens({ cardWidth, zoom: aim = 1 }: { cardWidth: number; /** The zoom the row is heading to. */ zoom?: number }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const width = useRef(cardWidth);
+  const aimed = useRef(aim);
   useEffect(() => {
     width.current = cardWidth;
-  }, [cardWidth]);
+    aimed.current = aim;
+  }, [cardWidth, aim]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -226,7 +228,9 @@ export function SideLens({ cardWidth }: { cardWidth: number }) {
       const ratio = Math.min(window.devicePixelRatio || 1, 2);
       const rowStyle = getComputedStyle(row);
       const zoom = rowStyle.transform === "none" ? 1 : new DOMMatrix(rowStyle.transform).a;
-      const edge = (width.current * zoom) / 2;
+      // While the drink is growing, open the window to the size it is heading for straight away: the browser
+      // can be a step ahead of what is read here, and a window that trails it would trim the drink.
+      const edge = (width.current * Math.max(zoom, aimed.current)) / 2;
       const fadeLen = parseFloat(getComputedStyle(track).getPropertyValue("--side-fade")) || 0;
 
       // Hide the real cards beside the middle drink (a mask, so they can still be clicked).

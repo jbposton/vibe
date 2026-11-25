@@ -130,8 +130,14 @@ const GRADIENT_AT = 0;
 const GRADIENT_MS = 300;
 const SIDE_MS = 650;
 const SIDE_FROM = 180;
-/** Wide screens, after loading: when the side drinks start sliding in (ms). The earlier steps are timed in globals.css ("intro"). */
-const INTRO_SIDES_AT = 800;
+/**
+ * Wide screens, after loading: when the side drinks start sliding in and how long they take (ms), with the main
+ * drink's own curve. The main drink fades and grows from 350ms for 900ms (globals.css, "intro"); the sides use
+ * the same start and length, so they all come in together (JP, 2026-11-25). Keep the two in step.
+ */
+const INTRO_SIDES_AT = 350;
+const INTRO_SIDE_MS = 900;
+const INTRO_EASE = "cubic-bezier(0.25, 0.6, 0.3, 1)";
 const never = () => () => {};
 type SideMode = "shown" | "hidden" | "staged" | "entering";
 const ZOOM_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
@@ -304,7 +310,7 @@ export function DrinkPanel() {
         introDone.current = true;
         setSideMode("shown");
         setIntro(false);
-      }, start + SIDE_MS + 50),
+      }, start + INTRO_SIDE_MS + 50),
     ];
     return () => timers.forEach(window.clearTimeout);
   }, [isDesktop]);
@@ -1023,6 +1029,13 @@ export function DrinkPanel() {
         className="relative flex min-h-0 flex-1 flex-col md:col-start-2 md:row-span-2 md:row-start-2 md:h-full"
         style={zDrink}
       >
+      {/* The row and the lens over it load in as ONE piece (intro-card). The browser animates a size change on its
+          own, ahead of the code that moves the lens's window, so animating the row alone let the window trail the
+          growing drink and trim its sides. */}
+      <div
+        className="intro-card relative flex min-h-0 flex-1 flex-col"
+        style={isDesktop ? { transformOrigin: `50% ${cardTop + cardHeight / 2}px` } : undefined}
+      >
       <div
         ref={trackRef}
         role="group"
@@ -1056,7 +1069,7 @@ export function DrinkPanel() {
         onPointerCancel={onPointerEnd}
       >
         {/* Build mode: the row zooms in on the middle drink, the others fade away. */}
-        <div className="intro-card build-zoom absolute inset-0" style={{ transform: `scale(${zoom})`, transformOrigin: `50% ${cardTop + cardHeight / 2}px` }}>
+        <div className="build-zoom absolute inset-0" style={{ transform: `scale(${zoom})`, transformOrigin: `50% ${cardTop + cardHeight / 2}px` }}>
         {offsets.map((r) => {
           const j = mod(index + r, N); // place in the list
           const d = list[j]; // place in DRINKS
@@ -1076,7 +1089,7 @@ export function DrinkPanel() {
                 marginTop: isDesktop ? 0 : -cardHeight / 2,
                 // Wide screens: the other drinks fade out as the drink zooms (phones drive opacity from the sheet instead).
                 ...(isDesktop
-                  ? { top: cardTop, transition: sideMode === "staged" ? "none" : sideMode === "entering" ? `opacity ${SIDE_MS}ms ${ZOOM_EASE}, transform ${SIDE_MS}ms ${ZOOM_EASE}` : `opacity ${ZOOM_MS}ms ${ZOOM_EASE}` }
+                  ? { top: cardTop, transition: sideMode === "staged" ? "none" : sideMode === "entering" ? (intro ? `opacity ${INTRO_SIDE_MS}ms ${INTRO_EASE}, transform ${INTRO_SIDE_MS}ms ${INTRO_EASE}` : `opacity ${SIDE_MS}ms ${ZOOM_EASE}, transform ${SIDE_MS}ms ${ZOOM_EASE}`) : `opacity ${ZOOM_MS}ms ${ZOOM_EASE}` }
                   : {}),
               }}
             >
@@ -1099,6 +1112,8 @@ export function DrinkPanel() {
         })}
         </div>
 
+      </div>
+      {lens && !own && <SideLens cardWidth={cardWidth} zoom={zoom} />}
       </div>
 
       {/* Build my own: its own glass, the same size as Build mode's zoomed drink. Empty until you add something. */}
@@ -1132,8 +1147,6 @@ export function DrinkPanel() {
       )}
 
       {/* Wide screens: the effect over the side drinks (see SIDE_EFFECT). Outside the row, under the arrows. */}
-      {lens && !own && <SideLens cardWidth={cardWidth} />}
-
       {SIDE_EFFECT === "glass" &&
         isDesktop &&
         N > 1 &&

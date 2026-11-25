@@ -2,6 +2,21 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-25: A bigger slosh as the drink arrives (branch `v2`)
+
+- **Before:** when you switched drinks the liquid rocked about 35px each way on the first swing; on page load it only had its usual gentle wave.
+- **After:** the slosh is about twice as big when a drink arrives (the card's tilt counts 1.8x for the liquid, the edges may travel up to 92px, and the middle wave shows more). The drink on screen when the page loads also gets one jolt as it fades in, so it arrives sloshing too. Same rocking speed and settle as before; thin layers still slosh less.
+
+## 2026-11-25: Slower main drink on load, side drinks right behind it (wide screens, branch `v2`)
+
+- **Before:** the main drink faded and grew in 0.45s, and the side drinks started only once it had landed (at 0.8s).
+- **After:** the main drink takes 0.9s with a softer curve (from 0.35s to 1.25s). The side drinks now come in with it: same start (0.35s), same length and curve, landing together at 1.25s (a 0.1s delay was tried first). The whole load sequence is now about 1.3s, from about 1.5s. Closing the drawer keeps its own timing.
+
+## 2026-11-25: The main drink no longer gets trimmed as it loads in (wide screens, branch `v2`)
+
+- **Before:** since the side lens, the main drink looked cut off at first as it grew in. The browser animates that growth on its own, ahead of the code that moves the lens's window around the drink, so the window trailed the drink.
+- **After:** the row of drinks and the lens grow as one piece, so neither can trail the other. The same kind of gap is also closed when Build mode zooms the drink in: the window opens to the final size straight away.
+
 ## 2026-11-25: A lens flare on the real side drinks (wide screens, branch `v2`)
 
 - **Before:** curved glass over the side drinks (`side-glass-v1`): subtle, and warping only in Chromium browsers.

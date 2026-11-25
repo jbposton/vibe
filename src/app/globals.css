@@ -336,7 +336,7 @@ body {
 /* "intro": after loading, wide screens reveal the page in order (JP, 2026-11-24). <main data-intro> is set
    only while it plays. 1. the top squiggly line; 2. together, the filters (from the right) and the drink info
    (from the left); 3. together, the servings and total (from below) and the drink (growing a little from the
-   center); 4. the side drinks slide in (timed in DrinkPanel.tsx, INTRO_SIDES_AT). Each value below: length, then delay. */
+   center, slowly); 4. just behind the drink, the side drinks slide in (timed in DrinkPanel.tsx, INTRO_SIDES_AT). Each value below: length, then delay. */
 @keyframes intro-line {
   from {
     clip-path: inset(0 100% 0 0);
@@ -398,8 +398,10 @@ body {
   [data-intro] .intro-servings {
     animation: intro-from-below 350ms cubic-bezier(0.22, 1, 0.36, 1) 350ms both;
   }
+  /* On the box holding the row of drinks and the lens over it, so the two grow as one. */
   [data-intro] .intro-card {
-    animation: intro-grow 450ms cubic-bezier(0.22, 1, 0.36, 1) 350ms both;
+    /* Slower and softer than the other steps; the side drinks use the same curve (INTRO_EASE). */
+    animation: intro-grow 900ms cubic-bezier(0.25, 0.6, 0.3, 1) 350ms both;
   }
 }
 

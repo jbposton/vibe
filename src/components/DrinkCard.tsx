@@ -96,7 +96,12 @@ const SLOSH = {
   middleDamping: 0.16,
   middleSize: 0.34, // the middle wave's size against the main one
   lively: 2, // how much faster the little humps travel while the liquid is stirred up
-  limit: 55, // the most an edge rises or falls (px)
+  limit: 92, // the most an edge rises or falls (px)
+  push: 1.8, // how much the card's tilt is exaggerated for the liquid (1 = true to life; JP asked for more, 2026-11-25)
+  middleShow: 0.75, // how much of the middle wave is drawn
+  arriveAt: 550, // after loading: when the drink on screen gets its first jolt (ms), as it fades in
+  arriveSide: 420, // how hard that jolt is, side to side and in the middle (px per second)
+  arriveMiddle: 300,
   leaving: 14, // how fast a drink that leaves the main position goes flat (higher is quicker)
 };
 
@@ -221,6 +226,9 @@ export const DrinkCard = memo(function DrinkCard({
   const waveState = useRef({ k: 1, phase: 0, from: 1, to: 1, t0: 0 });
   const waveGeom = useRef({ maxAmp: 0, seed: "", sloshRoom: 0 });
   const slosh = useRef({ side: 0, sideV: 0, middle: 0, middleV: 0 });
+  // The drink that is on screen when the page loads has nothing to tilt it, so it gets one jolt as it arrives.
+  const onScreenFirst = useRef(inView);
+  const jolted = useRef(false);
   const waveTarget = useRef(1);
   const drawWave = useCallback(() => {
     const svg = waveSvg.current;
@@ -232,7 +240,7 @@ export const DrinkCard = memo(function DrinkCard({
     // The slosh eases off toward its limit instead of stopping dead against it.
     const soft = (v: number) => (sloshRoom > 0 ? sloshRoom * Math.tanh(v / sloshRoom) : 0);
     const side = soft(slosh.current.side);
-    const middle = soft(slosh.current.middle) * 0.6;
+    const middle = soft(slosh.current.middle) * SLOSH.middleShow;
     // Hidden when it is too short to matter or has settled flat (not at 2px, which popped).
     if (!(maxAmp >= 2) || (!(amp >= 0.05) && Math.abs(side) < 0.3 && Math.abs(middle) < 0.3)) {
       svg.style.display = "none";
@@ -255,6 +263,7 @@ export const DrinkCard = memo(function DrinkCard({
     }
     let frame = 0;
     let last = performance.now();
+    const joltAt = inView && onScreenFirst.current && !jolted.current ? last + SLOSH.arriveAt : Infinity;
     const tick = (now: number) => {
       const w = waveState.current;
       const dt = Math.min(0.05, (now - last) / 1000);
@@ -271,8 +280,13 @@ export const DrinkCard = memo(function DrinkCard({
       // Only the drink in the main position sloshes: the others don't react to the tilt at all.
       const card = panelEl.current;
       const tilt = inView ? Number(card?.parentElement?.dataset.tilt ?? 0) : 0;
-      const level = card ? Math.tan((tilt * Math.PI) / 180) * (card.clientWidth / 2) : 0;
+      const level = card ? SLOSH.push * Math.tan((tilt * Math.PI) / 180) * (card.clientWidth / 2) : 0;
       const s = slosh.current;
+      if (!jolted.current && now >= joltAt) {
+        jolted.current = true;
+        s.sideV += SLOSH.arriveSide;
+        s.middleV += SLOSH.arriveMiddle;
+      }
       if (!inView) {
         // One that has just left eases flat in about a quarter of a second (snapping flat would show), then stops.
         const fade = Math.exp(-dt * SLOSH.leaving);
