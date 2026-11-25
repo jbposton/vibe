@@ -22,6 +22,7 @@ import { PrepTags } from "./PrepIcons";
 import { DRAWER_TOP, EditPanel, PANEL_CLOSED_HEIGHT } from "./EditPanel";
 import { ServingsRow } from "./ServingsRow";
 import { SideGlass } from "./SideGlass";
+import { SideLens, useLensSupport } from "./SideLens";
 import { useSheet } from "./useSheet";
 import { adjustLine, traitEdits } from "@/lib/edits";
 import { swapIngredient } from "@/lib/swap";
@@ -101,6 +102,12 @@ function sideFadeMask(cardWidth: number): string {
   const right = Array.from({ length: steps + 1 }, (_, k) => stop(k, 1));
   return `linear-gradient(to right, ${[...left, ...right].join(", ")})`;
 }
+/**
+ * What sits over the side drinks on wide screens: "lens" (the flare in SideLens.tsx), "glass" (the earlier curved
+ * glass, SideGlass.tsx, tagged side-glass-v1 in git) or "none" (just the fade). Without WebGL2, "lens" falls
+ * back to "none".
+ */
+const SIDE_EFFECT = "lens" as "lens" | "glass" | "none";
 /** The side glass is this share of the middle card's height: taller than the side drinks (0.86), so their tops and bottoms sit inside its curved ends and bend too. */
 const GLASS_HEIGHT = 1;
 const SIDE_DIM = 0.6; // how dark a card at the side gets (black overlay opacity)
@@ -359,6 +366,8 @@ export function DrinkPanel() {
   // the bottom of the edit panel), so the two sides share a middle line at any window size (JP, 2026-11-18).
   const cardTop = Math.max(0, (trackSize.height - SERVING_ROOM - cardHeight) / 2);
   const step = cardWidth / 2 + (cardWidth * SIDE_SCALE) / 2 + (isDesktop ? DESKTOP_GAP : GAP);
+  const lensSupported = useLensSupport();
+  const lens = isDesktop && SIDE_EFFECT === "lens" && lensSupported && N > 1;
   // The glass over each side runs from the edge of the row right up to the middle drink: it does nothing where
   // they meet, so there is no seam.
   const sidePane = Math.round(trackSize.width / 2 - cardWidth / 2);
@@ -1027,8 +1036,13 @@ export function DrinkPanel() {
             ? {
                 // The mask stays as wide as the zoomed drink until the side drinks are on their way back, so the
                 // drink isn't clipped while it is still zooming out.
-                maskImage: sideFadeMask(cardWidth * (zoomed || sideMode === "hidden" ? zoomAmount : 1)),
-                WebkitMaskImage: sideFadeMask(cardWidth * (zoomed || sideMode === "hidden" ? zoomAmount : 1)),
+                // With the lens on, it sets this mask itself, every frame (and does the side fade in its picture).
+                ...(lens
+                  ? {}
+                  : {
+                      maskImage: sideFadeMask(cardWidth * (zoomed || sideMode === "hidden" ? zoomAmount : 1)),
+                      WebkitMaskImage: sideFadeMask(cardWidth * (zoomed || sideMode === "hidden" ? zoomAmount : 1)),
+                    }),
                 // How far the fade reaches. It grows from 0 when the drawer closes (step 2 of the closing order).
                 "--side-fade": `${gradientOn ? tune.sideFade : 0}px`,
                 opacity: own ? 0 : 1,
@@ -1117,9 +1131,11 @@ export function DrinkPanel() {
         </div>
       )}
 
-      {/* Wide screens: a pane of curved glass over each side drink, bending it (see SideGlass.tsx). Outside the
-          faded row, so the fade doesn't thin the glass, and under the arrows. Gone while the drink is zoomed in. */}
-      {isDesktop &&
+      {/* Wide screens: the effect over the side drinks (see SIDE_EFFECT). Outside the row, under the arrows. */}
+      {lens && !own && <SideLens cardWidth={cardWidth} />}
+
+      {SIDE_EFFECT === "glass" &&
+        isDesktop &&
         N > 1 &&
         sidePane >= 70 &&
         (["left", "right"] as const).map((side) => (
@@ -1157,9 +1173,9 @@ export function DrinkPanel() {
         ))}
 
       {/* Serving size and the total under the drink (Figma 187:43). Wide screens: exactly as wide as the
-          card and 16px under it (JP, 2026-11-18). */}
+          card and 16px under it (JP, 2026-11-18). It sits above the side lens (z-9), which would shave its ends. */}
       <div
-        className="intro-servings mt-[23px] shrink-0 px-[9px] md:mx-0 md:px-0"
+        className="intro-servings z-10 mt-[23px] shrink-0 px-[9px] md:mx-0 md:px-0"
         style={
           isDesktop
             ? { position: "absolute", marginTop: 0, left: `calc(50% - ${cardWidth / 2}px)`, width: cardWidth, bottom: 0 }

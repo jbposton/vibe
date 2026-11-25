@@ -2,6 +2,23 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-25: A lens flare on the real side drinks (wide screens, branch `v2`)
+
+- **Before:** curved glass over the side drinks (`side-glass-v1`): subtle, and warping only in Chromium browsers.
+- **After:** toward each page edge a side drink stretches outward, flares taller, splits into faint colored fringes, smears and melts into the page. The middle drink is still the live card with no effect, and the lens starts from nothing at its edge, so drinks bend gradually as they move out. It mirrors the real cards (position, tilt, fades, wave, words), so the carousel's motion, clicks and Build mode work as before.
+- **Then (JP):** the lens begins a little way out from the middle drink instead of at its edge (a third of the way at first, then 0.18, with the flare raised from 0.26 to 0.4, and the side gradient lengthened from 195px to 280px, with the far edge melted further into the page so it shows no line), and the app's original side gradient is back at full strength over the top of it.
+- **How:** `src/components/SideLens.tsx`, written for this app using the technique tried with the Warp Carousel experiment; it doesn't use that component's code. It needs WebGL2 (without it, just the old fade). `SIDE_EFFECT` in `DrinkPanel.tsx` switches between "lens", "glass" and "none"; tune `LENS`.
+- **Stronger (JP):** flare 0.4 to 0.62, sideways stretch 0.26 to 0.31, colored fringes 0.07 to 0.1, smear 22px to 30px.
+- **Fix:** a hard line showed down a drink as it slid from the middle into the lens. The copy was painted a frame behind the real drink, the side gradient started at full steepness at the join, and the copy was a little less sharp. All three are fixed.
+- **OPEN:** speed on a slower computer isn't measured (it repaints a copy of the side drinks on every moving frame); Safari not tested; phones have no lens.
+
+## 2026-11-25: Experiment: the Warp Carousel component (branch `v2`, not part of the app yet)
+
+- **Saved first:** the side-glass version is commit `15fe8cc`, tagged `side-glass-v1`.
+- **Added:** the pasted "Warp Carousel by Louis Studios" component in `src/components/ui/warp-carousel.tsx` (one addition: a card can paint itself). `/warp` shows it as it comes; `/warp/drinks` shows your drinks on its cards, with a lens-strength slider.
+- **Compared with the side glass:** its flare is far smoother and more dramatic, with colored fringes, and it is drawn with WebGL, which Safari supports. But its cards are still pictures (no dragging, no slosh), they turn in 3D so side labels read backwards, and its layout is its own.
+- **OPEN:** whether to bring its lens into the real carousel; and the component's license, to check before it goes into the public repo.
+
 ## 2026-11-25: Curved glass over the side drinks (wide screens, branch `v2`)
 
 - **Before:** the side drinks only faded toward the page edges.

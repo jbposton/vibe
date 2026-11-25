@@ -25,7 +25,7 @@ export const TUNING_DEFAULTS = {
   /** Drink card to each ‹ › button. */
   cardToArrows: 12,
   /** How far past the card the side drinks fade out. */
-  sideFade: 195,
+  sideFade: 280,
   /** Drink card size, as a share of the most room it could take. */
   cardScale: 0.94, // JP, 2026-11-24 (the Figma 256:832 card, 584 wide, needs about 0.785)
   /** The page's height cap. */
