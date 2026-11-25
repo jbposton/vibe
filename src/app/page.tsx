@@ -1,7 +1,7 @@
-import { Flow } from "@/components/flow/Flow";
+import { DrinkPanel } from "@/components/DrinkPanel";
 
-// v2: the flow (loader, choose a drink or build your own). The original mixer is still in
-// src/components/DrinkPanel.tsx: swap this back to <DrinkPanel /> to see it.
-export default function Home() {
-  return <Flow />;
+// v2: the Browse / Build mixer on every screen size (wide screens also get Build my own).
+// The earlier loader flow is still in src/components/flow/ (render <Flow /> here to see it).
+export default function Page() {
+  return <DrinkPanel />;
 }

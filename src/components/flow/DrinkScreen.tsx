@@ -6,7 +6,7 @@ import type { Drink, RecipeLine } from "@/data/drinks";
 import { newLine } from "@/data/builder";
 import type { IngredientId } from "@/data/ingredients";
 import type { Role } from "@/data/roles";
-import { flavorProfile, tasteSummary } from "@/lib/flavor";
+import { abvLabel, flavorProfile, tasteSummary } from "@/lib/flavor";
 import { DEFAULT_UNIT, formatTotal, stepAmount, totalParts, volumeParts } from "@/lib/stack";
 import { swapIngredient } from "@/lib/swap";
 import { DrinkCard } from "../DrinkCard";
@@ -102,7 +102,7 @@ export function DrinkScreen({ mode, drink, lines, onLines, servings, onServings,
     <div className={`absolute inset-0 flex flex-col ${closing ? "flow-screen-out" : ""}`}>
       {classics && (
         <nav aria-label="Classic cocktails" className="flow-fade-slow shrink-0 px-4 pt-4 md:px-8 md:pt-6">
-          <p className="mb-2 text-[10px] uppercase tracking-[0.08em] text-[#F7F7F7]/50">Start from a classic, or let the guide build one</p>
+          <p className="mb-2 text-[10px] uppercase tracking-[1px] text-[#F7F7F7]/50">Start from a classic, or let the guide build one</p>
           <ul className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:-mx-8 md:px-8 [&::-webkit-scrollbar]:hidden">
             {classics.drinks.map((d) => {
               const active = classics.activeId === d.id;
@@ -112,7 +112,7 @@ export function DrinkScreen({ mode, drink, lines, onLines, servings, onServings,
                     type="button"
                     aria-pressed={active}
                     onClick={() => classics.onPick(d)}
-                    className={`flex h-11 items-center gap-2.5 rounded-full border py-1 pl-3 pr-4 text-[10px] uppercase tracking-[0.08em] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] ${
+                    className={`flex h-11 items-center gap-2.5 rounded-full border py-1 pl-3 pr-4 text-[10px] uppercase tracking-[1px] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] ${
                       active ? "border-white bg-white/10 text-white" : "border-white/15 text-[#F7F7F7]/75 hover:border-white/40 hover:text-white"
                     }`}
                   >
@@ -138,7 +138,7 @@ export function DrinkScreen({ mode, drink, lines, onLines, servings, onServings,
       {/* Wide screens: the left panel. */}
       {isDesktop && (
         <aside aria-label={leftTitle} className="flow-panel-left order-1 flex min-h-0 flex-col rounded-[30px] bg-[#21201E] p-5">
-          <h2 className="mb-4 shrink-0 text-[10px] uppercase tracking-[0.08em] text-[#F7F7F7]/50">{leftTitle}</h2>
+          <h2 className="mb-4 shrink-0 text-[10px] uppercase tracking-[1px] text-[#F7F7F7]/50">{leftTitle}</h2>
           <div className={`${panelClass} flex-1`}>{leftPanel}</div>
         </aside>
       )}
@@ -154,7 +154,7 @@ export function DrinkScreen({ mode, drink, lines, onLines, servings, onServings,
                   type="button"
                   aria-pressed={view === id}
                   onClick={() => onView(id)}
-                  className={`h-7 rounded-full px-3 text-[10px] uppercase tracking-[0.08em] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] ${
+                  className={`h-7 rounded-full px-3 text-[10px] uppercase tracking-[1px] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] ${
                     view === id ? "bg-[#F7F7F7] text-[#1A1612]" : "text-[#F7F7F7]/60 hover:text-white"
                   }`}
                 >
@@ -165,7 +165,7 @@ export function DrinkScreen({ mode, drink, lines, onLines, servings, onServings,
           ) : <button
             type="button"
             onClick={onBack}
-            className="-ml-2 flex h-11 items-center gap-1.5 rounded-full px-3 text-[10px] uppercase tracking-[0.08em] text-[#F7F7F7]/70 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7]"
+            className="-ml-2 flex h-11 items-center gap-1.5 rounded-full px-3 text-[10px] uppercase tracking-[1px] text-[#F7F7F7]/70 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7]"
           >
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
               <path d="M10 3L5 8L10 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -176,7 +176,7 @@ export function DrinkScreen({ mode, drink, lines, onLines, servings, onServings,
             type="button"
             disabled={!canServe}
             onClick={() => setNote(true)}
-            className="h-11 rounded-full bg-[#F7F7F7] px-7 text-[10px] font-medium uppercase tracking-[0.08em] text-[#1A1612] transition-opacity hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] disabled:cursor-not-allowed disabled:opacity-30"
+            className="h-11 rounded-full bg-[#F7F7F7] px-7 text-[10px] font-medium uppercase tracking-[1px] text-[#1A1612] transition-opacity hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] disabled:cursor-not-allowed disabled:opacity-30"
           >
             Serve
           </button>
@@ -193,7 +193,7 @@ export function DrinkScreen({ mode, drink, lines, onLines, servings, onServings,
                 <>
                   <span>{tasteSummary(profile)}</span>
                   <span aria-hidden className="size-0.5 shrink-0 rounded-full bg-[#7f7f7f]" />
-                  <span>{Math.round(profile.strength)}% ABV</span>
+                  <span>{abvLabel(profile)}</span>
                 </>
               )}
             </p>
@@ -257,7 +257,7 @@ export function DrinkScreen({ mode, drink, lines, onLines, servings, onServings,
       {/* Wide screens: the right panel (roles). */}
       {isDesktop && (
         <aside aria-label="Roles" className="flow-panel-right order-3 flex min-h-0 flex-col rounded-[30px] bg-[#21201E] p-5">
-          <h2 className="mb-4 shrink-0 text-[10px] uppercase tracking-[0.08em] text-[#F7F7F7]/50">Roles</h2>
+          <h2 className="mb-4 shrink-0 text-[10px] uppercase tracking-[1px] text-[#F7F7F7]/50">Roles</h2>
           <div className={`${panelClass} flex-1`}>{rolesPanel}</div>
         </aside>
       )}
@@ -273,7 +273,7 @@ export function DrinkScreen({ mode, drink, lines, onLines, servings, onServings,
                 type="button"
                 aria-selected={tab === i}
                 onClick={() => setTab(i)}
-                className={`h-10 border-b text-[10px] uppercase tracking-[0.08em] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] ${
+                className={`h-10 border-b text-[10px] uppercase tracking-[1px] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] ${
                   tab === i ? "border-white text-white" : "border-transparent text-[#F7F7F7]/50"
                 }`}
               >

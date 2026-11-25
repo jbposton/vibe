@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { TEXT_BUTTON } from "./buttonStyles";
+import { useLayoutEffect, useRef, useState } from "react";
 
 const PRESETS = [1, 2, 4];
 const MAX = 99;
@@ -15,20 +16,54 @@ type Props = {
   onChange: (servings: number) => void;
 };
 
-const circle =
-  "grid size-9 shrink-0 place-items-center rounded-full border bg-[#1A1612] text-xs tracking-[0.08em] text-white transition-colors md:text-[length:var(--serving-num-size,12px)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7]";
-const off = "border-transparent hover:bg-[#26221E]";
-const on = "border-white";
+/** Space inside the active pill, each side of its words. */
+const PILL_PAD = 16;
+/** The round buttons are this wide (and the pill is this tall). */
+const ROUND = 36;
+
+const base =
+  `${TEXT_BUTTON} relative grid shrink-0 grid-cols-[minmax(0,1fr)] place-items-center overflow-hidden whitespace-nowrap rounded-full border bg-[#21201E] text-white transition-[width,border-color,background-color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none md:text-[length:var(--serving-num-size,10px)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7]`;
+const off = "border-transparent hover:bg-[#2C2A27]";
+const on = "border-white/20";
+
+/** The two labels share one grid cell and cross-fade: the number when off, "2 Servings" when on. */
+function Label({ short, long, active }: { short: React.ReactNode; long: string; active: boolean }) {
+  return (
+    <>
+      <span aria-hidden={active} className={`col-start-1 row-start-1 text-[#F7F7F7]/60 transition-opacity duration-200 motion-reduce:transition-none ${active ? "opacity-0" : "opacity-100"}`}>
+        {short}
+      </span>
+      <span data-long aria-hidden={!active} className={`col-start-1 row-start-1 transition-opacity duration-200 motion-reduce:transition-none ${active ? "opacity-100" : "opacity-0"}`}>
+        {long}
+      </span>
+    </>
+  );
+}
+
+const word = (n: number) => (n === 1 ? "1 Serving" : `${n} Servings`);
 
 /**
- * Serving size under the drink (Figma 187:43): 1, 2 and 4 drinks, and "+" for any other number,
- * with the total on the right ("6 oz" over "2 servings · 3 oz per serving"). The number of drinks only scales the oz;
- * the ratios never change. The oz on the layers follow it too.
+ * Serving size under the drink (Figma 257:2802): 1, 2 and 4 drinks, and "+" for any other number. The chosen
+ * one is a pill that carries the word ("2 Servings"); the others are plain round buttons. When you pick another
+ * one the pills grow and shrink smoothly (the widths are set from the measured words, so they can animate).
+ * The total is on the right ("6 oz" over "3 oz per serving"). The number of drinks only scales the oz;
+ * the ratios never change.
  * OPEN: "+" opens a small number box (1 to 99).
  */
 export function ServingsRow({ servings, total, perServing, onChange }: Props) {
   const [typing, setTyping] = useState(false);
   const custom = !PRESETS.includes(servings);
+  const groupRef = useRef<HTMLDivElement | null>(null);
+
+  // Set each button's width straight on the element: the active one to fit its words, the rest round.
+  // (Not React state, so the CSS transition sees an ordinary width change.)
+  useLayoutEffect(() => {
+    groupRef.current?.querySelectorAll<HTMLElement>("[data-serving]").forEach((btn) => {
+      const long = btn.querySelector<HTMLElement>("[data-long]");
+      const active = btn.getAttribute("aria-pressed") === "true";
+      btn.style.width = `${active && long ? Math.ceil(long.offsetWidth) + 2 * PILL_PAD : ROUND}px`;
+    });
+  });
 
   const commit = (raw: string) => {
     setTyping(false);
@@ -38,18 +73,18 @@ export function ServingsRow({ servings, total, perServing, onChange }: Props) {
 
   return (
     <div className="flex items-end justify-between">
-      <div className="flex flex-col gap-2">
-      <div role="group" aria-label="Servings" className="flex items-center gap-1.5">
+      <div ref={groupRef} role="group" aria-label="Servings" className="flex items-center gap-1.5">
         {PRESETS.map((n) => (
           <button
             key={n}
+            data-serving
             type="button"
             aria-pressed={servings === n}
             aria-label={n === 1 ? "1 drink" : `${n} drinks`}
             onClick={() => onChange(n)}
-            className={`${circle} ${servings === n ? on : off}`}
+            className={`${base} ${servings === n ? on : off}`}
           >
-            {n}
+            <Label short={n} long={word(n)} active={servings === n} />
           </button>
         ))}
         {typing ? (
@@ -68,40 +103,32 @@ export function ServingsRow({ servings, total, perServing, onChange }: Props) {
               if (e.key === "Enter") commit(e.currentTarget.value);
               if (e.key === "Escape") setTyping(false);
             }}
-            className="h-9 w-14 rounded-full border border-white bg-[#1A1612] text-center text-xs text-white outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+            className="h-9 w-14 rounded-full border border-white/20 bg-[#21201E] text-center text-[10px] uppercase tracking-[1px] text-white outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
           />
         ) : (
           <button
+            data-serving
             type="button"
             aria-pressed={custom}
             aria-label={custom ? `${servings} drinks: change` : "Another number of drinks"}
             onClick={() => setTyping(true)}
-            className={`${circle} ${custom ? on : off}`}
+            className={`${base} ${custom ? on : off}`}
           >
-            {custom ? (
-              servings
-            ) : (
-              <svg width="10" height="10" viewBox="0 0 8 8" fill="none" aria-hidden>
-                <path d="M4 0.5V7.5M0.5 4H7.5" stroke="currentColor" strokeLinecap="round" />
-              </svg>
-            )}
+            <Label
+              short={
+                <svg width="10" height="10" viewBox="0 0 8 8" fill="none" aria-hidden>
+                  <path d="M4 0.5V7.5M0.5 4H7.5" stroke="currentColor" strokeLinecap="round" />
+                </svg>
+              }
+              long={word(servings)}
+              active={custom}
+            />
           </button>
         )}
       </div>
-      {/* The word "Servings" under the buttons (JP, 2026-11-18), in the same style as the line under the total.
-          Wide screens take its size from the spacing settings (--servings-size). */}
-      <span aria-hidden className="text-[10px] leading-3 text-[#F7F7F7]/50 md:text-[length:var(--servings-size,12px)] md:leading-[1.33]">
-        Servings
-      </span>
-      </div>
       <p className="text-right">
-        <span className="block text-sm leading-[18px] text-[#F7F7F7] md:text-[length:var(--total-size,16px)] md:leading-[1.25]">{total}</span>
-        {/* "2 servings", a dot, "3 oz per serving". */}
-        <span className="flex items-center justify-end gap-[5px] text-[10px] leading-3 text-[#F7F7F7]/50 md:text-[length:var(--sub-size,12px)] md:leading-[1.33]">
-          <span>{servings === 1 ? "1 serving" : `${servings} servings`}</span>
-          <span aria-hidden className="size-0.5 rounded-full bg-[#7f7f7f]" />
-          <span>{perServing} per serving</span>
-        </span>
+        <span className="block text-[18px] leading-[22px] text-[#F7F7F7] md:text-[length:var(--total-size,18px)] md:leading-[1.25]">{total}</span>
+        <span className="block text-[12px] leading-4 text-[#F7F7F7]/50 md:text-[length:var(--sub-size,12px)]">{perServing} per serving</span>
       </p>
     </div>
   );

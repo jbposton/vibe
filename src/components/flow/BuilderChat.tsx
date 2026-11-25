@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useRef } from "react";
 import { GUIDE_STEPS, MOODS, optionsFor } from "@/data/builder";
 import { FLAVORS } from "@/data/flavor";
+import { TEXT_BUTTON } from "@/components/buttonStyles";
 import { INGREDIENTS, type IngredientId } from "@/data/ingredients";
 import type { Role } from "@/data/roles";
 
@@ -22,11 +23,15 @@ type Props = {
   onMood: (moodId: string) => void;
   /** Start over: clears the drink and the conversation. */
   onRestart: () => void;
+  /** Wide screens: "Save as a new drink" sits along the bottom in place of the (placeholder) text box. */
+  save?: { onSave: () => void; canSave: boolean };
+  /** The name the guide gave the finished drink (shown in its last message). */
+  name?: string;
 };
 
 const bubble = "max-w-[88%] rounded-[20px] px-4 py-3 text-[13px] leading-[19px]";
 const chip =
-  "flex h-11 items-center gap-2 rounded-full border border-transparent bg-[#1A1612] py-1 pl-1 pr-3.5 text-[10px] uppercase tracking-[0.08em] text-white transition-colors hover:bg-[#26221E] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7]";
+  "flex h-11 items-center gap-2 rounded-full border border-transparent bg-[#1A1612] py-1 pl-1 pr-3.5 text-[10px] uppercase tracking-[1px] text-white transition-colors hover:bg-[#26221E] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7]";
 
 /** A line about what an ingredient brings, from its strongest curated flavor note. */
 function remark(id: IngredientId): string {
@@ -41,7 +46,7 @@ function remark(id: IngredientId): string {
  * OPEN: free-form chat. The text box is a placeholder until a language model is connected (that needs an
  * API key kept on the server, so it is a separate step).
  */
-export function BuilderChat({ chat, onAnswer, onMood, onRestart }: Props) {
+export function BuilderChat({ chat, onAnswer, onMood, onRestart, save, name }: Props) {
   const mood = MOODS.find((m) => m.id === chat.moodId) ?? null;
   const stepIndex = chat.answers.length;
   const step = mood && stepIndex < GUIDE_STEPS.length ? GUIDE_STEPS[stepIndex] : null;
@@ -99,12 +104,12 @@ export function BuilderChat({ chat, onAnswer, onMood, onRestart }: Props) {
                       <Image src={`/icons/ingredients/${o.id}.png`} alt="" width={32} height={32} unoptimized draggable={false} className="size-8 shrink-0" />
                       <span className="flex flex-col items-start leading-[13px]">
                         {INGREDIENTS[o.id].name}
-                        {o.suggested && <span className="mt-0.5 text-[8px] tracking-[0.08em] text-[#F7F7F7]/50">Suggested</span>}
+                        {o.suggested && <span className="mt-0.5 text-[8px] tracking-[1px] text-[#F7F7F7]/50">Suggested</span>}
                       </span>
                     </button>
                   ))}
                   {s.skippable && (
-                    <button type="button" onClick={() => onAnswer(s.role, null)} className="h-11 rounded-full border border-white/20 px-4 text-[10px] uppercase tracking-[0.08em] text-[#F7F7F7]/70 transition-colors hover:border-white/50 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7]">
+                    <button type="button" onClick={() => onAnswer(s.role, null)} className={`${TEXT_BUTTON} rounded-full border border-white/20 px-4 text-[#F7F7F7]/70 transition-colors hover:border-white/50 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7]`}>
                       Skip
                     </button>
                   )}
@@ -117,12 +122,31 @@ export function BuilderChat({ chat, onAnswer, onMood, onRestart }: Props) {
         {finished && (
           <div data-latest className={`${bubble} bg-[#1A1612]`}>
             {chat.answers[chat.answers.length - 1] && <span className="mb-1 block text-[#F7F7F7]/55">{remark(chat.answers[chat.answers.length - 1]!)}</span>}
-            That&rsquo;s your drink. Drag a layer, or use the roles panel, to tune the amounts. When it looks right, serve it.
+            {save && name
+              ? <>That&rsquo;s your drink. I&rsquo;ve called it <span className="text-white">{name}</span>: change the name above if you like. Drag a layer, or open Structure, to tune the amounts. When it looks right, save it.</>
+              : <>That&rsquo;s your drink. Drag a layer, or use the roles panel, to tune the amounts. When it looks right, serve it.</>}
           </div>
         )}
       </div>
 
-      <div className="flex shrink-0 items-center gap-2 border-t border-white/10 pt-3">
+      {save ? (
+        <div className="flex shrink-0 gap-2 pt-3">
+          <button
+            type="button"
+            disabled={!save.canSave}
+            onClick={save.onSave}
+            className={`${TEXT_BUTTON} min-w-0 flex-1 rounded-full bg-[#2C2A27] text-white transition-colors hover:bg-[#363330] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] disabled:cursor-not-allowed disabled:opacity-40`}
+          >
+            Save as a new drink
+          </button>
+          {mood && (
+            <button type="button" onClick={onRestart} className={`${TEXT_BUTTON} shrink-0 rounded-full border border-white/20 px-4 text-[#F7F7F7]/70 transition-colors hover:border-white/50 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7]`}>
+              Start over
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="flex shrink-0 items-center gap-2 border-t border-white/10 pt-3">
         <input
           disabled
           aria-label="Ask the guide anything (coming soon)"
@@ -130,11 +154,12 @@ export function BuilderChat({ chat, onAnswer, onMood, onRestart }: Props) {
           className="h-11 min-w-0 flex-1 rounded-full bg-[#1A1612] px-4 text-[13px] text-white placeholder:text-[#F7F7F7]/35"
         />
         {mood && (
-          <button type="button" onClick={onRestart} className="h-11 shrink-0 rounded-full border border-white/20 px-4 text-[10px] uppercase tracking-[0.08em] text-[#F7F7F7]/70 transition-colors hover:border-white/50 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7]">
+          <button type="button" onClick={onRestart} className={`${TEXT_BUTTON} shrink-0 rounded-full border border-white/20 px-4 text-[#F7F7F7]/70 transition-colors hover:border-white/50 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7]`}>
             Start over
           </button>
         )}
       </div>
+      )}
     </div>
   );
 }

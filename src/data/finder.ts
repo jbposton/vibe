@@ -21,12 +21,15 @@ export type Filter = {
 };
 
 export const CLASSICS_ID = "classics";
+export const BUILD_ID = "build-my-own";
+/** Drinks you saved. The filter only shows once there is one (see FilterBar's `filters`). */
+export const MY_DRINKS_ID = "my-drinks";
 
 export const FILTERS: Filter[] = [
-  // Top row, start: the full list, and the build-your-own flow (placeholder).
+  // Top row, start (Figma 256:832): build your own first, then the full list.
+  // Build my own opens the guide on wide screens (v2). OPEN: on a phone it is still a placeholder.
+  { id: BUILD_ID, label: "Build my own", group: "start", drinks: [] },
   { id: CLASSICS_ID, label: "Classics", group: "start", drinks: null },
-  // OPEN: build-your-glass (feeling and vibe picker) isn't designed yet.
-  { id: "build-my-own", label: "Build my own", group: "start", drinks: [], placeholder: true },
 
   // a) Flavor and taste
   { id: "bright", label: "Bright", group: "flavor", drinks: ["daiquiri", "gimlet", "margarita", "tom-collins", "moscow-mule", "cosmopolitan"] },

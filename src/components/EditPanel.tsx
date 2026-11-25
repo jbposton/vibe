@@ -1,10 +1,7 @@
 "use client";
 
-import type { RecipeLine } from "@/data/drinks";
-import type { IngredientId } from "@/data/ingredients";
-import type { TraitEdit } from "@/lib/edits";
-import { IngredientDrawer } from "./IngredientDrawer";
-import { MakeEdits } from "./MakeEdits";
+import type { ReactNode } from "react";
+import { TEXT_BUTTON } from "@/components/buttonStyles";
 
 /** How tall the panel is closed (the grabber and one row of buttons, 34px above the buttons and 16px below, JP 2026-11-17). */
 export const PANEL_CLOSED_HEIGHT = 86;
@@ -12,49 +9,28 @@ export const PANEL_CLOSED_HEIGHT = 86;
 export const DRAWER_TOP = 102;
 
 type Props = {
-  edits: TraitEdit[];
-  lines: RecipeLine[];
-  onAdjust: (key: number, direction: 1 | -1) => void;
-  /** SUBSTITUTE: open the drawer. */
-  onSubstitute: () => void;
-  /** A tap on an ingredient in the drawer. */
-  onPick: (ingredient: IngredientId) => void;
-  /** Phones: the panel floats at the bottom and swipes up. Wide screens: it just sits in its column. */
-  floating: boolean;
+  /** MAKE EDITS / SUBSTITUTIONS: open the drawer on that tab. */
+  onOpen: (tab: "structure" | "ingredients") => void;
   open: boolean;
   onToggle: () => void;
-  /** Whether this drink has been edited (shows the Mix button while the drawer is open). */
-  modified: boolean;
-  /** MIX: done editing, close the drawer and show the drink. */
-  onMix: () => void;
   /** How far the panel grows between closed and open (px). */
   travel: number;
-  /** Pointer handlers that make the panel draggable (empty on wide screens). */
+  /** Pointer handlers that make the panel draggable. */
   bind: Record<string, unknown>;
+  /** What the open drawer holds: the Structure / All ingredients tabs and Done (built by DrinkPanel, shared with wide screens). */
+  drawer: ReactNode;
 };
 
+const BUTTON =
+  `${TEXT_BUTTON} flex-1 rounded-full bg-[#1A1612] text-white transition-colors hover:bg-[#26221E] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7]`;
+
 /**
- * The edit panel (Figma 187:43). On a phone it is full width at the bottom with a wavy top edge;
- * closed it shows the grabber and the buttons, and swiping it up (or tapping the grabber or
- * SUBSTITUTE) takes it all the way up, over the drink, to just under the header. Opened, it
- * shows the ingredients in sections by category. Only the top strip (grabber and buttons) is
- * dragged; the ingredients below scroll.
+ * The phone's edit panel (Figma 187:43, with v2's tabs). It is full width at the bottom with a wavy top edge.
+ * Closed it shows only MAKE EDITS and SUBSTITUTIONS; tapping either (or swiping the panel up, or tapping the
+ * grabber) takes it all the way up, over the drink, to just under the header. Opened, it has two tabs,
+ * Structure and All ingredients, and a Done button that closes it.
  */
-export function EditPanel({ edits, lines, onAdjust, onSubstitute, onPick, floating, open, onToggle, modified, onMix, travel, bind }: Props) {
-  const buttons = <MakeEdits edits={edits} lines={lines} onAdjust={onAdjust} onSubstitute={onSubstitute} />;
-
-  if (!floating) {
-    // Wide screens: the buttons, then the ingredients, in the column.
-    return (
-      <section aria-label="Edit this drink" className="rounded-[30px] bg-[#21201E] px-[19px] pb-20 pt-6">
-        {buttons}
-        <div className="mt-6">
-          <IngredientDrawer lines={lines} onPick={onPick} />
-        </div>
-      </section>
-    );
-  }
-
+export function EditPanel({ onOpen, open, onToggle, travel, bind, drawer }: Props) {
   return (
     <section
       aria-label="Edit this drink"
@@ -66,9 +42,8 @@ export function EditPanel({ edits, lines, onAdjust, onSubstitute, onPick, floati
       <span aria-hidden className="wavy-sheet" />
       <span aria-hidden className="wave-line wave-line-top" />
 
-      {/* The drag strip: the grabber and the buttons. */}
-      <div {...bind} className="relative touch-pan-x px-[19px] pt-[34px]">
-        {/* The grabber: also a button, so the panel can be opened and closed without swiping. */}
+      {/* The grabber strip: drag it to open or close. The grabber is also a button, so the panel can be used without swiping. */}
+      <div {...bind} className="absolute inset-x-0 top-0 z-30 h-7 touch-pan-x">
         <button
           type="button"
           onClick={onToggle}
@@ -78,37 +53,33 @@ export function EditPanel({ edits, lines, onAdjust, onSubstitute, onPick, floati
         >
           <span aria-hidden className="block h-1 w-9 rounded-full bg-white/20" />
         </button>
-        {buttons}
       </div>
 
-      {/* The ingredients: they fade in as the panel rises, and scroll. */}
+      {/* The two buttons (closed). Dragging them up opens the panel too; they fade out as it rises. */}
+      <div
+        {...bind}
+        inert={open}
+        className="relative touch-pan-x px-[19px] pt-[34px]"
+        style={{ opacity: "clamp(0, calc(1 - var(--p, 0) * 3), 1)", pointerEvents: open ? "none" : undefined }}
+      >
+        <div className="flex gap-[7px]">
+          <button type="button" className={BUTTON} onClick={() => onOpen("structure")}>
+            Make edits
+          </button>
+          <button type="button" className={BUTTON} onClick={() => onOpen("ingredients")}>
+            Substitutions
+          </button>
+        </div>
+      </div>
+
+      {/* The tabs and what is in them: they fade in as the panel rises, and scroll. */}
       <div
         inert={!open}
-        className="absolute inset-x-0 bottom-0 top-[86px] touch-pan-y overflow-y-auto overscroll-contain px-[19px] pb-10"
+        className="absolute inset-x-0 bottom-0 top-7 touch-pan-y overflow-y-auto overscroll-contain"
         style={{ opacity: "clamp(0, calc((var(--p, 0) - 0.3) * 1.5), 1)" }}
       >
-        <IngredientDrawer lines={lines} onPick={onPick} />
+        {drawer}
       </div>
-
-      {/* MIX: a floating glass button that shows up once the drink has been edited and the drawer is up.
-          It closes the drawer so you can see the result. */}
-      <button
-        type="button"
-        onClick={onMix}
-        tabIndex={open && modified ? 0 : -1}
-        aria-hidden={!(open && modified)}
-        className={`absolute bottom-6 left-1/2 z-30 flex h-12 -translate-x-1/2 items-center justify-center rounded-full px-9 text-[10px] uppercase tracking-[0.08em] text-white transition-[opacity,translate] duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] ${
-          open && modified ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-2 opacity-0"
-        }`}
-        style={{
-          background: "rgba(255,255,255,0.12)",
-          backdropFilter: "blur(16px) saturate(1.4)",
-          WebkitBackdropFilter: "blur(16px) saturate(1.4)",
-          boxShadow: "inset 0 0.5px 0 rgba(255,255,255,0.7), inset 0 0 0 0.5px rgba(255,255,255,0.18), 0 8px 24px rgba(0,0,0,0.3)",
-        }}
-      >
-        Mix
-      </button>
     </section>
   );
 }

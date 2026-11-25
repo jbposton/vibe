@@ -2,6 +2,141 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-25: Curved glass over the side drinks (wide screens, branch `v2`)
+
+- **Before:** the side drinks only faded toward the page edges.
+- **After:** curved glass over each side. The middle drink stays perfectly clear; the glass starts at its edge doing nothing and warps more and more toward the side of the page: the side drink stretches outward, its top sweeps upward and its bottom downward, and it softens. Drinks bend gradually as they move out. Nothing is drawn on the glass. It goes away while the drink is zoomed in. Tune `GLASS` in `src/components/SideGlass.tsx`.
+- **Tried on the way:** a gentler warp, arched ends that pinched the drink inward, a highlight along the glass edge, and a warp strongest next to the middle drink. JP asked for a stronger, upward warp with no outline, then for a gradual one that builds from the middle outward.
+- **OPEN:** only Chromium browsers (Chrome, Edge, Arc, Brave) can bend what is behind the glass. Safari and Firefox get only the gradual softening. Phones have no glass. Smoothness on a slower computer isn't checked yet.
+
+## 2026-11-25: A solid dark Done button (branch `v2`)
+
+- **Before:** Done was a light frosted pill with a bright edge.
+- **After:** it is the same solid dark color as the panel's other buttons, over the same fade as before. Save as a new drink beside it matches. (A see-through version with a soft blur was tried first; JP chose solid.) The dashed "Add a …" buttons also went from 40px to the standard 36px.
+
+## 2026-11-25: Added ingredients sit straight on the panel (branch `v2`)
+
+- **Before:** each ingredient in Structure sat in a dark pill.
+- **After:** no pill. The color dot lines up with the role heading. The − / + / × buttons keep their dark round fill (JP). The empty roles' dashed buttons are now the only boxed rows.
+
+## 2026-11-25: "Add another" is a plus on a line (branch `v2`)
+
+- **Before:** a role with an ingredient in it had a dashed "+ Add another" button under it, the same weight as an empty role's button.
+- **After:** it is just a plus with a thin line running to each side of the panel, which brightens on hover. To save height it is 24px tall instead of 40, sits closer to the ingredient above, and the space between roles went from 24px to 16px: each filled role is about 28px shorter. Empty roles keep the dashed "+ Add a …" button, so they stand out. Desktop and phone.
+
+## 2026-11-25: Structure shows filled roles first (branch `v2`)
+
+- **Before:** Structure listed the roles in stack order, so filled and empty roles were mixed.
+- **After:** in the Structure tab, the roles with something in them come first, then the empty ones. Each group keeps the stack order. It updates as you edit: a role moves up when you add its first ingredient and down when you remove its last. Desktop and phone. All ingredients keeps its fixed category order (JP).
+
+## 2026-11-25: Tried side drinks leaving before the Edit Panel opens, then reverted (branch `v2`)
+
+- **Tried:** on opening, the side drinks slid out and faded first (0.34s), then the panel rose and the drink zoomed.
+- **Decision:** JP reverted it. Opening is as before: the drink info fades, then the panel rises while the drink zooms and the side drinks fade in place.
+
+## 2026-11-25: The title lands with the drink (branch `v2`)
+
+- **Before:** the title (1.3s) looked settled about 0.15s before the drink card had stopped.
+- **After:** the title takes 1.63s with the same soft curve, so both look still about 0.87s after the switch. Worked out from the motion's maths, to within about a pixel. JP then asked for it slightly faster: 1.35s, so the title now lands about 0.13s before the card.
+
+## 2026-11-25: Slower waves (branch `v2`)
+
+- **Before:** the usual wave passed a hump about every 3s, and the slosh rocked about every 0.65s.
+- **After:** everything is slower: a hump about every 5.5s, the slosh about once a second, and the humps race less while stirred up. The slosh calms in about the same time as before.
+
+## 2026-11-25: The liquid sloshes when the drink lands (branch `v2`)
+
+- **Before:** the base layer's wave slid along at an even pace, whatever the card was doing.
+- **After:** when the card tilts, the base liquid tries to stay level, runs past level and rocks from side to side: about 40px up at one edge and down at the other on the first swing, then 37, 30, 22, 16 and smaller, dying out after about 4s. A quicker, smaller wave rises and falls in the middle, and the little humps race while the liquid is stirred up, then calm to the usual wave. Thin layers slosh less. Only the drink in the main position sloshes: one that leaves goes flat in about a quarter second, and the side drinks stay still (JP, 2026-11-25). Off with "reduce motion".
+- **How:** two damped springs (side to side, and middle) in `DrinkCard.tsx`, driven by the card's tilt. Tune `SLOSH` there.
+- **OPEN:** only the base layer's surface moves; the lines between the other layers stay flat.
+
+## 2026-11-25: The drink cards swing when you switch (branch `v2`)
+
+- **Before:** the cards slid flat and eased to a stop.
+- **After:** while the row moves, the cards tilt to the side (up to about 5 degrees), the top trailing behind the movement. On landing they slide about 3% of a card past their spot, come back, and rock slightly the other way before settling, about 1.3s in all. It also follows a finger swipe. At rest there is no rotation, so text stays sharp. Off with "reduce motion". (A first version tipped the cards back and turned them in 3D; JP asked for a side tilt instead.)
+- **How:** an underdamped spring follows the row's speed. The amounts are in `SWING` at the top of `DrinkPanel.tsx`.
+
+## 2026-11-25: The title fades in when you switch drinks (branch `v2`)
+
+- **Before:** the name and taste line changed instantly.
+- **After:** they fade in with a short slide from the right, whichever way you went (1.3s with a long, soft landing; 0.4s and 0.85s were tried first). No motion with "reduce motion".
+- **Decision:** JP chose always from the right. A first version followed the carousel's direction.
+
+## 2026-11-25: Softer drink description (wide screens, branch `v2`)
+
+- **Before:** the paragraph under the drink name was full white. **After:** it is 80% opacity (70% was tried too), so the name stands out more.
+
+## 2026-11-25: Tried Build my own pinned to the right, then reverted (branch `v2`, Figma 256:1948)
+
+- **Tried:** on wide screens, Build my own pinned at the right end of the nav in full white with the glow always on, 14px slash spacing and fainter slashes.
+- **Decision:** JP reverted it the same day. The nav is as before: Build my own first in the row, dim until selected, glow on hover.
+
+## 2026-11-25: Remove a saved drink; new icon on Build my own (branch `v2`)
+
+- **Before:** a saved drink couldn't be removed. Build my own had a white sparkle icon.
+- **After:** on a drink you made, Browse mode (wide screens) shows **Remove drink** under Make edits and Substitutions, lined up with the serving buttons. The first click changes it to "Click again to remove" (it resets if you move away), because it can't be undone. Removing the last one brings Classics back and hides My Drinks. Build my own now has the colored AI sparkle (Figma 268:11), always at full strength (the label still dims until you are in Build my own).
+- **OPEN:** phones have no Remove drink button yet.
+
+## 2026-11-24: Capitals get 1px letter spacing (branch `v2`)
+
+- **Before:** the small capitals (filters, buttons, panel tabs, section headings, ingredient chips) used 0.08em, which is 0.8px at 10px.
+- **After:** 1px everywhere that style is used. The ingredient names on the drink card are a different style and are unchanged.
+
+## 2026-11-24: More room around the filter slashes (branch `v2`)
+
+- **Before:** 14px between each filter and its slash. The Build my own button has 14px of padding of its own, so the slash after it either looked twice as far away or touched the button's edge.
+- **After:** 22px between every word and slash. The slash after Build my own sits 8px clear of the button. The row is a little longer, so fewer filters fit before you scroll.
+
+## 2026-11-24: Build my own is a glowing button (branch `v2`, Figma 262:3043)
+
+- **Before:** "Build my own" was plain text like the other filters.
+- **After:** a 36px pill in the page's color with a sparkle icon and a still, soft drop shadow in a pink to orange to purple gradient. The shadow shows only on hover (or keyboard focus), easing in and out over 0.5s, so touch screens don't show it. It was then made a bit more vibrant than the Figma frame (a 13px strip with a 14px blur and 1.25x saturation, from 8px and 15px; 18px, 13px and 1.5x was tried first and was too strong). Its label and sparkle are half white like the other filters, and full white only while you are in Build my own. (A first version had a glow travelling clockwise around the button in four colors; JP chose the still one the same day, and the Figma frame was updated to it.)
+- **OPEN:** on a phone the button still does nothing (the phone version of Build my own isn't designed).
+
+## 2026-11-24: The page reveals itself after loading (wide screens, branch `v2`)
+
+- **Before:** everything appeared at once.
+- **After:** a quick sequence, about 1.5s in all. 1. The top squiggly line draws in from the left (0.1s). 2. Together: the browse filters fade in from the right and the drink info (name, ladders, story, buttons) fades in from the left (0.4s). 3. Together (at 0.35s): the servings buttons and total fade in from below, and the main drink fades in, growing from 92% size. 4. The side drinks slide in from their sides with the ‹ › buttons (starts at 0.8s, 0.65s). Skipped with "reduce motion". Phones don't play it.
+- **OPEN:** JP asked for 0.01s on the line; that is shorter than one screen frame, so it is 0.1s.
+
+## 2026-11-24: Closing the drawer, in order (wide screens, branch `v2`)
+
+- **Before:** on Done, the drawer, the zoom, the side drinks and the ‹ › buttons all came back at once.
+- **After:** two steps. 1. The drawer goes down and the main drink zooms back (0.6s), with the soft edge on the sides coming in as it does (0.3s). 2. Once the drawer is down, the side drinks slide into their places (the left one from the left, the right one from the right, 0.65s), the ‹ › buttons come back, and the drink info fades back in, all at the same moment.
+
+## 2026-11-24: Drink info fades out before the Edit Panel comes up (wide screens, branch `v2`)
+
+- **Before:** clicking Make edits or Substitutions started the slide, the zoom and the fades at the same moment, with the drink info still showing under the rising panel.
+- **After:** two steps. First the drink info (story, Best prepared, the two buttons) fades out (0.12s). Then the panel slides up while the drink zooms in and the other drinks fade. Closing runs the other way: the panel slides down and the drink zooms back, then the drink info fades back in.
+
+## 2026-11-24: Edit Panel slides, drink zooms (wide screens, branch `v2`)
+
+- **Before:** Build mode swapped the panels instantly, and the other drinks and the ‹ › buttons vanished at once; the scrollbar ran the whole panel height; Done was a narrow pill.
+- **After:** the Edit Panel slides up from the bottom of the page when Build mode opens and back down on Done or Esc (about 0.45s, with Browse's content underneath until it lands). At the same moment the drink zooms in, and the other drinks and the ‹ › buttons fade out (0.6s, same easing); closing reverses all of it. The scrollbar starts under the Structure / All ingredients tabs. Done spans the panel's width inside its 20px margins (with Save as a new drink it shares the row). "Reduce motion" turns the slide off.
+
+## 2026-11-24: Servings buttons carry the word (branch `v2`, Figma 257:2802)
+
+- **Before:** round 1 / 2 / 4 / + buttons with the chosen one outlined in white, "Servings" under them, and "1 serving · 3 oz per serving" under the total.
+- **After:** the chosen button is a pill with the word ("1 Serving", "2 Servings"; also for a custom number), the others are plain round buttons with a dimmer number. Picking another one grows its pill and shrinks the old one smoothly (about 0.3s, the words cross-fade; instant with "reduce motion"). The total is bigger (24px) with just "3 oz per serving" under it. The "Servings" label under the buttons is gone.
+
+## 2026-11-24: v2 on phones: the main branch's mixer with the new edit panel (branch `v2`)
+
+- **Before:** phones got the earlier v2 flow (loader, empty glass, guide).
+- **After:** phones get the same mixer as wide screens and `main` (carousel, flat card, serving row). The closed edit panel at the bottom holds only **Make edits** and **Substitutions**. Tapping either (or swiping the panel up, or tapping the grabber) opens the drawer as on `main`, now with **Structure** and **All ingredients** tabs, and **Done** closes it. Make edits opens Structure; Substitutions opens All ingredients. The old Mix button is replaced by Done.
+- **OPEN:** Build my own and My Drinks are wide-screen only for now; the loader flow is no longer shown (still in `src/components/flow/`).
+
+## 2026-11-24: v2 on wide screens: Browse mode, Build mode, Build my own (branch `v2`)
+
+- **Before:** v2 was the loader, then one screen with an empty glass, the classics across the top and the guide plus a Roles panel underneath. Wide screens had no Browse view.
+- **After** (from Figma "New Flows", 256:2801; wide screens only, phones keep the earlier flow; `src/components/Home.tsx` picks):
+  - **Browse mode (starts here):** the main branch's carousel and filters. Under the name sit the drink's story, "Best prepared" (the prep icons), and two buttons, MAKE EDITS and SUBSTITUTIONS. The Sweet and Bitter ladders sit top right.
+  - **Build mode:** either button opens the Edit Panel. The drink zooms in (x1.127) and the other drinks fade away. The panel has two tabs: **Structure** (+/− Sweet and Bitter, then every role with − / + / remove) and **All ingredients** (swap by category). Done goes back to Browse; Esc does too.
+  - **Build my own** (first filter): an empty glass and the guide in the Edit Panel. Once the guide finishes, it gives the drink a made-up name, which you can change by clicking the name. **Save as a new drink** adds it under a new **My Drinks** filter (kept in this browser). Once you have started, the panel also gets Structure and All ingredients tabs.
+  - **Save from Build mode:** after editing a classic, a second button saves it as "My <drink>".
+- **Also:** the Browse card is 584 wide at 1440 x 1003 as in Figma (`cardScale` 0.785), and the left column is 475 wide.
+- **OPEN:** the paragraphs under each name are first-pass copy (only the Negroni's is from the design); the loader doesn't show on wide screens; a saved drink can't be renamed or deleted yet; the phone version of Browse / Build isn't designed.
+
 ## 2026-11-23: v2, a flow (branch `v2`)
 
 - **Before:** the app opened straight on the mixer: a carousel of flat drink cards with the edit panel under them.

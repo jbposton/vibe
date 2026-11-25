@@ -21,6 +21,7 @@ const SECTIONS: { title: string; rows: Row[] }[] = [
       { key: "filtersToLine", label: "Filters to squiggly line", min: 8, max: 60, step: 1, unit: "px" },
       { key: "lineToName", label: "Squiggly line to name", min: 16, max: 80, step: 1, unit: "px" },
       { key: "labelToPanel", label: "Label to edit panel", min: 16, max: 60, step: 1, unit: "px" },
+      { key: "prepToLine", label: "Stirred / Rocks to squiggly line", min: 8, max: 80, step: 1, unit: "px" },
       { key: "cardToServings", label: "Card to serving buttons", min: 0, max: 48, step: 1, unit: "px" },
       { key: "cardToArrows", label: "Card to ‹ › buttons", min: 0, max: 60, step: 1, unit: "px" },
     ],

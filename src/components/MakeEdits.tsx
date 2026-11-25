@@ -2,6 +2,7 @@
 
 import type { RecipeLine } from "@/data/drinks";
 import { canAdjust, type TraitEdit } from "@/lib/edits";
+import { TEXT_BUTTON } from "@/components/buttonStyles";
 
 type Props = {
   /** The buttons this drink offers (from its classic recipe). */
@@ -15,7 +16,7 @@ type Props = {
 };
 
 const PILL =
-  "flex h-9 shrink-0 items-center gap-[3px] rounded-full border border-transparent bg-[#1A1612] text-[10px] uppercase tracking-[0.08em] md:text-[length:var(--pill-size,10px)] text-white transition-colors hover:bg-[#26221E] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] disabled:pointer-events-none disabled:opacity-35";
+  `${TEXT_BUTTON} flex shrink-0 items-center gap-[3px] rounded-full border border-transparent bg-[#1A1612] md:text-[length:var(--pill-size,10px)] text-white transition-colors hover:bg-[#26221E] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] disabled:pointer-events-none disabled:opacity-35`;
 
 /** What each taste button says. */
 const LABEL: Record<TraitEdit["id"], string> = {

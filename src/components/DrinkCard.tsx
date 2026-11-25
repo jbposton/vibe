@@ -76,8 +76,8 @@ const PAGE_BACKGROUND = "#1A1612";
 
 /** The tallest the base ingredient's wave can rise (px) above its top line. */
 const WAVE_AMPLITUDE = 26;
-/** How fast the wave slides along at full size (radians per second: about one hump every 3 seconds). */
-const WAVE_SPEED = 2;
+/** How fast the wave slides along at full size (radians per second: about one hump every 5.5 seconds). */
+const WAVE_SPEED = 1.15;
 /** How long the wave takes to settle to a still, flat line when you start dragging, and to come back after. */
 const WAVE_DOWN_MS = 1200;
 const WAVE_UP_MS = 2400;
@@ -85,12 +85,30 @@ const WAVE_UP_MS = 2400;
 const WAVE_TEXT_ROOM = 52;
 
 /**
+ * The slosh (JP, 2026-11-25): when the card tilts, the liquid tries to stay level with the ground, runs past
+ * level, and rocks back and forth until it calms. Two damped springs: `side` is one edge up and the other
+ * down (the main slosh), `middle` is the center rising and falling (the smaller, quicker wave on top). Tune here.
+ */
+const SLOSH = {
+  sideSpeed: 6.4, // how fast it rocks (radians per second: 6.4 is about one rock every second)
+  sideDamping: 0.14, // how quickly it calms (0 never, 1 no rocking at all)
+  middleSpeed: 10.4,
+  middleDamping: 0.16,
+  middleSize: 0.34, // the middle wave's size against the main one
+  lively: 2, // how much faster the little humps travel while the liquid is stirred up
+  limit: 55, // the most an edge rises or falls (px)
+  leaving: 14, // how fast a drink that leaves the main position goes flat (higher is quicker)
+};
+
+/**
  * The base ingredient's wave: smooth, round humps with no sharp points, as a sine curve with a
  * random phase and 1.5 to 2.25 humps across the card. The same seed always gives the same curve.
- * Returns the outline of the base color in a strip `amp + 1` tall (drawn in a 100-wide box that
- * stretches to the card), rising up to `amp` above the strip's bottom line.
+ * On top of that the slosh moves the surface: `side` px up at one edge and down at the other, and `middle`
+ * px up in the center and down at the edges.
+ * Returns the outline of the base color in a strip (drawn in a 100-wide box that stretches to the card).
+ * `dip` is how far the strip reaches below the layer's top line, for where the surface falls under it.
  */
-function wavePath(seed: string, amp: number, phaseShift = 0): { d: string; h: number } {
+function wavePath(seed: string, amp: number, phaseShift = 0, side = 0, middle = 0): { d: string; h: number; dip: number } {
   let a = 0;
   for (let i = 0; i < seed.length; i++) a = (Math.imul(a, 31) + seed.charCodeAt(i)) | 0;
   const rand = () => {
@@ -99,17 +117,26 @@ function wavePath(seed: string, amp: number, phaseShift = 0): { d: string; h: nu
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
-  const h = amp + 1;
   const humps = 1.5 + rand() * 0.75;
   const phase = rand() * Math.PI * 2 + phaseShift;
   const N = 80;
+  // How far the surface stands above the layer's top line at each point (below it when negative).
+  const rises = Array.from({ length: N + 1 }, (_, k) => {
+    const u = k / N - 0.5; // -0.5 at the left edge, 0.5 at the right
+    return (
+      amp * (0.5 + 0.5 * Math.sin((u + 0.5) * humps * Math.PI * 2 + phase)) +
+      side * Math.sin(u * Math.PI) +
+      middle * Math.cos(u * Math.PI * 2)
+    );
+  });
+  const top = Math.max(amp, ...rises);
+  const dip = Math.max(0, -Math.min(...rises));
+  const h = top + dip + 1;
   let d = `M0 ${h}`;
-  for (let k = 0; k <= N; k++) {
-    const x = (k * 100) / N;
-    const rise = amp * (0.5 + 0.5 * Math.sin((x / 100) * humps * Math.PI * 2 + phase));
-    d += ` L${x.toFixed(2)} ${(amp - rise).toFixed(2)}`;
-  }
-  return { d: `${d} L100 ${h} Z`, h };
+  rises.forEach((rise, k) => {
+    d += ` L${((k * 100) / N).toFixed(2)} ${(top - rise).toFixed(2)}`;
+  });
+  return { d: `${d} L100 ${h} Z`, h, dip };
 }
 
 /** Distance from the top of a layer to its label row (the 32px-tall row centered in a 60px layer). */
@@ -192,22 +219,29 @@ export const DrinkCard = memo(function DrinkCard({
   const waveRect = useRef<SVGRectElement | null>(null);
   const wavePathEl = useRef<SVGPathElement | null>(null);
   const waveState = useRef({ k: 1, phase: 0, from: 1, to: 1, t0: 0 });
-  const waveGeom = useRef({ maxAmp: 0, seed: "" });
+  const waveGeom = useRef({ maxAmp: 0, seed: "", sloshRoom: 0 });
+  const slosh = useRef({ side: 0, sideV: 0, middle: 0, middleV: 0 });
   const waveTarget = useRef(1);
   const drawWave = useCallback(() => {
     const svg = waveSvg.current;
     const rect = waveRect.current;
     const path = wavePathEl.current;
     if (!svg || !rect || !path) return;
-    const { maxAmp, seed } = waveGeom.current;
+    const { maxAmp, seed, sloshRoom } = waveGeom.current;
     const amp = maxAmp * waveState.current.k;
+    // The slosh eases off toward its limit instead of stopping dead against it.
+    const soft = (v: number) => (sloshRoom > 0 ? sloshRoom * Math.tanh(v / sloshRoom) : 0);
+    const side = soft(slosh.current.side);
+    const middle = soft(slosh.current.middle) * 0.6;
     // Hidden when it is too short to matter or has settled flat (not at 2px, which popped).
-    if (!(maxAmp >= 2) || !(amp >= 0.05)) {
+    if (!(maxAmp >= 2) || (!(amp >= 0.05) && Math.abs(side) < 0.3 && Math.abs(middle) < 0.3)) {
       svg.style.display = "none";
       return;
     }
     svg.style.display = "";
-    const { d, h } = wavePath(seed, amp, waveState.current.phase);
+    const { d, h, dip } = wavePath(seed, amp, waveState.current.phase, side, middle);
+    // The strip hangs below the layer's top line by as far as the surface dips under it.
+    svg.style.transform = dip > 0 ? `translateY(${dip.toFixed(2)}px)` : "";
     svg.setAttribute("height", String(h));
     svg.setAttribute("viewBox", `0 0 100 ${h}`);
     rect.setAttribute("height", String(Math.max(0, h - 1)));
@@ -219,7 +253,6 @@ export const DrinkCard = memo(function DrinkCard({
       drawWave();
       return;
     }
-    if (!inView) return; // only the drink on screen moves
     let frame = 0;
     let last = performance.now();
     const tick = (now: number) => {
@@ -233,9 +266,35 @@ export const DrinkCard = memo(function DrinkCard({
       }
       const p = Math.min(1, (now - w.t0) / (w.to < w.from ? WAVE_DOWN_MS : WAVE_UP_MS));
       w.k = w.from + (w.to - w.from) * (0.5 - 0.5 * Math.cos(Math.PI * p)); // smooth at both ends
-      w.phase += dt * WAVE_SPEED * w.k; // it slows as it shrinks, so it comes to a stop
+      // The slosh. The carousel writes the card's tilt (degrees) on the box around the card; to stay level
+      // the liquid would have to stand this much higher at one edge. It chases that and overshoots.
+      // Only the drink in the main position sloshes: the others don't react to the tilt at all.
+      const card = panelEl.current;
+      const tilt = inView ? Number(card?.parentElement?.dataset.tilt ?? 0) : 0;
+      const level = card ? Math.tan((tilt * Math.PI) / 180) * (card.clientWidth / 2) : 0;
+      const s = slosh.current;
+      if (!inView) {
+        // One that has just left eases flat in about a quarter of a second (snapping flat would show), then stops.
+        const fade = Math.exp(-dt * SLOSH.leaving);
+        s.side *= fade;
+        s.middle *= fade;
+        s.sideV = s.middleV = 0;
+      }
+      for (let step = 0; inView && step < 3; step++) {
+        const h = dt / 3;
+        s.sideV += (SLOSH.sideSpeed ** 2 * (level - s.side) - 2 * SLOSH.sideDamping * SLOSH.sideSpeed * s.sideV) * h;
+        s.side += s.sideV * h;
+        s.middleV += (SLOSH.middleSpeed ** 2 * (Math.abs(level) * SLOSH.middleSize - s.middle) - 2 * SLOSH.middleDamping * SLOSH.middleSpeed * s.middleV) * h;
+        s.middle += s.middleV * h;
+      }
+      const calm = level === 0 && Math.abs(s.side) < 0.3 && Math.abs(s.sideV) < 3 && Math.abs(s.middle) < 0.3 && Math.abs(s.middleV) < 3;
+      if (calm) s.side = s.sideV = s.middle = s.middleV = 0;
+      const stirred = Math.min(1, (Math.abs(s.sideV) + Math.abs(s.middleV)) / 220);
+      // The humps travel only on the drink in view; they slow as the wave shrinks, so it comes to a stop.
+      if (inView) w.phase += dt * WAVE_SPEED * w.k * (1 + SLOSH.lively * stirred);
       drawWave();
-      frame = requestAnimationFrame(tick);
+      // A card that has left the middle keeps going only until its liquid is flat again.
+      if (inView || !calm) frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
@@ -249,8 +308,10 @@ export const DrinkCard = memo(function DrinkCard({
   // after every render, so it follows the layers as they change.
   const waveMax = ordered[1] ? Math.max(0, Math.min(WAVE_AMPLITUDE, heights[1] - WAVE_TEXT_ROOM)) : 0;
   const waveSeed = ordered[0] ? `${drink.id}-${ordered[0].key}` : "";
+  // The slosh has less room when either layer beside the line is thin.
+  const sloshRoom = ordered[1] ? Math.max(0, Math.min(SLOSH.limit, heights[1] - 30 - waveMax, heights[0] - 24)) : 0;
   useLayoutEffect(() => {
-    waveGeom.current = { maxAmp: waveMax, seed: waveSeed };
+    waveGeom.current = { maxAmp: waveMax, seed: waveSeed, sloshRoom };
     drawWave();
   });
 

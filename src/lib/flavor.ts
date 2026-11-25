@@ -121,3 +121,9 @@ export function tasteSummary(profile: Profile): string {
   const { position, intensity } = tasteBalance(profile);
   return [balanceWord(position), intensityWord(intensity)].filter(Boolean).join(", ");
 }
+
+/** The alcohol label under a drink's name: "27% ABV", or "Non-alcoholic" when it rounds to 0%. */
+export function abvLabel(profile: Profile): string {
+  const abv = Math.round(profile.strength);
+  return abv === 0 ? "Non-alcoholic" : `${abv}% ABV`;
+}
