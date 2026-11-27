@@ -40,10 +40,12 @@ import { TEXT_BUTTON } from "@/components/buttonStyles";
 const START_DRINK = Math.max(0, DRINKS.findIndex((d) => d.id === "negroni"));
 
 const mod = (a: number, n: number) => ((a % n) + n) % n;
-/** Building on a phone: where the guide's top edge sits when it's all the way up (px, just under the filters),
+/** Building on a phone: where the guide's top edge sits when it's all the way up (px; the top bar is away then),
     and how long the first pour waits while the guide comes down (ms). */
-const PHONE_DRAWER_FULL_TOP = 76;
+const PHONE_DRAWER_FULL_TOP = 16;
 const PHONE_REVEAL_MS = 350;
+/** Building on a phone: how long the top bar takes to move back and fade out (and to come back). */
+const BAR_MS = 500;
 
 /** The fewest places a row needs to slide smoothly: the middle card and two waiting on each side. */
 const RING_MIN = 5;
@@ -304,6 +306,24 @@ export function DrinkPanel() {
   const own = mode === "own";
   // On a phone, Build my own is the glass above and the guide in the bottom half of the screen (JP, 2026-11-27).
   const ownPhone = own && !isDesktop;
+  // Building on a phone, the top bar moves back and fades out, as it does for the edit panel, and its room goes
+  // to the drink (JP, 2026-11-27). The round X at the top of the guide leaves. `barMoving` eases the bar only while it goes or comes
+  // back, so it still follows the edit panel's swipe exactly the rest of the time.
+  const [barMoving, setBarMoving] = useState(false);
+  const barTimer = useRef(0);
+  const moveBar = () => {
+    setBarMoving(true);
+    window.clearTimeout(barTimer.current);
+    barTimer.current = window.setTimeout(() => setBarMoving(false), BAR_MS + 50);
+  };
+  const [barHeight, setBarHeight] = useState(0);
+  const barRef = useCallback((el: HTMLDivElement | null) => {
+    if (!el) return;
+    setBarHeight(el.offsetHeight);
+    const observer = new ResizeObserver(() => setBarHeight(el.offsetHeight));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
   // The Edit Panel slides up from the bottom when Build mode opens and back down when it closes. While it moves,
   // Browse's own content stays underneath, and the drink zooms (and the other drinks fade) in the same moment.
   const [closing, setClosing] = useState(false);
@@ -734,6 +754,7 @@ export function DrinkPanel() {
   /** Back to Browse at once (not through Done): the side drinks, the arrows and the soft edge come back with it.
       Building hides them, so every way out of building has to restore them. */
   const showBrowse = () => {
+    if (!isDesktop) moveBar();
     setMode("browse");
     setSideMode("shown");
     setGradientOn(true);
@@ -766,6 +787,7 @@ export function DrinkPanel() {
       else {
         // Phones have no drink info to fade out first.
         sheet.closeSheet();
+        moveBar();
         setMode("own");
       }
       return;
@@ -917,6 +939,7 @@ export function DrinkPanel() {
           onChange={ownChange}
           onRestart={ownRestart}
           save={{ onSave: () => saveAsNew(ownName, ownLines), canSave: ownLines.length > 0 }}
+          onClose={isDesktop ? undefined : () => selectFilter(filterId)}
           name={ownName}
         />
       ) : (
@@ -951,6 +974,18 @@ export function DrinkPanel() {
         transform: `translate3d(0, calc(var(--p, 0) * -14px), calc(var(--p, 0) * -${SHEET.filtersBack}px))`,
         transformOrigin: "50% 0",
         opacity: "calc(1 - var(--p, 0) * 1.6)",
+      }
+    : undefined;
+  // Building on a phone: the bar is all the way back and gone (the edit panel's end position), and the space it
+  // took (plus the 16px gap under it) closes up, so the header and the drink move up into it.
+  const barStyle: React.CSSProperties | undefined = phone
+    ? {
+        ...(ownPhone
+          ? { transform: `translate3d(0, -14px, -${SHEET.filtersBack}px)`, transformOrigin: "50% 0", opacity: 0, marginBottom: -(barHeight + 16) }
+          : { ...zFilters, marginBottom: 0 }),
+        transition: barMoving
+          ? `transform ${BAR_MS}ms ${ZOOM_EASE}, opacity ${BAR_MS}ms ${ZOOM_EASE}, margin-bottom ${BAR_MS}ms ${ZOOM_EASE}`
+          : undefined,
       }
     : undefined;
   // The header stays at full strength (no fading) as it moves up.
@@ -1001,10 +1036,11 @@ export function DrinkPanel() {
     >
       {/* The browse filters: they move back (z) and disappear when the edit panel comes up. */}
       <div
+        ref={barRef}
         className="md:col-span-2 md:row-start-1"
         // Wide screens: the gap above the filters (16px page padding + 8px of their tap area, plus this) and the gap from the squiggly line to the name.
-        style={phone ? zFilters : { paddingTop: tune.filtersTop - 24, marginBottom: tune.lineToName - 16 }}
-        inert={phone && sheet.open}
+        style={phone ? barStyle : { paddingTop: tune.filtersTop - 24, marginBottom: tune.lineToName - 16 }}
+        inert={(phone && sheet.open) || ownPhone}
       >
         <FilterBar active={own ? BUILD_ID : filterId} onSelect={selectFilter} filters={barFilters} />
       </div>

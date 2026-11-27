@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Fragment, useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
 import { GUIDE_STEPS, MOODS, optionsFor, ZERO_PROOF_BASE_ASK } from "@/data/builder";
 import { FLAVORS } from "@/data/flavor";
 import { TEXT_BUTTON } from "@/components/buttonStyles";
@@ -28,6 +28,8 @@ type Props = {
   onRestart: () => void;
   /** Wide screens: "Save as a new drink" sits along the bottom in place of the (placeholder) text box. */
   save?: { onSave: () => void; canSave: boolean };
+  /** Phones: leave Build my own (the top bar is out of sight there). Shown as a round X at the top of the guide. */
+  onClose?: () => void;
   /** The name the guide gave the finished drink (shown in its last message). */
   name?: string;
 };
@@ -38,6 +40,8 @@ const question = "mb-2 text-balance px-1 font-serif text-[26px] leading-[30px]";
 const NEXT_AT = 0.4;
 /** How soft the top of the panel is, in px: at rest (room for the smoke), and at its deepest once scrolled. */
 const TOP_FADE = { rest: 20, deepest: 180 };
+/** The soft fade along the bottom while there is more to scroll to (px at most; JP, 2026-11-27). */
+const BOTTOM_FADE = 56;
 /** An earlier question's choices that you didn't pick: dimmed, still there to change to. */
 const unpicked = "opacity-40 hover:opacity-100 focus-visible:opacity-100";
 const chip =
@@ -156,6 +160,15 @@ function Opening({ before, ask, start = SMOKE.start, playing, onDone, children }
   );
 }
 
+/** Wide screens (768px and up), as in DrinkPanel. Phones get a plainer guide: questions only, one option per row. */
+const WIDE = "(min-width: 768px)";
+const subscribeWide = (onChange: () => void) => {
+  const query = window.matchMedia(WIDE);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+};
+const useWide = () => useSyncExternalStore(subscribeWide, () => window.matchMedia(WIDE).matches, () => false);
+
 /** Capitalizes every word: "Crisp & bright" becomes "Crisp & Bright". */
 const titleCase = (words: string) => words.replace(/\b[a-z]/g, (letter) => letter.toUpperCase());
 
@@ -194,8 +207,9 @@ function remark(id: IngredientId): string {
  * OPEN: free-form chat. The text box is a placeholder until a language model is connected (that needs an
  * API key kept on the server, so it is a separate step).
  */
-export function BuilderChat({ chat, onAnswer, onMood, onChange, onRestart, save, name }: Props) {
+export function BuilderChat({ chat, onAnswer, onMood, onChange, onRestart, save, onClose, name }: Props) {
   const mood = MOODS.find((m) => m.id === chat.moodId) ?? null;
+  const wide = useWide();
   const stepIndex = chat.answers.length;
   const step = mood && stepIndex < GUIDE_STEPS.length ? GUIDE_STEPS[stepIndex] : null;
   const finished = !!mood && !step;
@@ -228,6 +242,9 @@ export function BuilderChat({ chat, onAnswer, onMood, onChange, onRestart, save,
     const latest = el.querySelector<HTMLElement>("[data-latest]");
     const clear = latest ? latest.offsetTop - el.scrollTop - 4 : TOP_FADE.deepest;
     el.style.setProperty("--top-fade", `${Math.max(TOP_FADE.rest, Math.min(TOP_FADE.deepest, el.scrollTop, clear))}px`);
+    // The bottom fades too while there is more below, easing out as you reach the end, so it hints at the scroll.
+    const below = el.scrollHeight - el.scrollTop - el.clientHeight;
+    el.style.setProperty("--bottom-fade", `${Math.max(0, Math.min(BOTTOM_FADE, below)).toFixed(1)}px`);
   }, []);
   useEffect(fadeTop);
   const moodId = chat.moodId;
@@ -243,11 +260,14 @@ export function BuilderChat({ chat, onAnswer, onMood, onChange, onRestart, save,
     const fits = latest.offsetTop + latest.offsetHeight + 12 - el.clientHeight;
     // But never past its own top: in a short panel (a phone's) with many choices, the question stays in view
     // and the rest of the choices are a scroll away.
-    const top = Math.max(0, Math.min(latest.offsetTop - 12, Math.max(fits, latest.offsetTop - from)));
+    // Phones: always to the top of the new question or section (JP, 2026-11-27).
+    const top = !wide
+      ? Math.max(0, latest.offsetTop - TOP_FADE.rest - 4) // just clear of the soft top edge
+      : Math.max(0, Math.min(latest.offsetTop - 12, Math.max(fits, latest.offsetTop - from)));
     // Room under the last question, so the panel can scroll that far.
     spacer.style.height = `${Math.max(0, top - (el.scrollHeight - el.clientHeight))}px`;
     el.scrollTo({ top, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
-  }, [moodId]);
+  }, [moodId, wide]);
   useEffect(placeLatest, [placeLatest, chat.answers.length]);
   // The panel can change height (on a phone it comes down to show the drink). Once it has settled, put the
   // newest question back in its place.
@@ -271,10 +291,26 @@ export function BuilderChat({ chat, onAnswer, onMood, onChange, onRestart, save,
 
   return (
     <div className="flex h-full min-h-0 flex-col">
+      {/* Phones: a round X at the top right closes Build my own (JP, 2026-11-27). It has a row of its own, so the
+          first question never runs under it; the scrolling box below reaches up behind it as before. */}
+      {onClose && (
+        <div className="relative z-10 -mr-2 -mt-[5px] mb-1 flex shrink-0 justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close Build my own"
+            className="grid size-9 place-items-center rounded-full bg-[#1A1612] text-white/80 transition-colors hover:bg-[#26221E] hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7]"
+          >
+            <svg aria-hidden width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+              <path d="M2 2l10 10M12 2L2 12" />
+            </svg>
+          </button>
+        </div>
+      )}
       {/* A scrolling box cuts off whatever spills past its edges, which would slice the smoke's haze in a hard line.
           So it reaches out to the panel's sides and top, with the same room inside, and the last 20px there fade
           away. The panel's frame has 17px above this (taken back by the negative margin), leaving 24px in all. */}
-      <div ref={scrollRef} onScroll={fadeTop} className="relative -mx-5 -mt-[17px] flex min-h-0 flex-1 flex-col gap-10 overflow-y-auto overflow-x-hidden overscroll-contain pb-3 pl-5 pr-6 pt-6 [mask-composite:intersect] [mask-image:linear-gradient(to_right,transparent,#000_20px,#000_calc(100%_-_20px),transparent),linear-gradient(to_bottom,transparent,#000_var(--top-fade,20px))]">
+      <div ref={scrollRef} onScroll={fadeTop} className="relative -mx-5 -mt-[17px] flex min-h-0 flex-1 flex-col gap-10 overflow-y-auto overflow-x-hidden overscroll-contain pb-3 pl-5 pr-6 pt-6 [mask-composite:intersect] [mask-image:linear-gradient(to_right,transparent,#000_20px,#000_calc(100%_-_20px),transparent),linear-gradient(to_bottom,transparent,#000_var(--top-fade,20px),#000_calc(100%_-_var(--bottom-fade,0px)),transparent)]">
         <div key={round} className="flex shrink-0 flex-col gap-3">
           <Opening ask="What are you in the mood for?" start={SMOKE.welcome} playing={!welcomed} onDone={doneWelcome}>
             {/* Phones: one full-width mood per row. Wide screens: as many columns as fit. */}
@@ -316,15 +352,32 @@ export function BuilderChat({ chat, onAnswer, onMood, onChange, onRestart, save,
             else if (ingredient !== picked) onChange?.(i, s.role, ingredient);
           };
           const skipped = answered && picked === null;
+          // Skip: on phones it heads the list (JP, 2026-11-27); on wide screens it has a row of its own at the end.
+          const skip = s.skippable && (
+            <div className="flex w-full">
+              <button
+                type="button"
+                aria-pressed={answered ? skipped : undefined}
+                onClick={() => choose(null)}
+                className={`${TEXT_BUTTON} !h-11 rounded-full border px-4 transition-[color,background-color,border-color,opacity] hover:border-white/50 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] max-md:w-full ${
+                  skipped ? "border-white bg-[#3A352F] text-white" : `border-white/20 text-[#F7F7F7]/70 ${answered ? unpicked : ""}`
+                }`}
+              >
+                Skip
+              </button>
+            </div>
+          );
+          // Phones: one option per row, full width. Wide screens: they wrap side by side.
           const choices = (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-col gap-2 md:flex-row md:flex-wrap">
+              {!wide && skip}
               {optionsFor(s.role, mood).map((o) => {
                 const selected = answered && picked === o.id;
                 const look = selected ? "!border-white !bg-[#3A352F]" : answered ? unpicked : "";
                 // While the question is open, a suggestion is outlined in the Build my own glow's colors (JP, 2026-11-26).
                 const outlined = o.suggested && !answered;
                 return (
-                  <button key={o.id} type="button" aria-pressed={answered ? selected : undefined} onClick={() => choose(o.id)} className={`${chip} ${outlined ? "gradient-stroke" : ""} ${look}`}>
+                  <button key={o.id} type="button" aria-pressed={answered ? selected : undefined} onClick={() => choose(o.id)} className={`${chip} max-md:w-full ${outlined ? "gradient-stroke" : ""} ${look}`}>
                     <Image src={`/icons/ingredients/${o.id}.png`} alt="" width={32} height={32} unoptimized draggable={false} className="size-8 shrink-0" />
                     <span className="flex flex-col items-start leading-[13px]">
                       {INGREDIENTS[o.id].name}
@@ -333,21 +386,7 @@ export function BuilderChat({ chat, onAnswer, onMood, onChange, onRestart, save,
                   </button>
                 );
               })}
-              {/* A row of its own, so Skip always starts a new line. */}
-              {s.skippable && (
-                <div className="flex w-full">
-                  <button
-                    type="button"
-                    aria-pressed={answered ? skipped : undefined}
-                    onClick={() => choose(null)}
-                    className={`${TEXT_BUTTON} !h-11 rounded-full border px-4 transition-[color,background-color,border-color,opacity] hover:border-white/50 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] ${
-                      skipped ? "border-white bg-[#3A352F] text-white" : `border-white/20 text-[#F7F7F7]/70 ${answered ? unpicked : ""}`
-                    }`}
-                  >
-                    Skip
-                  </button>
-                </div>
-              )}
+              {wide && skip}
             </div>
           );
           return (
@@ -356,7 +395,8 @@ export function BuilderChat({ chat, onAnswer, onMood, onChange, onRestart, save,
               <Opening
                 // Only the guide's second and third questions have a line before them (JP, 2026-11-26): a reply to your
                 // mood, then what your base brings.
-                before={i === 0 ? (mood ? `${titleCase(mood.label)}! Great.` : undefined) : i === 1 && chat.answers[0] ? remark(chat.answers[0]) : undefined}
+                // Phones show the questions only (JP, 2026-11-27).
+                before={!wide ? undefined : i === 0 ? (mood ? `${titleCase(mood.label)}! Great.` : undefined) : i === 1 && chat.answers[0] ? remark(chat.answers[0]) : undefined}
                 ask={i === 0 && mood?.zeroProof ? ZERO_PROOF_BASE_ASK : s.ask}
                 playing={i === stepIndex && arrivedKey !== latestKey}
                 onDone={doneArriving}
@@ -369,6 +409,12 @@ export function BuilderChat({ chat, onAnswer, onMood, onChange, onRestart, save,
 
         {finished && (
           <div data-latest className="guide-in shrink-0 px-1">
+            {/* Phones: the glasses come first, smaller, above "Cheers!". Wide screens: full size, after the text. */}
+            {!wide && (
+              <div className="mb-3">
+                <CheersToast small />
+              </div>
+            )}
             <p className="font-serif text-[26px] leading-[30px]">Cheers!</p>
             <p className="mt-2 text-[13px] leading-[19px] text-[#F7F7F7]/70">
               {save && !name
@@ -377,9 +423,11 @@ export function BuilderChat({ chat, onAnswer, onMood, onChange, onRestart, save,
                 ? <>I&rsquo;ve called it <span className="text-white">{name}</span>! Change the name above if you like. Drag any layer to tune the amounts. When it looks right, save as a new drink.</>
                 : <>Drag a layer, or use the roles panel, to tune the amounts. When it looks right, serve it.</>}
             </p>
-            <div className="mt-6">
-              <CheersToast />
-            </div>
+            {wide && (
+              <div className="mt-6">
+                <CheersToast />
+              </div>
+            )}
           </div>
         )}
 

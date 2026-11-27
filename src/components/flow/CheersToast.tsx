@@ -29,9 +29,10 @@ export function GlassSilhouette() {
   );
 }
 
-export function CheersToast() {
+/** `small`: phones show it above "Cheers!", centered at 160 × 120px (full size is 200 × 150) (JP, 2026-11-27). */
+export function CheersToast({ small = false }: { small?: boolean }) {
   return (
-    <svg viewBox="0 0 200 150" className="mx-auto block h-[150px] w-[200px] max-w-full" aria-hidden>
+    <svg viewBox="0 0 200 150" className={`block max-w-full mx-auto ${small ? "h-[120px] w-[160px]" : "h-[150px] w-[200px]"}`} aria-hidden>
       {/* Each glass pivots on its foot. The right one is the left one in a mirror, so they move as a pair.
           Leaned in 10 degrees, their near rims meet in the middle, at (100, 45). */}
       {["translate(53.1 138)", "translate(146.9 138) scale(-1 1)"].map((place) => (
