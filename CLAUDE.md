@@ -161,7 +161,7 @@ Every branch gets its own Vercel preview link; only `main` deploys to the live s
 - `src/app/page.tsx` renders `<DrinkPanel />`. On wide screens it has Browse and Build modes (`BrowsePanel`, `EditShell`, `BuildButton`), Build my own with a guide, saved drinks (`src/lib/saved.ts`, kept in the browser), drink motion (swing, slosh in `DrinkCard.tsx`) and a lens over the side drinks (`SideLens.tsx`; `SideGlass.tsx` is the earlier version). Phones keep the earlier mixer with the new edit panel. *(2026-11-27)* Build my own works on phones too: the glass on top and the guide in the bottom half of the screen, with no serving buttons there.
 - `src/components/flow/`: the Edit Panel uses `RolesPanel` and `BuilderChat`; the first one-screen flow (`Flow`, `Loader`, `DrinkScreen`) is no longer rendered.
 - The guide is scripted on purpose (`src/data/builder.ts`); a real AI chat needs an API route with the key in `.env.local` (never in the repo).
-- The drink descriptions in `src/data/blurbs.ts` are placeholders except the Negroni.
+- The drink descriptions in `src/data/blurbs.ts` are short histories of each drink, no longer than the Negroni's (JP's text). The others were written and fact-checked on 2026-11-27; disputed origins are labeled as such.
 
 ### Dev server gotcha
 
