@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" fill="none">
+<!-- Mood icon "bright" for Build my own, drawn like the app's other illustration icons (public/icons/build-ai.svg). -->
+<defs>
+<linearGradient id="fill" x1="24" y1="6" x2="24" y2="42" gradientUnits="userSpaceOnUse">
+<stop stop-color="#EFE822"/>
+<stop offset="1" stop-color="#94FF8E"/>
+</linearGradient>
+<linearGradient id="edge" x1="24" y1="6" x2="24" y2="42" gradientUnits="userSpaceOnUse">
+<stop stop-color="#fff" stop-opacity="0.9"/>
+<stop offset="0.6" stop-color="#fff" stop-opacity="0.15"/>
+<stop offset="1" stop-color="#fff" stop-opacity="0"/>
+</linearGradient>
+<filter id="glow" x="-4" y="-4" width="56" height="56" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feGaussianBlur stdDeviation="3"/>
+</filter>
+<filter id="grain" x="0" y="0" width="48" height="48" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feTurbulence type="fractalNoise" baseFrequency="2.4" numOctaves="3" seed="4" stitchTiles="stitch" result="noise"/>
+<feColorMatrix in="noise" type="luminanceToAlpha" result="alphaNoise"/>
+<feComponentTransfer in="alphaNoise" result="specks">
+<feFuncA type="discrete" tableValues="0 0 0 0 0 0 1 1 1 1 1 0 0 0 0 0 0 0 0 0"/>
+</feComponentTransfer>
+<feComposite operator="in" in="specks" in2="SourceGraphic" result="clipped"/>
+<feFlood flood-color="#fff" flood-opacity="0.16"/>
+<feComposite operator="in" in2="clipped" result="white"/>
+<feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="white"/></feMerge>
+</filter>
+</defs>
+<g opacity="0.6" filter="url(#glow)" fill="url(#fill)"><path d="M7 31A17 17 0 0 1 41 31Z"/></g>
+<g filter="url(#grain)" fill="url(#fill)"><path d="M7 31A17 17 0 0 1 41 31Z"/></g>
+<g fill="none" stroke="url(#edge)" stroke-width="0.75"><path d="M7 31A17 17 0 0 1 41 31Z"/></g>
+<path d="M11 31A13 13 0 0 1 37 31M24 31L35.26 24.50M24 31L30.50 19.74M24 31L24.00 18.00M24 31L17.50 19.74M24 31L12.74 24.50" fill="none" stroke="#fff" stroke-opacity="0.45" stroke-width="1" stroke-linecap="round"/>
+</svg>

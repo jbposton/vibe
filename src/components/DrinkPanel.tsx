@@ -152,6 +152,8 @@ const SIDE_FROM = 180;
 const INTRO_SIDES_AT = 350;
 const INTRO_SIDE_MS = 900;
 const INTRO_EASE = "cubic-bezier(0.25, 0.6, 0.3, 1)";
+/** After picking another group in the top bar: when its side drinks start sliding in (ms). They then take INTRO_SIDE_MS. */
+const GROUP_SIDES_AT = 60;
 const never = () => () => {};
 type SideMode = "shown" | "hidden" | "staged" | "entering";
 const ZOOM_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
@@ -311,6 +313,15 @@ export function DrinkPanel() {
   // The other drinks: shown, hidden (Build), waiting off to the side, or sliding in. They start off to the side:
   // sliding them in is the last step of the after-loading sequence.
   const [sideMode, setSideMode] = useState<SideMode>("staged");
+  // Picking another group in the top bar slides the side drinks in again, the same way as after loading
+  // (JP, 2026-11-27). `groupIn` gives them the load-in timing; the timers are dropped if Build mode opens meanwhile.
+  const [groupIn, setGroupIn] = useState(false);
+  const groupTimers = useRef<number[]>([]);
+  const stopGroupIn = () => {
+    groupTimers.current.forEach(window.clearTimeout);
+    groupTimers.current = [];
+    setGroupIn(false);
+  };
   // After loading: the page reveals itself in order (see "intro" in globals.css). `ready` is false until the
   // browser has taken over, so nothing shows before the sequence starts.
   const ready = useSyncExternalStore(never, () => true, () => false);
@@ -333,6 +344,7 @@ export function DrinkPanel() {
   const [gradientOn, setGradientOn] = useState(true); // the soft edge on the side drinks
   const openBuild = (nextTab: "structure" | "ingredients" | "guide", nextMode: Mode) => {
     if (leavingBrowse) return;
+    stopGroupIn();
     setLeavingBrowse(true);
     window.setTimeout(() => {
       setTab(nextTab);
@@ -766,6 +778,19 @@ export function DrinkPanel() {
     if (id === filterId) return;
     const next = listFor(id);
     showList(id, next, Math.max(0, next.indexOf(list[ctl.current.index])));
+    // Wide screens: the new group's side drinks wait off to the side, then slide in like after loading.
+    if (isDesktop && !window.matchMedia(REDUCED_MOTION).matches) {
+      stopGroupIn();
+      setSideMode("staged");
+      setGroupIn(true);
+      groupTimers.current = [
+        window.setTimeout(() => setSideMode("entering"), GROUP_SIDES_AT),
+        window.setTimeout(() => {
+          setSideMode("shown");
+          setGroupIn(false);
+        }, GROUP_SIDES_AT + INTRO_SIDE_MS + 50),
+      ];
+    }
   };
 
   // Which filters the bar shows: My Drinks appears once one is saved.
@@ -1120,7 +1145,7 @@ export function DrinkPanel() {
                 marginTop: isDesktop ? 0 : -cardHeight / 2,
                 // Wide screens: the other drinks fade out as the drink zooms (phones drive opacity from the sheet instead).
                 ...(isDesktop
-                  ? { top: cardTop, transition: sideMode === "staged" ? "none" : sideMode === "entering" ? (intro ? `opacity ${INTRO_SIDE_MS}ms ${INTRO_EASE}, transform ${INTRO_SIDE_MS}ms ${INTRO_EASE}` : `opacity ${SIDE_MS}ms ${ZOOM_EASE}, transform ${SIDE_MS}ms ${ZOOM_EASE}`) : `opacity ${ZOOM_MS}ms ${ZOOM_EASE}` }
+                  ? { top: cardTop, transition: sideMode === "staged" ? "none" : sideMode === "entering" ? (intro || groupIn ? `opacity ${INTRO_SIDE_MS}ms ${INTRO_EASE}, transform ${INTRO_SIDE_MS}ms ${INTRO_EASE}` : `opacity ${SIDE_MS}ms ${ZOOM_EASE}, transform ${SIDE_MS}ms ${ZOOM_EASE}`) : `opacity ${ZOOM_MS}ms ${ZOOM_EASE}` }
                   : {}),
               }}
             >

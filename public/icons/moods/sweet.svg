@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" fill="none">
+<!-- Mood icon "sweet" for Build my own, drawn like the app's other illustration icons (public/icons/build-ai.svg). -->
+<defs>
+<linearGradient id="fill" x1="24" y1="6" x2="24" y2="42" gradientUnits="userSpaceOnUse">
+<stop stop-color="#F4577A"/>
+<stop offset="1" stop-color="#E32A3C"/>
+</linearGradient>
+<linearGradient id="edge" x1="24" y1="6" x2="24" y2="42" gradientUnits="userSpaceOnUse">
+<stop stop-color="#fff" stop-opacity="0.9"/>
+<stop offset="0.6" stop-color="#fff" stop-opacity="0.15"/>
+<stop offset="1" stop-color="#fff" stop-opacity="0"/>
+</linearGradient>
+<filter id="glow" x="-4" y="-4" width="56" height="56" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feGaussianBlur stdDeviation="3"/>
+</filter>
+<filter id="grain" x="0" y="0" width="48" height="48" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feTurbulence type="fractalNoise" baseFrequency="2.4" numOctaves="3" seed="4" stitchTiles="stitch" result="noise"/>
+<feColorMatrix in="noise" type="luminanceToAlpha" result="alphaNoise"/>
+<feComponentTransfer in="alphaNoise" result="specks">
+<feFuncA type="discrete" tableValues="0 0 0 0 0 0 1 1 1 1 1 0 0 0 0 0 0 0 0 0"/>
+</feComponentTransfer>
+<feComposite operator="in" in="specks" in2="SourceGraphic" result="clipped"/>
+<feFlood flood-color="#fff" flood-opacity="0.16"/>
+<feComposite operator="in" in2="clipped" result="white"/>
+<feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="white"/></feMerge>
+</filter>
+</defs>
+<g opacity="0.6" filter="url(#glow)" fill="url(#fill)"><circle cx="16.5" cy="32" r="7.5"/><circle cx="31.5" cy="31" r="7.5"/></g>
+<g filter="url(#grain)" fill="url(#fill)"><circle cx="16.5" cy="32" r="7.5"/><circle cx="31.5" cy="31" r="7.5"/></g>
+<g fill="none" stroke="url(#edge)" stroke-width="0.75"><circle cx="16.5" cy="32" r="7.5"/><circle cx="31.5" cy="31" r="7.5"/></g>
+<path d="M16.5 24.5C18 17 22 11 27 8M31.5 23.5C30.5 17 29 12 27 8" fill="none" stroke="#A9B52A" stroke-width="1.5" stroke-linecap="round"/><path d="M27 8c3-2.5 7-2.5 9 .5-3 2-6.5 1.8-9-.5z" fill="#10D68E"/><path d="M13 29.5a4 4 0 0 1 3-2.5M28 28.5a4 4 0 0 1 3-2.5" fill="none" stroke="#fff" stroke-opacity="0.7" stroke-width="1.25" stroke-linecap="round"/>
+</svg>

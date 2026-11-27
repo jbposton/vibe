@@ -43,16 +43,21 @@ const unpicked = "opacity-40 hover:opacity-100 focus-visible:opacity-100";
 const chip =
   "flex h-11 items-center gap-2 rounded-full border border-transparent bg-[#1A1612] py-1 pl-1 pr-3.5 text-[10px] uppercase tracking-[1px] text-white transition-colors hover:bg-[#26221E] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7]";
 
-/** Stands in for each mood's illustration. OPEN: the real artwork isn't drawn yet. */
-function IconPlaceholder() {
+/**
+ * Each mood's illustration (public/icons/moods), drawn like the app's other illustration icons: a simple
+ * shape with a gradient, a soft glow, fine grain and a faint white top edge. To tweak one, edit its SVG file.
+ */
+function MoodIcon({ id }: { id: string }) {
   return (
-    <span aria-hidden className="grid size-8 shrink-0 place-items-center md:size-10 rounded-full border border-dashed border-white/30 bg-white/5 text-white/45">
-      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinejoin="round">
-        <rect x="2" y="3" width="14" height="12" rx="2.5" />
-        <circle cx="6.5" cy="7" r="1.25" />
-        <path d="M3 14l4-4 3 2.5 2.5-2.5 3 3" />
-      </svg>
-    </span>
+    <Image
+      src={`/icons/moods/${id}.svg`}
+      alt=""
+      width={40}
+      height={40}
+      unoptimized
+      draggable={false}
+      className="size-8 shrink-0 md:size-10"
+    />
   );
 }
 
@@ -272,7 +277,8 @@ export function BuilderChat({ chat, onAnswer, onMood, onChange, onRestart, save,
       <div ref={scrollRef} onScroll={fadeTop} className="relative -mx-5 -mt-[17px] flex min-h-0 flex-1 flex-col gap-10 overflow-y-auto overflow-x-hidden overscroll-contain pb-3 pl-5 pr-6 pt-6 [mask-composite:intersect] [mask-image:linear-gradient(to_right,transparent,#000_20px,#000_calc(100%_-_20px),transparent),linear-gradient(to_bottom,transparent,#000_var(--top-fade,20px))]">
         <div key={round} className="flex shrink-0 flex-col gap-3">
           <Opening ask="What are you in the mood for?" start={SMOKE.welcome} playing={!welcomed} onDone={doneWelcome}>
-            <div className="grid shrink-0 auto-rows-fr grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-2">
+            {/* Phones: one full-width mood per row. Wide screens: as many columns as fit. */}
+            <div className="grid shrink-0 auto-rows-fr grid-cols-1 gap-2 md:grid-cols-[repeat(auto-fill,minmax(140px,1fr))]">
               {MOODS.map((m) => {
                 const selected = chat.moodId === m.id;
                 return (
@@ -290,7 +296,7 @@ export function BuilderChat({ chat, onAnswer, onMood, onChange, onRestart, save,
                       selected ? "border-white bg-[#3A352F]" : `border-transparent bg-[#1A1612] hover:bg-[#26221E] ${mood ? unpicked : ""}`
                     }`}
                   >
-                    <IconPlaceholder />
+                    <MoodIcon id={m.id} />
                     <span>
                       <span className="block text-[10px] uppercase leading-[16px] tracking-[1px]">{m.label}</span>
                       <span className="block text-[11px] text-[#F7F7F7]/50">{m.hint}</span>
