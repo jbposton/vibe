@@ -63,7 +63,7 @@ export const MOODS: Mood[] = [
   },
   {
     id: "zero",
-    label: "No alcohol",
+    label: "Non-alcoholic",
     hint: "all the flavor, none of the booze",
     zeroProof: true,
     suggest: { base: ["iced-tea", "ginger-ale", "lemonade"], sweet: ["grenadine", "honey"], sour: ["lemon-juice", "lime-juice"], lengthener: ["soda-water"], aromatic: ["lemon-wheel", "cherry"] },

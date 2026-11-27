@@ -154,6 +154,12 @@ const SIDE_FROM = 180;
 const INTRO_SIDES_AT = 350;
 const INTRO_SIDE_MS = 900;
 const INTRO_EASE = "cubic-bezier(0.25, 0.6, 0.3, 1)";
+/**
+ * When the first-load hint starts (ms after the page appears; see DEMO in DrinkCard.tsx): wide screens once the
+ * load-in has finished (the side drinks are in by INTRO_SIDES_AT + INTRO_SIDE_MS), phones once the first slosh has
+ * calmed a little.
+ */
+const DEMO_AT = { wide: INTRO_SIDES_AT + INTRO_SIDE_MS + 250, phone: 1100 };
 /** After picking another group in the top bar: when its side drinks start sliding in (ms). They then take INTRO_SIDE_MS. */
 const GROUP_SIDES_AT = 60;
 const never = () => () => {};
@@ -1198,6 +1204,8 @@ export function DrinkPanel() {
                 servings={servings[d] ?? 1}
                 modified={d in edits || (servings[d] ?? 1) !== 1}
                 onReset={resetDrink}
+                // The first-load hint plays on the drink shown at load, once the load-in has finished (DEMO_AT).
+                demoAt={d === START_DRINK ? (isDesktop ? DEMO_AT.wide : DEMO_AT.phone) : undefined}
               />
               {/* Dims the card when it's at the side; its opacity is set as the row moves. */}
               <div aria-hidden data-dim className="pointer-events-none absolute inset-0 rounded-[38px] bg-black opacity-0" />

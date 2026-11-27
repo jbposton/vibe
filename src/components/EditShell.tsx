@@ -53,17 +53,26 @@ export function EditShell({ tabs, tab, onTab, fill = false, children, footer }: 
 }
 
 const CHIP =
-  `${TEXT_BUTTON} flex flex-1 items-center justify-center gap-[3px] rounded-full bg-[#1A1612] text-white transition-colors hover:bg-[#26221E] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] disabled:pointer-events-none disabled:opacity-35`;
+  `${TEXT_BUTTON} flex flex-1 items-center justify-center gap-[5px] rounded-full bg-[#1A1612] text-white transition-colors hover:bg-[#26221E] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] disabled:pointer-events-none disabled:opacity-35`;
 
-/** The short labels in the Structure tab (Figma 256:1672): "+ Sweet", "- Sweet", "+ Bitter", "- Bitter". */
+/** The short labels in the Structure tab (Figma 256:1672): a plus or minus icon, then the taste. */
 const CHIP_LABEL: Partial<Record<TraitEdit["id"], string>> = {
-  "more-sweet": "+ Sweet",
-  "less-sweet": "− Sweet",
-  "more-bitter": "+ Bitter",
-  "less-bitter": "− Bitter",
-  "more-strong": "+ Strong",
-  "less-strong": "− Strong",
+  "more-sweet": "Sweet",
+  "less-sweet": "Sweet",
+  "more-bitter": "Bitter",
+  "less-bitter": "Bitter",
+  "more-strong": "Strong",
+  "less-strong": "Strong",
 };
+
+/** The plus and minus, drawn like the − / + beside each ingredient (RolesPanel) rather than as text (JP, 2026-11-27). */
+function SignIcon({ more }: { more: boolean }) {
+  return (
+    <svg width="7" height="7" viewBox="0 0 8 8" fill="none" aria-hidden className="shrink-0">
+      <path d={more ? "M4 0.5V7.5M0.5 4H7.5" : "M0.5 4H7.5"} stroke="currentColor" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 /** The quick taste buttons at the top of the Structure tab: only the ones that fit the drink. */
 export function TraitChips({ edits, lines, onAdjust }: { edits: TraitEdit[]; lines: RecipeLine[]; onAdjust: (key: number, direction: 1 | -1) => void }) {
@@ -81,6 +90,7 @@ export function TraitChips({ edits, lines, onAdjust }: { edits: TraitEdit[]; lin
           disabled={!canAdjust(lines, edit.key, edit.direction)}
           onClick={() => onAdjust(edit.key, edit.direction)}
         >
+          <SignIcon more={edit.direction === 1} />
           {CHIP_LABEL[edit.id]}
         </button>
       ))}

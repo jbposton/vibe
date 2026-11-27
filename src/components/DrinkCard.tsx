@@ -14,6 +14,7 @@ import {
   MIN_LAYER,
   orderLines,
   shareForEdge,
+  shareLines,
   snapAmount,
   snapShare,
   stepAmount,
@@ -129,6 +130,22 @@ const LABEL_TOP = 14;
 /** A top layer at least this tall (px) gets 15px more above its label, to clear the card's rounded corners. OPEN: the threshold is a first guess. */
 const TALL_TOP_LAYER = 90;
 
+/**
+ * The first-load hint (JP, 2026-11-27): once the page has loaded, the drink on screen shows what dragging does.
+ * Its sweet vermouth gets a little smaller and comes back, as if someone dragged it, with "Drag to adjust" in a
+ * dark pill in the middle of that layer, which then fades away. Only a preview: the recipe itself isn't edited.
+ * Once per page load; it stops if you touch the drink, and with "reduce motion" it doesn't play.
+ */
+const DEMO = {
+  ingredient: "sweet-vermouth",
+  dip: 0.35, // how much smaller it gets at the deepest point (parts, of the 1 part in a Negroni)
+  ms: 1800, // down and back up again
+  pillIn: 250, // the pill fades in as it starts
+  pillHold: 350, // and stays this long after the layer is back
+  pillOut: 450, // then fades out
+};
+let demoPlayed = false;
+
 /** Finger travel (px) that adds or removes one dash. */
 const DASH_DRAG_PX = 16;
 
@@ -170,6 +187,8 @@ type Props = {
   pours?: boolean;
   /** How long a pour waits before it starts (ms). */
   pourDelay?: number;
+  /** The first-load hint (see DEMO): given only to the drink shown when the page loads, with when to start (ms). */
+  demoAt?: number;
 };
 
 /**
@@ -190,6 +209,7 @@ export const DrinkCard = memo(function DrinkCard({
   onReset,
   pours = false,
   pourDelay = 0,
+  demoAt,
 }: Props) {
   // Measure the card: the stack fills its full inner height.
   const panelEl = useRef<HTMLElement | null>(null);
@@ -300,7 +320,46 @@ export const DrinkCard = memo(function DrinkCard({
     return () => cancelAnimationFrame(frame);
   }, [inView, drawWave]);
 
-  const ordered = orderLines(lines);
+  // The first-load hint: while it plays, the drink is drawn from a preview of the recipe (see DEMO).
+  const demoKey = demoAt == null ? -1 : lines.findIndex((l) => l.ingredient === DEMO.ingredient && l.amount.kind === "parts");
+  const [demoParts, setDemoParts] = useState<number | null>(null);
+  const [demoPill, setDemoPill] = useState(false);
+  const demoStop = useRef(false);
+  const demoBase = useRef(0);
+  demoBase.current = demoKey >= 0 && lines[demoKey].amount.kind === "parts" ? lines[demoKey].amount.parts : 0;
+  const canDemo = demoAt != null && demoKey >= 0 && inView;
+  useEffect(() => {
+    if (!canDemo || demoPlayed || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let frame = 0;
+    const timers: number[] = [];
+    const start = window.setTimeout(() => {
+      demoPlayed = true;
+      demoStop.current = false;
+      setDemoPill(true);
+      const t0 = performance.now();
+      const tick = (now: number) => {
+        const p = Math.min(1, (now - t0) / DEMO.ms);
+        if (demoStop.current || p >= 1) {
+          setDemoParts(null);
+          timers.push(window.setTimeout(() => setDemoPill(false), demoStop.current ? 0 : DEMO.pillHold));
+          return;
+        }
+        // Smoothly down and back up again (a single soft dip).
+        setDemoParts(demoBase.current - DEMO.dip * 0.5 * (1 - Math.cos(2 * Math.PI * p)));
+        frame = requestAnimationFrame(tick);
+      };
+      frame = requestAnimationFrame(tick);
+    }, demoAt);
+    return () => {
+      window.clearTimeout(start);
+      cancelAnimationFrame(frame);
+      timers.forEach(window.clearTimeout);
+      setDemoParts(null);
+      setDemoPill(false);
+    };
+  }, [canDemo, demoAt]);
+  const shownLines = demoParts !== null && demoKey >= 0 ? shareLines(lines, demoKey, demoParts) : lines;
+  const ordered = orderLines(shownLines);
   // While an ingredient pours in, these are the heights part of the way there.
   const { heights, pouring } = usePour(pours, ordered.map((l) => l.role), layerHeights(ordered, panelHeight), pourDelay);
   const bottoms = layerBottoms(heights);
@@ -402,7 +461,11 @@ export const DrinkCard = memo(function DrinkCard({
   // The layer the mouse is over: its amount pill shows (JP, 2026-11-26). Touch has no hover, so it is mouse only.
   const [hoverKey, setHoverKey] = useState<number | null>(null);
   // During a drag or a pour the layers are moved frame by frame, so their own easing is off.
-  const animate = draggingKey === null && !pouring ? undefined : "none";
+  const animate = draggingKey === null && !pouring && demoParts === null ? undefined : "none";
+  // Touching the drink stops the first-load hint.
+  useEffect(() => {
+    if (draggingKey !== null) demoStop.current = true;
+  }, [draggingKey]);
 
   // With WAVE_FLATTEN_ON_DRAG the wave settles while a layer is being dragged and comes back after.
   // It is off (JP, 2026-11-26): the flat line it left after a drag read as a glitch.
@@ -548,7 +611,7 @@ export const DrinkCard = memo(function DrinkCard({
             // small button (it will be clickable one day) or "Garnish".
             // The button around the amount only shows while you press or drag (JP, 2026-11-16).
             // It also shows on the layer the mouse is over.
-            const pressing = draggingKey !== null || (interactive && hoverKey === line.key);
+            const pressing = draggingKey !== null || (interactive && hoverKey === line.key) || (demoParts !== null && line.key === demoKey);
             const ink = labelColor(ingredient.color);
             const lightLayer = ink === "#000";
             const [amountNumber, ...amountUnit] = amountText.split(" ");
@@ -633,6 +696,16 @@ export const DrinkCard = memo(function DrinkCard({
                 }}
               >
                 {label}
+                {/* The first-load hint's pill, in the middle of the layer (see DEMO). */}
+                {demoAt != null && line.key === demoKey && (
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute left-1/2 top-1/2 flex h-8 -translate-x-1/2 -translate-y-1/2 items-center whitespace-nowrap rounded-full bg-black/45 px-4 text-[10px] font-medium uppercase tracking-[1px] text-white transition-opacity ease-out"
+                    style={{ opacity: demoPill ? 1 : 0, transitionDuration: `${demoPill ? DEMO.pillIn : DEMO.pillOut}ms` }}
+                  >
+                    Drag to adjust
+                  </span>
+                )}
               </div>
             );
           })}

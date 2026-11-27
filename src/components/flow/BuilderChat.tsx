@@ -297,7 +297,8 @@ export function BuilderChat({ chat, onAnswer, onMood, onChange, onRestart, save,
       {/* Phones: a round X at the top right closes Build my own (JP, 2026-11-27). It has a row of its own, so the
           first question never runs under it; the scrolling box below reaches up behind it as before. */}
       {onClose && (
-        <div className="relative z-10 -mr-2 -mt-[5px] mb-1 flex shrink-0 justify-end">
+        // -mb-3 pulls the questions 16px closer to the X than before (JP, 2026-11-27).
+        <div className="relative z-10 -mr-2 -mt-[5px] -mb-3 flex shrink-0 justify-end">
           <button
             type="button"
             onClick={onClose}
@@ -355,14 +356,14 @@ export function BuilderChat({ chat, onAnswer, onMood, onChange, onRestart, save,
             else if (ingredient !== picked) onChange?.(i, s.role, ingredient);
           };
           const skipped = answered && picked === null;
-          // Skip: on phones it heads the list (JP, 2026-11-27); on wide screens it has a row of its own at the end.
+          // Skip: on phones it heads the list, full width but shorter than the options (JP, 2026-11-27); on wide screens it has a row of its own at the end.
           const skip = s.skippable && (
             <div className="flex w-full">
               <button
                 type="button"
                 aria-pressed={answered ? skipped : undefined}
                 onClick={() => choose(null)}
-                className={`${TEXT_BUTTON} !h-11 rounded-full border px-4 transition-[color,background-color,border-color,opacity] hover:border-white/50 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] max-md:w-full ${
+                className={`${TEXT_BUTTON} rounded-full border px-4 transition-[color,background-color,border-color,opacity] hover:border-white/50 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] max-md:!h-9 max-md:w-full md:!h-11 ${
                   skipped ? "border-white bg-[#3A352F] text-white" : `border-white/20 text-[#F7F7F7]/70 ${answered ? unpicked : ""}`
                 }`}
               >
