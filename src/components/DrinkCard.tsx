@@ -696,11 +696,11 @@ export const DrinkCard = memo(function DrinkCard({
                 }}
               >
                 {label}
-                {/* The first-load hint's pill, in the middle of the layer (see DEMO). */}
+                {/* The first-load hint's pill, in the middle of the layer (see DEMO). Smaller on phones (JP, 2026-11-27). */}
                 {demoAt != null && line.key === demoKey && (
                   <span
                     aria-hidden
-                    className="pointer-events-none absolute left-1/2 top-1/2 flex h-8 -translate-x-1/2 -translate-y-1/2 items-center whitespace-nowrap rounded-full bg-black/45 px-4 text-[10px] font-medium uppercase tracking-[1px] text-white transition-opacity ease-out"
+                    className="pointer-events-none absolute left-1/2 top-1/2 flex h-6 -translate-x-1/2 -translate-y-1/2 items-center whitespace-nowrap rounded-full bg-black/45 px-3 text-[8px] font-medium uppercase tracking-[1px] text-white md:h-8 md:px-4 md:text-[10px] transition-opacity ease-out"
                     style={{ opacity: demoPill ? 1 : 0, transitionDuration: `${demoPill ? DEMO.pillIn : DEMO.pillOut}ms` }}
                   >
                     Drag to adjust

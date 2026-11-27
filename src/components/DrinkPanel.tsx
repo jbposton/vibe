@@ -873,6 +873,7 @@ export function DrinkPanel() {
   };
 
   /** Take the drink in the middle off My Drinks. */
+  const [removeAsk, setRemoveAsk] = useState<string | null>(null);
   const removeDrink = () => {
     const at = infoD - DRINKS.length; // its place in `saved`
     if (at < 0 || !saved[at]) return;
@@ -922,16 +923,41 @@ export function DrinkPanel() {
   // One section only: All ingredients was taken out (JP, 2026-11-26), so there is no tab row.
   const tabs: { id: string; label: string }[] = [];
   const pill = `${TEXT_BUTTON} flex-1 rounded-full px-9 text-white transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] disabled:pointer-events-none disabled:opacity-40`;
+  // Phones: a saved drink can be removed from the edit panel (wide screens have it in Browse). It takes two taps.
+  const canRemoveHere = !isDesktop && infoD >= DRINKS.length;
+  const removeAsked = removeAsk === infoDrink.id;
   const footer = guideHere ? null : (
-    <div className="sticky bottom-0 z-20 flex shrink-0 justify-center gap-2 bg-gradient-to-t from-[#21201E] from-55% to-transparent px-5 pb-4 pt-10">
+    <div className="sticky bottom-0 z-20 shrink-0 bg-gradient-to-t from-[#21201E] from-55% to-transparent px-5 pb-4 pt-10">
+    <div className="flex justify-center gap-2">
+      {/* Save comes first (on the left) once the drink has changed, then Done (JP, 2026-11-27). Phones say "Save as New". */}
+      {infoChanged && (
+        <button type="button" onClick={() => saveAsNew(`My ${infoDrink.name}`, infoLines)} className={`${pill} ${FOOT_PILL}`}>
+          <span className="md:hidden">Save as New</span>
+          <span className="max-md:hidden">Save as a new drink</span>
+        </button>
+      )}
       <button type="button" onClick={() => (isDesktop ? closeBuild() : sheet.closeSheet())} className={`${pill} ${FOOT_PILL}`}>
         Done
       </button>
-      {infoChanged && (
-        <button type="button" onClick={() => saveAsNew(`My ${infoDrink.name}`, infoLines)} className={`${pill} ${FOOT_PILL}`}>
-          Save as a new drink
-        </button>
-      )}
+    </div>
+    {/* Phones, for a drink you saved: Remove drink underneath (JP, 2026-11-27), as in Browse on wide screens. */}
+    {canRemoveHere && (
+      <button
+        type="button"
+        onClick={() => {
+          if (!removeAsked) return setRemoveAsk(infoDrink.id);
+          setRemoveAsk(null);
+          sheet.closeSheet();
+          removeDrink();
+        }}
+        onBlur={() => setRemoveAsk(null)}
+        className={`${TEXT_BUTTON} mt-2 w-full rounded-full border transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] ${
+          removeAsked ? "border-[#FF8A80]/60 text-[#FF8A80]" : "border-white/15 text-white/60 hover:border-white/40 hover:text-white"
+        }`}
+      >
+        <span aria-live="polite">{removeAsked ? "Tap again to remove" : "Remove drink"}</span>
+      </button>
+    )}
     </div>
   );
   const shownTab = own ? "guide" : "structure";
