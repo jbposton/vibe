@@ -9,10 +9,8 @@ import { TEXT_BUTTON } from "@/components/buttonStyles";
 
 type Props = {
   drink: Drink;
-  /** MAKE EDITS: enter Build mode on the Structure tab. */
+  /** MAKE EDITS OR SUBSTITUTIONS: enter Build mode. */
   onEdit: () => void;
-  /** SUBSTITUTIONS: enter Build mode on All Ingredients. */
-  onSubstitute: () => void;
   /** For a drink you saved: take it off My Drinks. Not given for the app's own drinks. */
   onRemove?: () => void;
 };
@@ -22,9 +20,9 @@ const BUTTON =
 
 /**
  * Browse mode's left column on wide screens (Figma 256:832): the drink's story, how it is best
- * prepared, and the two buttons that start Build mode.
+ * prepared, and the button that starts Build mode.
  */
-export function BrowsePanel({ drink, onEdit, onSubstitute, onRemove }: Props) {
+export function BrowsePanel({ drink, onEdit, onRemove }: Props) {
   const tune = useTuning();
   // Removing can't be undone, so it takes two clicks. This holds the drink the first click was for.
   const [asked, setAsked] = useState<string | null>(null);
@@ -43,10 +41,7 @@ export function BrowsePanel({ drink, onEdit, onSubstitute, onRemove }: Props) {
         </span>
         <div className="flex gap-[7px]">
           <button type="button" className={BUTTON} onClick={onEdit}>
-            Make edits
-          </button>
-          <button type="button" className={BUTTON} onClick={onSubstitute}>
-            Substitutions
+            Make edits or substitutions
           </button>
         </div>
         {onRemove && (

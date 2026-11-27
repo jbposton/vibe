@@ -2,8 +2,8 @@
  * Drinks you saved ("Save as a new drink"), kept in this browser's localStorage so they are still
  * there next visit. They show up under the "My Drinks" browse filter.
  *
- * OPEN: nowhere else yet (no account, no sharing). A saved drink can be removed (Browse mode, wide
- * screens) but not renamed yet.
+ * OPEN: nowhere else yet (no account, no sharing). A saved drink can be renamed (by its title) and
+ * removed (Browse mode, wide screens).
  */
 import type { Drink } from "@/data/drinks";
 import type { RecipeLine } from "@/data/drinks";
@@ -36,6 +36,17 @@ export function addSaved(drink: Drink) {
     window.localStorage.setItem(KEY, JSON.stringify(cache));
   } catch {
     // Storage is full or switched off: the drinks stay for this visit only.
+  }
+  listeners.forEach((l) => l());
+}
+
+/** Give a saved drink a new name (here and in this browser's storage). */
+export function renameSaved(id: string, name: string) {
+  cache = (cache ?? loadSaved()).map((d) => (d.id === id ? { ...d, name } : d));
+  try {
+    window.localStorage.setItem(KEY, JSON.stringify(cache));
+  } catch {
+    // Storage is switched off: the new name lasts for this visit only.
   }
   listeners.forEach((l) => l());
 }

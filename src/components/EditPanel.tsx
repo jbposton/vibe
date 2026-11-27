@@ -9,15 +9,15 @@ export const PANEL_CLOSED_HEIGHT = 86;
 export const DRAWER_TOP = 102;
 
 type Props = {
-  /** MAKE EDITS / SUBSTITUTIONS: open the drawer on that tab. */
-  onOpen: (tab: "structure" | "ingredients") => void;
+  /** MAKE EDITS OR SUBSTITUTIONS: open the drawer. */
+  onOpen: () => void;
   open: boolean;
   onToggle: () => void;
   /** How far the panel grows between closed and open (px). */
   travel: number;
   /** Pointer handlers that make the panel draggable. */
   bind: Record<string, unknown>;
-  /** What the open drawer holds: the Structure / All ingredients tabs and Done (built by DrinkPanel, shared with wide screens). */
+  /** What the open drawer holds: the drink's ingredients by role and Done (built by DrinkPanel, shared with wide screens). */
   drawer: ReactNode;
 };
 
@@ -26,9 +26,9 @@ const BUTTON =
 
 /**
  * The phone's edit panel (Figma 187:43, with v2's tabs). It is full width at the bottom with a wavy top edge.
- * Closed it shows only MAKE EDITS and SUBSTITUTIONS; tapping either (or swiping the panel up, or tapping the
- * grabber) takes it all the way up, over the drink, to just under the header. Opened, it has two tabs,
- * Structure and All ingredients, and a Done button that closes it.
+ * Closed it shows only MAKE EDITS OR SUBSTITUTIONS; tapping it (or swiping the panel up, or tapping the
+ * grabber) takes it all the way up, over the drink, to just under the header. Opened, it has one section
+ * (All ingredients was taken out, JP 2026-11-26) and a Done button that closes it.
  */
 export function EditPanel({ onOpen, open, onToggle, travel, bind, drawer }: Props) {
   return (
@@ -55,7 +55,7 @@ export function EditPanel({ onOpen, open, onToggle, travel, bind, drawer }: Prop
         </button>
       </div>
 
-      {/* The two buttons (closed). Dragging them up opens the panel too; they fade out as it rises. */}
+      {/* The button (closed). Dragging them up opens the panel too; they fade out as it rises. */}
       <div
         {...bind}
         inert={open}
@@ -63,16 +63,13 @@ export function EditPanel({ onOpen, open, onToggle, travel, bind, drawer }: Prop
         style={{ opacity: "clamp(0, calc(1 - var(--p, 0) * 3), 1)", pointerEvents: open ? "none" : undefined }}
       >
         <div className="flex gap-[7px]">
-          <button type="button" className={BUTTON} onClick={() => onOpen("structure")}>
-            Make edits
-          </button>
-          <button type="button" className={BUTTON} onClick={() => onOpen("ingredients")}>
-            Substitutions
+          <button type="button" className={BUTTON} onClick={onOpen}>
+            Make edits or substitutions
           </button>
         </div>
       </div>
 
-      {/* The tabs and what is in them: they fade in as the panel rises, and scroll. */}
+      {/* What the open panel holds: they fade in as the panel rises, and scroll. */}
       <div
         inert={!open}
         className="absolute inset-x-0 bottom-0 top-7 touch-pan-y overflow-y-auto overscroll-contain"

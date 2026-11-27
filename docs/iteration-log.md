@@ -2,6 +2,22 @@
 
 Visible before-and-after changes, newest first.
 
+## 2026-11-26: Placeholder illustrations on the guide's mood buttons
+
+- **Before:** each mood button had only its title and short line.
+- **After:** each has a 40px round placeholder (dashed outline, picture symbol) to the left of the text, standing in for an illustration to come.
+
+## 2026-11-26: Build my own loses its header, and the guide's questions are plain serif
+
+- **Before:** a "Your Drink" heading (a name you could edit, with a line under it) sat above the guide panel. The guide's questions were in dark rounded bubbles, and the first began "Let's build you a drink."
+- **After:** on wide screens the heading is gone and the guide panel starts at the top of the column. Each question is serif text on its own; the first reads "What are you in the mood for?" Your answers keep their bubbles.
+- **Also gone with the heading:** renaming the new drink (the guide still names it), and the taste line and Sweet/Bitter ladders in Build my own.
+
+## 2026-11-26: Four concepts for the Build my own guide (exploration, not part of the app yet)
+
+- **Before:** one guide design, a scripted chat (`BuilderChat.tsx`). It is unchanged.
+- **After:** a separate page, `/guide-concepts`, with four working alternatives that use the same questions and ingredients: **A** one question at a time with color tiles, **B** the panel laid out like the glass, **C** the drink as a sentence with blanks, **D** each choice says how it will change the taste. Code is in `src/components/concepts/`. Saving isn't wired up.
+
 ## 2026-11-25: v2 becomes `main`
 
 - **Before:** `main` was the flat-card mixer with a floating 3D toggle.

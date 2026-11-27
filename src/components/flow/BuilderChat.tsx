@@ -1,10 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef } from "react";
-import { GUIDE_STEPS, MOODS, optionsFor } from "@/data/builder";
+import { Fragment, useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { GUIDE_STEPS, MOODS, optionsFor, ZERO_PROOF_BASE_ASK } from "@/data/builder";
 import { FLAVORS } from "@/data/flavor";
 import { TEXT_BUTTON } from "@/components/buttonStyles";
+import { CheersToast } from "@/components/flow/CheersToast";
 import { INGREDIENTS, type IngredientId } from "@/data/ingredients";
 import type { Role } from "@/data/roles";
 
@@ -21,6 +22,8 @@ type Props = {
   /** The guide's answer for the next step: sets (or, with null, clears) the ingredient in that role. */
   onAnswer: (role: Role, ingredient: IngredientId | null) => void;
   onMood: (moodId: string) => void;
+  /** A different choice on an earlier ingredient question: it changes that layer and keeps the other answers. */
+  onChange?: (step: number, role: Role, ingredient: IngredientId | null) => void;
   /** Start over: clears the drink and the conversation. */
   onRestart: () => void;
   /** Wide screens: "Save as a new drink" sits along the bottom in place of the (placeholder) text box. */
@@ -29,9 +32,149 @@ type Props = {
   name?: string;
 };
 
-const bubble = "max-w-[88%] rounded-[20px] px-4 py-3 text-[13px] leading-[19px]";
+/** The guide's questions: serif text on its own, with no bubble (JP, 2026-11-26). */
+const question = "mb-2 text-balance px-1 font-serif text-[26px] leading-[30px]";
+/** How far down the panel a new question lands, as a share of its height: the rest of the last one shows above. */
+const NEXT_AT = 0.4;
+/** How soft the top of the panel is, in px: at rest (room for the smoke), and at its deepest once scrolled. */
+const TOP_FADE = { rest: 20, deepest: 180 };
+/** An earlier question's choices that you didn't pick: dimmed, still there to change to. */
+const unpicked = "opacity-40 hover:opacity-100 focus-visible:opacity-100";
 const chip =
   "flex h-11 items-center gap-2 rounded-full border border-transparent bg-[#1A1612] py-1 pl-1 pr-3.5 text-[10px] uppercase tracking-[1px] text-white transition-colors hover:bg-[#26221E] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7]";
+
+/** Stands in for each mood's illustration. OPEN: the real artwork isn't drawn yet. */
+function IconPlaceholder() {
+  return (
+    <span aria-hidden className="grid size-8 shrink-0 place-items-center md:size-10 rounded-full border border-dashed border-white/30 bg-white/5 text-white/45">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinejoin="round">
+        <rect x="2" y="3" width="14" height="12" rx="2.5" />
+        <circle cx="6.5" cy="7" r="1.25" />
+        <path d="M3 14l4-4 3 2.5 2.5-2.5 3 3" />
+      </svg>
+    </span>
+  );
+}
+
+/**
+ * The smoke reveal's timing, in milliseconds: when the first letter starts (the first question waits for the
+ * panel to slide up), the step
+ * from one letter to the next, the pause between the two lines, and how long after the last letter starts
+ * the choices come in. How long each letter takes to clear is in globals.css ("smoke-in").
+ */
+const SMOKE = {
+  welcome: 350,
+  start: 200,
+  letter: 18,
+  beforeChoices: 420,
+  /** The line before a question: from its last letter starting until it is clear and has been held to read. */
+  hold: 950,
+  /** The step from one letter to the next as that line drifts off, and how soon after the question follows. */
+  leave: 8,
+  afterLeave: 280,
+};
+
+/**
+ * A line that comes out of smoke, left to right (JP, 2026-11-26): each letter drifts in blurred and hazy and
+ * clears into focus, many at once, so it reads as one soft front passing over the line. Letters are grouped
+ * by word so lines still break between words. Screen readers get the whole line at once.
+ */
+function Smoke({ text, delay, animate, leaveAt, className = "" }: { text: string; delay: number; animate: boolean; leaveAt?: number; className?: string }) {
+  const words = text.split(" ");
+  // Where each word starts in the line, which sets when its letters begin.
+  const starts = words.map((_, w) => words.slice(0, w).reduce((sum, word) => sum + word.length + 1, 0));
+  return (
+    <p className={`${question} ${className}`}>
+      <span className="sr-only">{text}</span>
+      <span aria-hidden>
+        {words.map((word, w) => (
+          <Fragment key={w}>
+            {w > 0 && " "}
+            <span className="inline-block whitespace-nowrap">
+              {[...word].map((letter, l) => {
+                const at = starts[w] + l;
+                return (
+                  <span
+                    key={l}
+                    className={animate ? `smoke-letter ${leaveAt === undefined ? "" : "smoke-leaving"}` : undefined}
+                    style={
+                      animate
+                        ? ({
+                            // A little unevenness in timing and path, the same every time.
+                            // When it comes in and, for a line that leaves, when it goes.
+                            animationDelay: [delay + at * SMOKE.letter, ...(leaveAt === undefined ? [] : [leaveAt + at * SMOKE.leave])].map((ms) => `${ms + ((at * 37) % 11) * 8}ms`).join(", "),
+                            "--smoke-x": `${-6 - ((at * 53) % 9)}px`,
+                            "--smoke-y": `${Math.round(Math.sin(at * 1.7) * 8)}px`,
+                          } as CSSProperties)
+                        : undefined
+                    }
+                  >
+                    {letter}
+                  </span>
+                );
+              })}
+            </span>
+          </Fragment>
+        ))}
+      </span>
+    </p>
+  );
+}
+
+/**
+ * How every question arrives (JP, 2026-11-26): it comes out of smoke, and only then do its choices (the
+ * children) rise and fade in. Most have a line before them, in the same serif: the guide's reply to your
+ * mood, or a remark on your base. It drifts off in smoke once read, and the question takes its place. OPEN: those lines are scripted.
+ */
+function Opening({ before, ask, start = SMOKE.start, playing, onDone, children }: { before?: string; ask: string; start?: number; playing: boolean; onDone: () => void; children: ReactNode }) {
+  // Decided once, as it arrives: a guide you come back to is already clear.
+  const [animate] = useState(playing);
+  // The line before drifts off once it has been read, and the question forms where it was.
+  const leaveAt = before ? start + before.length * SMOKE.letter + SMOKE.hold : start;
+  const askAt = before ? leaveAt + before.length * SMOKE.leave + SMOKE.afterLeave : start;
+  const doneAt = askAt + ask.length * SMOKE.letter + SMOKE.beforeChoices;
+  useEffect(() => {
+    if (!playing) return;
+    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const timer = window.setTimeout(onDone, still ? 0 : doneAt);
+    return () => window.clearTimeout(timer);
+  }, [playing, doneAt, onDone]);
+  return (
+    <>
+      <div className="relative">
+        {/* It lies over the question's place, so nothing moves when it goes. With "reduce motion" it isn't shown. */}
+        {before && playing && <Smoke text={before} delay={start} leaveAt={leaveAt} animate={animate} className="absolute inset-x-0 top-0 motion-reduce:hidden" />}
+        <Smoke text={ask} delay={askAt} animate={animate} />
+      </div>
+      <div className={`transition-[opacity,visibility,translate] duration-700 ease-out motion-reduce:transition-none ${playing ? "invisible translate-y-3 opacity-0" : "translate-y-0 opacity-100"}`}>{children}</div>
+    </>
+  );
+}
+
+/** Capitalizes every word: "Crisp & bright" becomes "Crisp & Bright". */
+const titleCase = (words: string) => words.replace(/\b[a-z]/g, (letter) => letter.toUpperCase());
+
+/** Start over, drawn as the drink panel's reset button: the same icon (Figma 204:48) in the same 36px circle. */
+function ResetButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label="Start over"
+      title="Start over"
+      className="grid size-9 shrink-0 place-items-center rounded-full bg-[#1A1612] transition-colors hover:bg-[#26221E] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7]"
+    >
+      <span aria-hidden className="relative block size-5">
+        <span className="absolute inset-[10.83%_14.58%_14.58%_15.79%]">
+          <span className="absolute inset-[-4.19%_-4.49%]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img alt="" src="/icons/reset.svg" className="block size-full max-w-none" />
+          </span>
+        </span>
+      </span>
+    </button>
+  );
+}
 
 /** A line about what an ingredient brings, from its strongest curated flavor note. */
 function remark(id: IngredientId): string {
@@ -46,87 +189,195 @@ function remark(id: IngredientId): string {
  * OPEN: free-form chat. The text box is a placeholder until a language model is connected (that needs an
  * API key kept on the server, so it is a separate step).
  */
-export function BuilderChat({ chat, onAnswer, onMood, onRestart, save, name }: Props) {
+export function BuilderChat({ chat, onAnswer, onMood, onChange, onRestart, save, name }: Props) {
   const mood = MOODS.find((m) => m.id === chat.moodId) ?? null;
   const stepIndex = chat.answers.length;
   const step = mood && stepIndex < GUIDE_STEPS.length ? GUIDE_STEPS[stepIndex] : null;
   const finished = !!mood && !step;
+  // The latest question that has finished arriving, named by mood and step. A guide you come back to is
+  // already shown.
+  const latestKey = `${chat.moodId}-${stepIndex}`;
+  const [arrivedKey, setArrivedKey] = useState<string | null>(chat.moodId ? latestKey : null);
+  const doneArriving = useCallback(() => setArrivedKey(latestKey), [latestKey]);
+  // The first question arrives the same way: each time the guide opens at the start, and after Start over.
+  // `round` makes a fresh copy of it, so the smoke plays again.
+  const [welcomed, setWelcomed] = useState(!!chat.moodId);
+  const [round, setRound] = useState(0);
+  const doneWelcome = useCallback(() => setWelcomed(true), []);
+  const restart = () => {
+    setWelcomed(false);
+    setRound((n) => n + 1);
+    setArrivedKey(null);
+    onRestart();
+  };
 
-  // Keep the newest message in view.
-  // (Only after something is answered: on arrival the first question stays at the top.)
+  // Each new question: the last one slides up with your choice selected, and the new one fades in below
+  // it (JP, 2026-11-26). It runs only when the guide moves on, not when you change an earlier ingredient.
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const spacerRef = useRef<HTMLDivElement | null>(null);
+  // Once scrolled, earlier questions fade away toward the top (JP, 2026-11-27). The fade deepens with the
+  // scroll but always stops short of the latest question, so that one stays clear. Set straight on the element.
+  const fadeTop = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const latest = el.querySelector<HTMLElement>("[data-latest]");
+    const clear = latest ? latest.offsetTop - el.scrollTop - 4 : TOP_FADE.deepest;
+    el.style.setProperty("--top-fade", `${Math.max(TOP_FADE.rest, Math.min(TOP_FADE.deepest, el.scrollTop, clear))}px`);
+  }, []);
+  useEffect(fadeTop);
+  const moodId = chat.moodId;
+  const placeLatest = useCallback(() => {
+    const el = scrollRef.current;
+    const spacer = spacerRef.current;
+    if (!el || !spacer) return;
+    spacer.style.height = "0px";
+    const latest = el.querySelector<HTMLElement>("[data-latest]");
+    if (!moodId || !latest) return;
+    // The new question lands 40% of the way down, or higher if its choices need the room.
+    const from = Math.max(12, Math.min(el.clientHeight * NEXT_AT, el.clientHeight - latest.offsetHeight - 12));
+    const fits = latest.offsetTop + latest.offsetHeight + 12 - el.clientHeight;
+    // But never past its own top: in a short panel (a phone's) with many choices, the question stays in view
+    // and the rest of the choices are a scroll away.
+    const top = Math.max(0, Math.min(latest.offsetTop - 12, Math.max(fits, latest.offsetTop - from)));
+    // Room under the last question, so the panel can scroll that far.
+    spacer.style.height = `${Math.max(0, top - (el.scrollHeight - el.clientHeight))}px`;
+    el.scrollTo({ top, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  }, [moodId]);
+  useEffect(placeLatest, [placeLatest, chat.answers.length]);
+  // The panel can change height (on a phone it comes down to show the drink). Once it has settled, put the
+  // newest question back in its place.
   useEffect(() => {
     const el = scrollRef.current;
-    if (!el || !chat.moodId) return;
-    // Bring the newest question to the top of the panel, so it and its choices are in view together.
-    const latest = el.querySelector<HTMLElement>("[data-latest]");
-    el.scrollTo({ top: latest ? latest.offsetTop - 4 : el.scrollHeight, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
-  }, [chat]);
+    if (!el) return;
+    let height = el.clientHeight;
+    let timer = 0;
+    const observer = new ResizeObserver(() => {
+      if (el.clientHeight === height) return;
+      height = el.clientHeight;
+      window.clearTimeout(timer);
+      timer = window.setTimeout(placeLatest, 120);
+    });
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      window.clearTimeout(timer);
+    };
+  }, [placeLatest]);
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div ref={scrollRef} className="relative flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-contain pb-3 pr-1">
-        <div className={`${bubble} bg-[#1A1612]`}>Let&rsquo;s build you a drink. First, what are you in the mood for?</div>
-
-        {!mood && (
-          <div className="flex flex-wrap gap-2">
-            {MOODS.map((m) => (
-              <button
-                key={m.id}
-                type="button"
-                onClick={() => onMood(m.id)}
-                className="rounded-[18px] border border-white/15 px-4 py-2.5 text-left transition-colors hover:border-white/50 hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7]"
-              >
-                <span className="block text-[13px]">{m.label}</span>
-                <span className="block text-[11px] text-[#F7F7F7]/50">{m.hint}</span>
-              </button>
-            ))}
-          </div>
-        )}
-
-        {mood && <div className={`${bubble} self-end bg-white/10`}>{mood.label}</div>}
+      {/* A scrolling box cuts off whatever spills past its edges, which would slice the smoke's haze in a hard line.
+          So it reaches out to the panel's sides and top, with the same room inside, and the last 20px there fade
+          away. The panel's frame has 17px above this (taken back by the negative margin), leaving 24px in all. */}
+      <div ref={scrollRef} onScroll={fadeTop} className="relative -mx-5 -mt-[17px] flex min-h-0 flex-1 flex-col gap-10 overflow-y-auto overflow-x-hidden overscroll-contain pb-3 pl-5 pr-6 pt-6 [mask-composite:intersect] [mask-image:linear-gradient(to_right,transparent,#000_20px,#000_calc(100%_-_20px),transparent),linear-gradient(to_bottom,transparent,#000_var(--top-fade,20px))]">
+        <div key={round} className="flex shrink-0 flex-col gap-3">
+          <Opening ask="What are you in the mood for?" start={SMOKE.welcome} playing={!welcomed} onDone={doneWelcome}>
+            <div className="grid shrink-0 auto-rows-fr grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-2">
+              {MOODS.map((m) => {
+                const selected = chat.moodId === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    aria-pressed={selected}
+                    // A different mood starts the guide over; the one already picked does nothing.
+                    onClick={() => {
+                      if (selected) return;
+                      setArrivedKey(null);
+                      onMood(m.id);
+                    }}
+                    className={`flex items-center gap-2 rounded-[18px] border py-2.5 pl-2.5 pr-2 text-left transition-[color,background-color,border-color,opacity] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] ${
+                      selected ? "border-white bg-[#3A352F]" : `border-transparent bg-[#1A1612] hover:bg-[#26221E] ${mood ? unpicked : ""}`
+                    }`}
+                  >
+                    <IconPlaceholder />
+                    <span>
+                      <span className="block text-[10px] uppercase leading-[16px] tracking-[1px]">{m.label}</span>
+                      <span className="block text-[11px] text-[#F7F7F7]/50">{m.hint}</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </Opening>
+        </div>
 
         {GUIDE_STEPS.slice(0, stepIndex + (step ? 1 : 0)).map((s, i) => {
           const answered = i < stepIndex;
           const picked = chat.answers[i];
-          return (
-            <div key={s.role} data-latest={i === stepIndex ? "" : undefined} className="flex flex-col gap-3">
-              <div className={`${bubble} bg-[#1A1612]`}>
-                {i > 0 && chat.answers[i - 1] && <span className="mb-1 block text-[#F7F7F7]/55">{remark(chat.answers[i - 1]!)}</span>}
-                {s.ask}
-              </div>
-              {answered ? (
-                <div className={`${bubble} self-end bg-white/10`}>{picked ? INGREDIENTS[picked].name : "Skip this one"}</div>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {optionsFor(s.role, mood).map((o) => (
-                    <button key={o.id} type="button" onClick={() => onAnswer(s.role, o.id)} className={`${chip} ${o.suggested ? "border-white/40" : ""}`}>
-                      <Image src={`/icons/ingredients/${o.id}.png`} alt="" width={32} height={32} unoptimized draggable={false} className="size-8 shrink-0" />
-                      <span className="flex flex-col items-start leading-[13px]">
-                        {INGREDIENTS[o.id].name}
-                        {o.suggested && <span className="mt-0.5 text-[8px] tracking-[1px] text-[#F7F7F7]/50">Suggested</span>}
-                      </span>
-                    </button>
-                  ))}
-                  {s.skippable && (
-                    <button type="button" onClick={() => onAnswer(s.role, null)} className={`${TEXT_BUTTON} rounded-full border border-white/20 px-4 text-[#F7F7F7]/70 transition-colors hover:border-white/50 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7]`}>
-                      Skip
-                    </button>
-                  )}
+          const choose = (ingredient: IngredientId | null) => {
+            if (!answered) onAnswer(s.role, ingredient);
+            else if (ingredient !== picked) onChange?.(i, s.role, ingredient);
+          };
+          const skipped = answered && picked === null;
+          const choices = (
+            <div className="flex flex-wrap gap-2">
+              {optionsFor(s.role, mood).map((o) => {
+                const selected = answered && picked === o.id;
+                const look = selected ? "!border-white !bg-[#3A352F]" : answered ? unpicked : "";
+                // While the question is open, a suggestion is outlined in the Build my own glow's colors (JP, 2026-11-26).
+                const outlined = o.suggested && !answered;
+                return (
+                  <button key={o.id} type="button" aria-pressed={answered ? selected : undefined} onClick={() => choose(o.id)} className={`${chip} ${outlined ? "gradient-stroke" : ""} ${look}`}>
+                    <Image src={`/icons/ingredients/${o.id}.png`} alt="" width={32} height={32} unoptimized draggable={false} className="size-8 shrink-0" />
+                    <span className="flex flex-col items-start leading-[13px]">
+                      {INGREDIENTS[o.id].name}
+                      {o.suggested && <span className="mt-0.5 text-[8px] tracking-[1px] text-[#F7F7F7]/50">Suggested</span>}
+                    </span>
+                  </button>
+                );
+              })}
+              {/* A row of its own, so Skip always starts a new line. */}
+              {s.skippable && (
+                <div className="flex w-full">
+                  <button
+                    type="button"
+                    aria-pressed={answered ? skipped : undefined}
+                    onClick={() => choose(null)}
+                    className={`${TEXT_BUTTON} !h-11 rounded-full border px-4 transition-[color,background-color,border-color,opacity] hover:border-white/50 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] ${
+                      skipped ? "border-white bg-[#3A352F] text-white" : `border-white/20 text-[#F7F7F7]/70 ${answered ? unpicked : ""}`
+                    }`}
+                  >
+                    Skip
+                  </button>
                 </div>
               )}
+            </div>
+          );
+          return (
+            // Keyed by the mood too, so starting over fades the first question in again.
+            <div key={`${chat.moodId}-${s.role}`} data-latest={i === stepIndex ? "" : undefined} className="guide-in flex shrink-0 flex-col gap-3">
+              <Opening
+                // Only the guide's second and third questions have a line before them (JP, 2026-11-26): a reply to your
+                // mood, then what your base brings.
+                before={i === 0 ? (mood ? `${titleCase(mood.label)}! Great.` : undefined) : i === 1 && chat.answers[0] ? remark(chat.answers[0]) : undefined}
+                ask={i === 0 && mood?.zeroProof ? ZERO_PROOF_BASE_ASK : s.ask}
+                playing={i === stepIndex && arrivedKey !== latestKey}
+                onDone={doneArriving}
+              >
+                {choices}
+              </Opening>
             </div>
           );
         })}
 
         {finished && (
-          <div data-latest className={`${bubble} bg-[#1A1612]`}>
-            {chat.answers[chat.answers.length - 1] && <span className="mb-1 block text-[#F7F7F7]/55">{remark(chat.answers[chat.answers.length - 1]!)}</span>}
-            {save && name
-              ? <>That&rsquo;s your drink. I&rsquo;ve called it <span className="text-white">{name}</span>: change the name above if you like. Drag a layer, or open Structure, to tune the amounts. When it looks right, save it.</>
-              : <>That&rsquo;s your drink. Drag a layer, or use the roles panel, to tune the amounts. When it looks right, serve it.</>}
+          <div data-latest className="guide-in shrink-0 px-1">
+            <p className="font-serif text-[26px] leading-[30px]">Cheers!</p>
+            <p className="mt-2 text-[13px] leading-[19px] text-[#F7F7F7]/70">
+              {save && !name
+                ? <>Give it a name above if you like. Drag any layer to tune the amounts. When it looks right, save as a new drink.</>
+                : save
+                ? <>I&rsquo;ve called it <span className="text-white">{name}</span>! Change the name above if you like. Drag any layer to tune the amounts. When it looks right, save as a new drink.</>
+                : <>Drag a layer, or use the roles panel, to tune the amounts. When it looks right, serve it.</>}
+            </p>
+            <div className="mt-6">
+              <CheersToast />
+            </div>
           </div>
         )}
+
+        <div ref={spacerRef} aria-hidden className="-mt-10 shrink-0" />
       </div>
 
       {save ? (
@@ -135,14 +386,12 @@ export function BuilderChat({ chat, onAnswer, onMood, onRestart, save, name }: P
             type="button"
             disabled={!save.canSave}
             onClick={save.onSave}
-            className={`${TEXT_BUTTON} min-w-0 flex-1 rounded-full bg-[#2C2A27] text-white transition-colors hover:bg-[#363330] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] disabled:cursor-not-allowed disabled:opacity-40`}
+            className={`${TEXT_BUTTON} min-w-0 flex-1 rounded-full bg-[#1A1612] text-white transition-colors hover:bg-[#26221E] disabled:bg-[#2C2A27] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] disabled:cursor-not-allowed disabled:opacity-40`}
           >
             Save as a new drink
           </button>
           {mood && (
-            <button type="button" onClick={onRestart} className={`${TEXT_BUTTON} shrink-0 rounded-full border border-white/20 px-4 text-[#F7F7F7]/70 transition-colors hover:border-white/50 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7]`}>
-              Start over
-            </button>
+            <ResetButton onClick={restart} />
           )}
         </div>
       ) : (
@@ -154,9 +403,7 @@ export function BuilderChat({ chat, onAnswer, onMood, onRestart, save, name }: P
           className="h-11 min-w-0 flex-1 rounded-full bg-[#1A1612] px-4 text-[13px] text-white placeholder:text-[#F7F7F7]/35"
         />
         {mood && (
-          <button type="button" onClick={onRestart} className={`${TEXT_BUTTON} shrink-0 rounded-full border border-white/20 px-4 text-[#F7F7F7]/70 transition-colors hover:border-white/50 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7]`}>
-            Start over
-          </button>
+          <ResetButton onClick={restart} />
         )}
       </div>
       )}

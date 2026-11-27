@@ -22,45 +22,23 @@ import {
 } from "@/lib/stack";
 import { LiquidCanvas, type LiquidLayer } from "./LiquidCanvas";
 import { GRAIN_STYLE } from "./surfaceEffects";
+import { PourSurface } from "./PourSurface";
 import { useLayerDrag } from "./useLayerDrag";
+import { usePour } from "./usePour";
+
+/** How far each flat layer runs up under the one above it (px), to hide hairline seams between layers. */
+const SEAM_OVERLAP = 2;
 
 /**
- * The amount button on each layer (Figma 93:378): a faint dark (on light
- * layers) or light (on dark layers) fill with a touch of background blur. Its
- * only outline is the 0.5px highlight along the top edge (see GlassTopEdge).
+ * The amount pill on each layer: a plain see-through fill, dark on light layers and light on dark
+ * ones. No blur or highlight edge (the glass look was dropped: JP, 2026-11-26).
  */
 function amountButtonStyle(lightLayer: boolean, shown = true): React.CSSProperties {
-  const fill = lightLayer ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.07)";
-  const blur = shown ? "blur(4px)" : "blur(0px)";
+  const fill = lightLayer ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.12)";
   return {
     background: shown ? fill : "rgba(0,0,0,0)",
-    backdropFilter: blur,
-    WebkitBackdropFilter: blur,
-    transition: "background-color 180ms ease-out, backdrop-filter 180ms ease-out, -webkit-backdrop-filter 180ms ease-out",
+    transition: "background-color 180ms ease-out",
   };
-}
-
-/**
- * The glass highlight: a 0.5px line along the top edge that is bright at the
- * left and fades to 20% about halfway across, following the rounded corners.
- * It sits inside its (relatively positioned) parent and takes the parent's radius.
- */
-function GlassTopEdge({ shown = true }: { shown?: boolean }) {
-  return (
-    <span
-      aria-hidden
-      className="pointer-events-none absolute inset-0 rounded-[inherit] transition-opacity duration-200"
-      style={{
-        opacity: shown ? 1 : 0,
-        padding: "0.5px 0 0 0",
-        background: "linear-gradient(105deg, #fff 0%, rgba(255,255,255,0.2) 46%)",
-        mask: "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
-        maskComposite: "exclude",
-        WebkitMask: "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
-        WebkitMaskComposite: "xor",
-      }}
-    />
-  );
 }
 
 /**
@@ -80,6 +58,8 @@ const WAVE_AMPLITUDE = 26;
 const WAVE_SPEED = 1.15;
 /** How long the wave takes to settle to a still, flat line when you start dragging, and to come back after. */
 const WAVE_DOWN_MS = 1200;
+/** Whether the wave goes flat while you drag a layer (off since 2026-11-26: it keeps moving). */
+const WAVE_FLATTEN_ON_DRAG = false;
 const WAVE_UP_MS = 2400;
 /** Room (px) kept free at the top of the layer above for its label (14px down + 32px row + a margin). */
 const WAVE_TEXT_ROOM = 52;
@@ -186,6 +166,10 @@ type Props = {
   modified: boolean;
   /** Put this drink back to its classic recipe and one serving. */
   onReset: (drinkIndex: number) => void;
+  /** Build my own: an ingredient you add flows into the drink (see usePour). */
+  pours?: boolean;
+  /** How long a pour waits before it starts (ms). */
+  pourDelay?: number;
 };
 
 /**
@@ -204,6 +188,8 @@ export const DrinkCard = memo(function DrinkCard({
   servings,
   modified,
   onReset,
+  pours = false,
+  pourDelay = 0,
 }: Props) {
   // Measure the card: the stack fills its full inner height.
   const panelEl = useRef<HTMLElement | null>(null);
@@ -217,8 +203,8 @@ export const DrinkCard = memo(function DrinkCard({
     return () => observer.disconnect();
   }, []);
 
-  // The base wave runs all the time (JP, 2026-11-18): it slides along at full size, and while you
-  // drag a layer it eases down to a still, flat line, then slowly comes back when you let go. It is
+  // The base wave runs all the time (JP, 2026-11-18): it slides along at full size, also while you
+  // drag a layer (see WAVE_FLATTEN_ON_DRAG for the earlier flat-while-dragging version). It is
   // drawn straight onto the SVG every frame (no React render per frame). `k` is its size (0 to 1).
   const waveSvg = useRef<SVGSVGElement | null>(null);
   const waveRect = useRef<SVGRectElement | null>(null);
@@ -315,7 +301,8 @@ export const DrinkCard = memo(function DrinkCard({
   }, [inView, drawWave]);
 
   const ordered = orderLines(lines);
-  const heights = layerHeights(ordered, panelHeight);
+  // While an ingredient pours in, these are the heights part of the way there.
+  const { heights, pouring } = usePour(pours, ordered.map((l) => l.role), layerHeights(ordered, panelHeight), pourDelay);
   const bottoms = layerBottoms(heights);
 
   // Tell the wave how tall it may get (it stays clear of the label in the layer above) and redraw it
@@ -412,11 +399,15 @@ export const DrinkCard = memo(function DrinkCard({
     onHorizontal,
   });
 
-  const animate = draggingKey === null ? undefined : "none";
+  // The layer the mouse is over: its amount pill shows (JP, 2026-11-26). Touch has no hover, so it is mouse only.
+  const [hoverKey, setHoverKey] = useState<number | null>(null);
+  // During a drag or a pour the layers are moved frame by frame, so their own easing is off.
+  const animate = draggingKey === null && !pouring ? undefined : "none";
 
-  // The wave settles while a layer is being dragged and comes back after.
+  // With WAVE_FLATTEN_ON_DRAG the wave settles while a layer is being dragged and comes back after.
+  // It is off (JP, 2026-11-26): the flat line it left after a drag read as a glitch.
   useEffect(() => {
-    waveTarget.current = draggingKey === null ? 1 : 0;
+    waveTarget.current = WAVE_FLATTEN_ON_DRAG && draggingKey !== null ? 0 : 1;
   }, [draggingKey]);
 
   // Which layers are at their smallest height on screen (the 60px minimum); outside a drag
@@ -480,6 +471,9 @@ export const DrinkCard = memo(function DrinkCard({
               look when you let go (only the opacity animates, which is cheap). */}
           {ordered.map((line, i) => {
             const selected = !USE_SHADER || draggingKey !== null;
+            // Each layer but the top one reaches SEAM_OVERLAP px up under the layer above (which paints over
+            // it), so where two layers meet on a fraction of a pixel the dark card never shows through as a line.
+            const seam = i < ordered.length - 1 ? SEAM_OVERLAP : 0;
             return (
               <div
                 key={`flat-${drink.id}-${line.key}`}
@@ -487,7 +481,7 @@ export const DrinkCard = memo(function DrinkCard({
                 className="layer-anim pointer-events-none absolute inset-x-0"
                 style={{
                   bottom: bottoms[i],
-                  height: heights[i],
+                  height: heights[i] + seam,
                   background: INGREDIENTS[line.ingredient].color,
                   opacity: selected ? 1 : 0,
                   transition: !USE_SHADER
@@ -502,7 +496,7 @@ export const DrinkCard = memo(function DrinkCard({
 
           {/* A wave along the top of the base ingredient: its color rises into the layer above in
               smooth round humps (JP, 2026-11-16). The shape is random but fixed for each drink, and
-              it follows the layer as you drag. It runs all the time and settles flat while you drag a layer. It is shorter when the layer above is short, so it
+              it follows the layer as you drag. It runs all the time, also while you drag a layer. It is shorter when the layer above is short, so it
               never runs under that layer's label. Not drawn when the layer above is a garnish. */}
           {(() => {
             const base = ordered[0];
@@ -534,6 +528,14 @@ export const DrinkCard = memo(function DrinkCard({
             );
           })()}
 
+          {pouring && (
+            <PourSurface
+              pouring={pouring}
+              color={INGREDIENTS[ordered[pouring.index].ingredient].color}
+              surface={bottoms[pouring.index] + heights[pouring.index]}
+            />
+          )}
+
           {/* One region per layer: label (name left, amount right) and keyboard control. */}
           {ordered.map((line, i) => {
             const ingredient = INGREDIENTS[line.ingredient];
@@ -545,7 +547,8 @@ export const DrinkCard = memo(function DrinkCard({
             // Ingredient name on the left edge; on the right, the amount in a
             // small button (it will be clickable one day) or "Garnish".
             // The button around the amount only shows while you press or drag (JP, 2026-11-16).
-            const pressing = draggingKey !== null;
+            // It also shows on the layer the mouse is over.
+            const pressing = draggingKey !== null || (interactive && hoverKey === line.key);
             const ink = labelColor(ingredient.color);
             const lightLayer = ink === "#000";
             const [amountNumber, ...amountUnit] = amountText.split(" ");
@@ -558,11 +561,13 @@ export const DrinkCard = memo(function DrinkCard({
             // The top layer: centered if it is a garnish, top-aligned if not (always, drag or not).
             // Every other layer: top-aligned during a drag, and centered only at the minimum height.
             const isTop = i === ordered.length - 1;
-            const small = isTop ? isGarnish : draggingKey === null && smallNow[line.key];
+            // In a short glass (Build my own on a phone) a layer can be under the minimum: its text is centered too.
+            const small = isTop ? isGarnish || heights[i] < MIN_LAYER - 0.5 : draggingKey === null && smallNow[line.key];
             const label = (
               <span
                 className="label-anim pointer-events-none absolute left-[22px] right-[22px] flex h-8 items-center justify-between gap-3 text-xs leading-4"
-                style={{ color: ink, top: small ? "calc(50% - 16px)" : lineTop }}
+                // A layer that is still pouring in gets its label once it is nearly full.
+                style={{ color: ink, top: small ? "calc(50% - 16px)" : lineTop, opacity: pouring?.index === i ? Math.max(0, (pouring.fill - 0.8) * 5) : 1 }}
               >
                 {/* The name in capitals, medium weight, at 60% (Figma 187:43). */}
                 <span className="text-[11px] font-medium uppercase tracking-[0.008em] opacity-60 md:text-[length:var(--layer-name-size,11px)]">{ingredient.name}</span>
@@ -575,7 +580,6 @@ export const DrinkCard = memo(function DrinkCard({
                     className="relative -mr-2 flex h-8 items-center gap-1 rounded-full px-2 text-xs tabular-nums"
                     style={amountButtonStyle(lightLayer, pressing)}
                   >
-                    <GlassTopEdge shown={pressing} />
                     <span className="text-[13px] md:text-[length:var(--layer-amount-size,16px)]">{amountNumber}</span>
                     <span className="opacity-60 md:text-[length:var(--layer-unit-size,14px)]">{amountUnit.join(" ")}</span>
                   </span>
@@ -613,6 +617,8 @@ export const DrinkCard = memo(function DrinkCard({
                   canDrag ? (draggingKey === line.key ? "cursor-grabbing" : "cursor-grab") : ""
                 }`}
                 style={box}
+                onPointerEnter={(e) => e.pointerType === "mouse" && setHoverKey(line.key)}
+                onPointerLeave={() => setHoverKey((k) => (k === line.key ? null : k))}
                 {...(canDrag ? handlers(line.key) : {})}
                 onKeyDown={(e) => {
                   const steps =

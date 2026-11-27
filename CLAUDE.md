@@ -124,7 +124,7 @@ Name of the app; flavor dimensions and drink families; what "feeling and vibe" c
 ## 8. Working agreements
 
 - Never overwrite a design JP made; add the new version beside the old one.
-- Log meaningful design judgments in the Decision Log (Project docs) and visible before-and-after changes in the Iteration Log.
+- *(Updated 2026-11-26 at JP's direction.)* Don't add to the Decision Log or the Iteration Log. `docs/decision-log.md` and `docs/iteration-log.md` stay as records up to when logging stopped.
 - Update this file when the plan changes.
 
 ## 9. Working setup (for Claude)
@@ -135,7 +135,7 @@ Name of the app; flavor dimensions and drink families; what "feeling and vibe" c
 - The GitHub repo is **public** (https://github.com/jbposton/vibe), so never commit secrets. API keys go in `.env.local` (gitignored) and in Vercel → Project → Settings → Environment Variables.
 - Live site: https://vibe-delta-orpin.vercel.app. Every push to `main` deploys automatically, so push only after JP has seen a change in the preview.
 - Commands: `npm run dev` (preview at http://localhost:3000), `npm run build` and `npm run lint` before pushing.
-- Placeholders for open decisions (§7) are marked `// OPEN:` in the code. JP asked on 2026-11-14 to stop writing in `docs/decision-log.md` (it stays as a record up to that date). Visible changes still go in `docs/iteration-log.md`.
+- Placeholders for open decisions (§7) are marked `// OPEN:` in the code. Logging has stopped (see §8): don't write in `docs/decision-log.md` or `docs/iteration-log.md`.
 - Code map: data in `src/data/` (ingredients, drinks, roles), stack math in `src/lib/stack.ts`, the mixer in `src/components/DrinkPanel.tsx`, desktop tuning values in `src/lib/tuning.ts`.
 - Since 2026-11-17 (Figma 187:43): serving buttons under the drink (`ServingsRow.tsx`), a full-width edit panel that swipes all the way up to an ingredient drawer (`EditPanel.tsx`, `IngredientDrawer.tsx`), and swapping ingredients by category (`src/lib/swap.ts`). The Sweet-to-Bitter slider is parked (`docs/parked.md`).
 - Drawing: since 2026-11-16 each layer is a **flat block** of its ingredient color. The blurred "v4" liquid shader (`src/components/LiquidCanvas.tsx`) is kept but off: flip `USE_SHADER` in `src/components/DrinkCard.tsx` to bring it back.
@@ -149,7 +149,7 @@ Every branch gets its own Vercel preview link; only `main` deploys to the live s
 - `concept-c`: square slabs spaced apart whose widths follow the drink's glass, low camera (14 degrees), turning. Same file, `STACK_STYLE = "glass"`.
 - `concept-d`: today's card as one solid turning block. Same file, `STACK_STYLE = "block"`.
 - In the concept branches `EXPLODED` in `DrinkPanel.tsx` switches between the 3D stack and the flat card. Concept branches don't get `main`'s later changes automatically: merge `main` into them when JP asks (concept-b was merged on 2026-11-18).
-- Each concept is logged in `docs/iteration-log.md` on its own branch.
+- Earlier concepts were logged in `docs/iteration-log.md` on their own branches.
 
 ### Desktop layout and the design editor
 
@@ -158,7 +158,7 @@ Every branch gets its own Vercel preview link; only `main` deploys to the live s
 
 ### v2 (started 2026-11-23, merged into `main` 2026-11-25)
 
-- `src/app/page.tsx` renders `<DrinkPanel />`. On wide screens it has Browse and Build modes (`BrowsePanel`, `EditShell`, `BuildButton`), Build my own with a guide, saved drinks (`src/lib/saved.ts`, kept in the browser), drink motion (swing, slosh in `DrinkCard.tsx`) and a lens over the side drinks (`SideLens.tsx`; `SideGlass.tsx` is the earlier version). Phones keep the earlier mixer with the new edit panel.
+- `src/app/page.tsx` renders `<DrinkPanel />`. On wide screens it has Browse and Build modes (`BrowsePanel`, `EditShell`, `BuildButton`), Build my own with a guide, saved drinks (`src/lib/saved.ts`, kept in the browser), drink motion (swing, slosh in `DrinkCard.tsx`) and a lens over the side drinks (`SideLens.tsx`; `SideGlass.tsx` is the earlier version). Phones keep the earlier mixer with the new edit panel. *(2026-11-27)* Build my own works on phones too: the glass on top and the guide in the bottom half of the screen, with no serving buttons there.
 - `src/components/flow/`: the Edit Panel uses `RolesPanel` and `BuilderChat`; the first one-screen flow (`Flow`, `Loader`, `DrinkScreen`) is no longer rendered.
 - The guide is scripted on purpose (`src/data/builder.ts`); a real AI chat needs an API route with the key in `.env.local` (never in the repo).
 - The drink descriptions in `src/data/blurbs.ts` are placeholders except the Negroni.

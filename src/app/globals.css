@@ -251,6 +251,122 @@ body {
 }
 
 
+/* Build my own's guide: each new question fades in just after the one before starts sliding up. */
+@keyframes guide-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .guide-in {
+    animation: guide-in 600ms cubic-bezier(0.22, 1, 0.36, 1) 280ms both;
+  }
+}
+
+/* The guide's lines coming out of smoke: each letter drifts in from a little behind, stretched, blurred and
+   hazy, then clears. The haze (the soft white shadow) lingers a moment longer than the blur. */
+@keyframes smoke-in {
+  0% {
+    opacity: 0;
+    filter: blur(12px);
+    transform: translate(var(--smoke-x), var(--smoke-y)) scale(1.5, 1.25) skewX(-14deg);
+    text-shadow: 0 0 18px rgba(247, 247, 247, 0.9);
+  }
+  45% {
+    opacity: 0.65;
+    filter: blur(5px);
+    text-shadow: 4px -5px 16px rgba(247, 247, 247, 0.75);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+    transform: none;
+    text-shadow: 10px -8px 20px rgba(247, 247, 247, 0);
+  }
+}
+/* The reverse, for the line before a question: it blurs, drifts on to the right and up, and thins away. */
+@keyframes smoke-out {
+  0% {
+    opacity: 1;
+    filter: blur(0);
+    transform: none;
+    text-shadow: 0 0 0 rgba(247, 247, 247, 0);
+  }
+  45% {
+    opacity: 0.6;
+    filter: blur(5px);
+    text-shadow: -4px 4px 16px rgba(247, 247, 247, 0.7);
+  }
+  100% {
+    opacity: 0;
+    filter: blur(12px);
+    transform: translate(12px, -10px) scale(1.5, 1.25) skewX(-14deg);
+    text-shadow: 0 0 18px rgba(247, 247, 247, 0.9);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .smoke-letter {
+    display: inline-block;
+    animation: smoke-in 800ms cubic-bezier(0.25, 0.6, 0.3, 1) both;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .smoke-letter.smoke-leaving {
+    animation:
+      smoke-in 800ms cubic-bezier(0.25, 0.6, 0.3, 1) both,
+      smoke-out 520ms cubic-bezier(0.4, 0, 0.7, 0.6) forwards;
+  }
+}
+
+/* The end of Build my own, two glasses clinking, once: lean in, touch, a small bounce, and settle back
+   together, where they stay with the sparkle. The still styles are that last moment, which is what
+   "reduce motion" shows. */
+.cheers-glass {
+  transform: rotate(10deg);
+}
+@keyframes cheers-glass {
+  0% {
+    transform: translateX(-14px) rotate(-6deg);
+  }
+  62% {
+    transform: translateX(0) rotate(10deg);
+  }
+  78% {
+    transform: translateX(-4px) rotate(6.5deg);
+  }
+  100% {
+    transform: translateX(0) rotate(10deg);
+  }
+}
+@keyframes cheers-spark {
+  0%,
+  58% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  78% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .cheers-glass {
+    animation: cheers-glass 1500ms cubic-bezier(0.45, 0, 0.3, 1) 300ms both;
+  }
+  .cheers-spark {
+    animation: cheers-spark 1500ms ease-out 300ms both;
+  }
+}
+
 /* Wide screens, Browse to Build: the drink zooms in, and the left panel eases in (JP's v2 flow, Figma 256:832). */
 .build-zoom {
   transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -417,6 +533,19 @@ body {
   background: linear-gradient(135.14deg, #db587a 36.37%, #f6a852 59.73%, #9a77bb 85.98%);
   filter: blur(14px) saturate(1.25);
   pointer-events: none;
+}
+
+/* Build my own's suggested choices: the glow's pink, orange and purple as a 1px outline at 60% opacity. The fill is a layer
+   inside the border, so it still lightens on hover. */
+.gradient-stroke {
+  --stroke-fill: #1a1612;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--stroke-fill), var(--stroke-fill)) padding-box,
+    linear-gradient(135.14deg, #db587a99 36.37%, #f6a85299 59.73%, #9a77bb99 85.98%) border-box;
+}
+.gradient-stroke:hover {
+  --stroke-fill: #26221e;
 }
 
 /* Switching drinks: the new name and taste line fade in from the right. A long, strong ease-out: it moves

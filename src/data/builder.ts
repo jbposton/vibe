@@ -84,7 +84,7 @@ export const ROLE_OPTIONS: Record<Role, IngredientId[]> = {
 /** The bases with no alcohol. */
 const ZERO_PROOF_BASES: IngredientId[] = ["iced-tea", "ginger-ale", "lemonade", "ginger-beer"];
 
-/** The options for a role under a mood: suggested ones first. Returns each with whether it is suggested. */
+/** The options for a role under a mood: suggested ones first. Returns each with whether it is marked as suggested. */
 export function optionsFor(role: Role, mood: Mood | null): { id: IngredientId; suggested: boolean }[] {
   let ids: IngredientId[] = ROLE_OPTIONS[role];
   if (role === "base" && mood?.zeroProof) ids = ZERO_PROOF_BASES;
@@ -92,7 +92,9 @@ export function optionsFor(role: Role, mood: Mood | null): { id: IngredientId; s
   const suggested = new Set(mood?.suggest[role] ?? []);
   const first = ids.filter((id) => suggested.has(id));
   const rest = ids.filter((id) => !suggested.has(id));
-  return [...first, ...rest].map((id) => ({ id, suggested: suggested.has(id) }));
+  // With only two choices and both suggested, suggesting says nothing, so neither is marked (JP, 2026-11-26).
+  const neither = ids.length === 2 && first.length === 2;
+  return [...first, ...rest].map((id) => ({ id, suggested: !neither && suggested.has(id) }));
 }
 
 /** A new recipe line for an ingredient playing a role, at a first-pass starting amount. */
@@ -111,14 +113,17 @@ export function newLine(role: Role, ingredient: IngredientId): RecipeLine {
 
 /** What the guide asks about each role, in the order it asks. */
 export const GUIDE_STEPS: { role: Role; ask: string; skippable: boolean }[] = [
-  { role: "base", ask: "What should be the backbone of the drink?", skippable: false },
+  { role: "base", ask: "What kind of alcohol do you like?", skippable: false },
   { role: "modifier", ask: "Want something to round it out?", skippable: true },
   { role: "sweet", ask: "How about some sweetness?", skippable: true },
   { role: "sour", ask: "Any sharpness, to wake it up?", skippable: true },
   { role: "bitter", ask: "A little bitterness for depth?", skippable: true },
   { role: "lengthener", ask: "Should it be long? Something to top it up with.", skippable: true },
-  { role: "aromatic", ask: "Last: how do you want to finish it?", skippable: true },
+  { role: "aromatic", ask: "Lastly, how should we finish it?", skippable: true },
 ];
+
+/** The base question for a mood with no alcohol, where asking about alcohol would make no sense. */
+export const ZERO_PROOF_BASE_ASK = "What should the base of the drink be?";
 
 /** What each role does in a drink, in a few plain words (shown in the roles panel). */
 export const ROLE_BLURB: Record<Role, string> = {

@@ -11,7 +11,9 @@ import {
 } from "react";
 import { DRINKS, type Drink, type RecipeLine } from "@/data/drinks";
 import { GUIDE_STEPS, MOODS, newLine } from "@/data/builder";
-import { addSaved, madeUpName, removeSaved, servingFor, useSavedDrinks } from "@/lib/saved";
+import { addSaved, madeUpName, removeSaved, renameSaved, servingFor, useSavedDrinks } from "@/lib/saved";
+import { NameField, SavedName } from "./NameField";
+import { GlassSilhouette } from "./flow/CheersToast";
 import { flavorProfile } from "@/lib/flavor";
 import { useTuning } from "@/lib/tuning";
 import { DesignEditor } from "./dev/DesignEditor";
@@ -25,21 +27,33 @@ import { SideGlass } from "./SideGlass";
 import { SideLens, useLensSupport } from "./SideLens";
 import { useSheet } from "./useSheet";
 import { adjustLine, traitEdits } from "@/lib/edits";
-import { swapIngredient } from "@/lib/swap";
-import { DEFAULT_UNIT, formatTotal, stepAmount, totalParts, volumeParts } from "@/lib/stack";
+import { DEFAULT_UNIT, formatTotal, stepAmount, totalParts } from "@/lib/stack";
 import { FlavorLadders } from "./FlavorLadders";
 import { abvLabel, tasteSummary } from "@/lib/flavor";
 import { BrowsePanel } from "./BrowsePanel";
 import { EditShell, FOOT_PILL, TraitChips } from "./EditShell";
 import { BuilderChat, EMPTY_CHAT, type Chat } from "./flow/BuilderChat";
 import { RolesPanel } from "./flow/RolesPanel";
-import { IngredientDrawer } from "./IngredientDrawer";
 import { TEXT_BUTTON } from "@/components/buttonStyles";
 
 // OPEN: which drink a visitor sees first (brief §1 flow). Placeholder: Negroni.
 const START_DRINK = Math.max(0, DRINKS.findIndex((d) => d.id === "negroni"));
 
 const mod = (a: number, n: number) => ((a % n) + n) % n;
+/** Building on a phone: where the guide's top edge sits when it's all the way up (px, just under the filters),
+    and how long the first pour waits while the guide comes down (ms). */
+const PHONE_DRAWER_FULL_TOP = 76;
+const PHONE_REVEAL_MS = 350;
+
+/** The fewest places a row needs to slide smoothly: the middle card and two waiting on each side. */
+const RING_MIN = 5;
+/**
+ * A short list goes round more than once, so there is a drink on both sides and the next one is already in
+ * place as the row slides (JP, 2026-11-27): two drinks become A B A B A B. The copies are the same drink, so
+ * edits show on all of them. One drink stays on its own.
+ */
+const asRing = <T,>(items: T[]): T[] =>
+  items.length < 2 || items.length >= RING_MIN ? items : Array.from({ length: Math.ceil(RING_MIN / items.length) }, () => items).flat();
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
 /**
@@ -255,7 +269,7 @@ export function DrinkPanel() {
   const saved = useSavedDrinks();
   const [filterId, setFilterId] = useState(CLASSICS_ID);
   const listFor = useCallback(
-    (id: string) => (id === MY_DRINKS_ID && saved.length > 0 ? saved.map((_, k) => DRINKS.length + k) : filterList(id === MY_DRINKS_ID || id === BUILD_ID ? CLASSICS_ID : id)),
+    (id: string) => asRing(id === MY_DRINKS_ID && saved.length > 0 ? saved.map((_, k) => DRINKS.length + k) : filterList(id === MY_DRINKS_ID || id === BUILD_ID ? CLASSICS_ID : id)),
     [saved],
   );
   const list = useMemo(() => listFor(filterId), [listFor, filterId]);
@@ -278,14 +292,16 @@ export function DrinkPanel() {
   // the drink zooms in) and Build my own (the guide, an empty glass). The drinks you saved join DRINKS
   // after it, so a saved drink's position is DRINKS.length + its place in `saved`.
   const [mode, setMode] = useState<Mode>("browse");
-  const [tab, setTab] = useState<"guide" | "structure" | "ingredients">("structure");
+  const [, setTab] = useState<"guide" | "structure" | "ingredients">("structure");
   const all = useMemo(() => [...DRINKS, ...saved], [saved]);
   const [ownLines, setOwnLines] = useState<RecipeLine[]>([]);
   const [ownName, setOwnName] = useState("");
   const [ownChat, setOwnChat] = useState<Chat>(EMPTY_CHAT);
   const [ownServings, setOwnServings] = useState(1);
   const build = isDesktop && mode === "build";
-  const own = isDesktop && mode === "own";
+  const own = mode === "own";
+  // On a phone, Build my own is the glass above and the guide in the bottom half of the screen (JP, 2026-11-27).
+  const ownPhone = own && !isDesktop;
   // The Edit Panel slides up from the bottom when Build mode opens and back down when it closes. While it moves,
   // Browse's own content stays underneath, and the drink zooms (and the other drinks fade) in the same moment.
   const [closing, setClosing] = useState(false);
@@ -379,7 +395,7 @@ export function DrinkPanel() {
   const sidePane = Math.round(trackSize.width / 2 - cardWidth / 2);
   // Build mode zooms the drink in (and keeps it inside the room above the serving row).
   const zoomAmount = Math.max(1, Math.min(BUILD_ZOOM, 1 + (2 * cardTop) / Math.max(1, cardHeight)));
-  const zoom = zoomed ? zoomAmount : 1;
+  const zoom = zoomed && isDesktop ? zoomAmount : 1;
 
   // ── Carousel motion ─────────────────────────────────────────────────────
   // Positions are written straight to the card elements (no React render per
@@ -597,7 +613,8 @@ export function DrinkPanel() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target instanceof HTMLElement ? e.target : null;
-      if (target?.getAttribute("role") === "slider") return;
+      // Arrows and Escape belong to a slider or a text field while you are in one.
+      if (target?.getAttribute("role") === "slider" || target instanceof HTMLInputElement) return;
       if (e.key === "Escape") {
         sheet.closeSheet();
         if (mode === "build" && !closing) closeBuild();
@@ -681,6 +698,13 @@ export function DrinkPanel() {
   const infoD = list[infoIndex] ?? list[0]; // the info drink's place in DRINKS
   const infoDrink = all[infoD];
   const infoLines = edits[infoD] ?? infoDrink.lines;
+  // Whether the drink now differs from its recipe (an amount, an ingredient added, removed or swapped).
+  // Undoing every change back to the recipe counts as unchanged.
+  const infoChanged = useMemo(() => {
+    const base = infoDrink.lines;
+    if (infoLines.length !== base.length) return true;
+    return infoLines.some((l, i) => l.ingredient !== base[i].ingredient || l.role !== base[i].role || JSON.stringify(l.amount) !== JSON.stringify(base[i].amount));
+  }, [infoLines, infoDrink]);
   // Put a drink back to its classic recipe and one serving.
   const resetDrink = useCallback((d: number) => {
     setEdits((all) => {
@@ -695,6 +719,14 @@ export function DrinkPanel() {
     });
   }, []);
 
+  /** Back to Browse at once (not through Done): the side drinks, the arrows and the soft edge come back with it.
+      Building hides them, so every way out of building has to restore them. */
+  const showBrowse = () => {
+    setMode("browse");
+    setSideMode("shown");
+    setGradientOn(true);
+  };
+
   // Picking a quick filter swaps the row to that curated list. If the drink in
   // the middle is also in the new list we stay on it, otherwise we start at the top.
   const showList = (id: string, next: number[], pos: number) => {
@@ -702,7 +734,7 @@ export function DrinkPanel() {
     cancelAnimationFrame(c.raf);
     c.animating = false;
     c.swiping = false;
-    c.n = next.length;
+    c.n = asRing(next).length; // the same length listFor will give
     c.index = pos;
     c.info = pos;
     c.p = 0;
@@ -717,43 +749,53 @@ export function DrinkPanel() {
   };
   const selectFilter = (id: string) => {
     if (id === BUILD_ID) {
-      // Build my own: wide screens only for now (OPEN: a phone version isn't designed).
-      if (!isDesktop) return;
-      if (mode !== "own") openBuild("guide", "own");
+      if (mode === "own") return;
+      if (isDesktop) openBuild("guide", "own");
+      else {
+        // Phones have no drink info to fade out first.
+        sheet.closeSheet();
+        setMode("own");
+      }
       return;
     }
     const filter = id === MY_DRINKS_ID ? MY_FILTER : FILTERS.find((f) => f.id === id);
     if (!filter || filter.placeholder) return;
     const leaving = mode !== "browse";
-    if (leaving) {
-      setMode("browse");
-      setSideMode("shown");
-      setGradientOn(true);
-    }
+    if (leaving) showBrowse();
     if (id === filterId && !leaving) return;
     if (id === filterId) return;
     const next = listFor(id);
     showList(id, next, Math.max(0, next.indexOf(list[ctl.current.index])));
   };
 
-  // Which filters the bar shows: Build my own is wide-screen only for now, and My Drinks appears once one is saved.
+  // Which filters the bar shows: My Drinks appears once one is saved.
   const barFilters = useMemo(() => {
-    const base = FILTERS.map((f) => (f.id === BUILD_ID && !isDesktop ? { ...f, placeholder: true } : f));
+    const base = FILTERS;
     if (saved.length === 0) return base;
-    const at = base.findIndex((f) => f.id === CLASSICS_ID) + 1;
+    // My Drinks comes just before Classics (JP, 2026-11-27).
+    const at = base.findIndex((f) => f.id === CLASSICS_ID);
     return [...base.slice(0, at), MY_FILTER, ...base.slice(at)];
-  }, [saved.length, isDesktop]);
+  }, [saved.length]);
 
   // ── Build my own (the guide) and saving ───────────────────────────────────
   const mood = MOODS.find((m) => m.id === ownChat.moodId) ?? null;
-  const ownLiquids = ownLines.filter((l) => volumeParts(l.amount) > 0).length;
+  // On a phone, until there's something in the glass, the guide covers the page under the filters; the first
+  // ingredient brings it down to show the drink (JP, 2026-11-27). Emptying the glass sends it back up.
+  const drawerFull = ownPhone && ownLines.length === 0;
   const ownAnswer = (role: RecipeLine["role"], ingredient: RecipeLine["ingredient"] | null) => {
     const next = ingredient ? [...ownLines.filter((l) => l.role !== role), newLine(role, ingredient)] : ownLines;
     const answers = [...ownChat.answers, ingredient];
     setOwnLines(next);
     setOwnChat({ ...ownChat, answers });
     // The guide is done: it gives the drink a made-up name, which can be changed above the panel.
-    if (answers.length === GUIDE_STEPS.length) setOwnName(madeUpName(mood, next));
+    // A name you typed along the way is yours: it isn't replaced.
+    if (answers.length === GUIDE_STEPS.length) setOwnName((typed) => (typed.trim() ? typed : madeUpName(mood, next)));
+  };
+  /** A different choice on an earlier question: swaps (or removes) that layer and keeps the other answers. */
+  const ownChange = (step: number, role: RecipeLine["role"], ingredient: RecipeLine["ingredient"] | null) => {
+    const others = ownLines.filter((l) => l.role !== role);
+    setOwnLines(ingredient ? [...others, newLine(role, ingredient)] : others);
+    setOwnChat({ ...ownChat, answers: ownChat.answers.map((a, i) => (i === step ? ingredient : a)) });
   };
   const ownMood = (moodId: string) => {
     setOwnLines([]);
@@ -769,10 +811,10 @@ export function DrinkPanel() {
   };
   /** Save a recipe as a new drink and show it under My Drinks. */
   const saveAsNew = (name: string, lines: RecipeLine[]) => {
-    const drink: Drink = { id: `mine-${Date.now()}`, name: name.trim() || "Your Drink", family: "Unplaced", tags: [], lines, ...servingFor(lines) };
+    const drink: Drink = { id: `mine-${Date.now()}`, name: name.trim() || "New Drink", family: "Unplaced", tags: [], lines, ...servingFor(lines) };
     const next = [...saved, drink];
     addSaved(drink);
-    setMode("browse");
+    showBrowse();
     ownRestart();
     showList(MY_DRINKS_ID, next.map((_, k) => DRINKS.length + k), next.length - 1);
   };
@@ -808,7 +850,7 @@ export function DrinkPanel() {
   const setActiveServings = own ? setOwnServings : setInfoServings;
   const setActiveLines = (update: (prev: RecipeLine[]) => RecipeLine[]) => (own ? setOwnLines(update) : onEdit(infoD, update));
   const profile = useMemo(() => flavorProfile(activeLines), [activeLines]);
-  const ownDrink = useMemo<Drink>(() => ({ id: "custom", name: ownName || "Your Drink", family: "Unplaced", tags: [], lines: ownLines, ...servingFor(ownLines) }), [ownName, ownLines]);
+  const ownDrink = useMemo<Drink>(() => ({ id: "custom", name: ownName || "New Drink", family: "Unplaced", tags: [], lines: ownLines, ...servingFor(ownLines) }), [ownName, ownLines]);
   const rolesPanel = (
     <RolesPanel
       swatch
@@ -821,52 +863,42 @@ export function DrinkPanel() {
     />
   );
   const editsFor = own ? traitEdits(ownLines) : editsForDrink;
-  const guideHere = own && tab === "guide";
-  const tabs = own
-    ? ownChat.moodId
-      ? [{ id: "guide", label: "Guide" }, { id: "structure", label: "Structure" }, { id: "ingredients", label: "All ingredients" }]
-      : [{ id: "guide", label: "Guide" }]
-    : [{ id: "structure", label: "Structure" }, { id: "ingredients", label: "All ingredients" }];
+  // Build my own is the guide alone, with no tabs (JP, 2026-11-26).
+  // OPEN: with them went Structure and All ingredients while building your own drink.
+  const guideHere = own;
+  // One section only: All ingredients was taken out (JP, 2026-11-26), so there is no tab row.
+  const tabs: { id: string; label: string }[] = [];
   const pill = `${TEXT_BUTTON} flex-1 rounded-full px-9 text-white transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7F7F7] disabled:pointer-events-none disabled:opacity-40`;
   const footer = guideHere ? null : (
     <div className="sticky bottom-0 z-20 flex shrink-0 justify-center gap-2 bg-gradient-to-t from-[#21201E] from-55% to-transparent px-5 pb-4 pt-10">
-      {own ? (
-        <button type="button" disabled={ownLiquids < 2} onClick={() => saveAsNew(ownName, ownLines)} className={`${pill} ${FOOT_PILL}`}>
+      <button type="button" onClick={() => (isDesktop ? closeBuild() : sheet.closeSheet())} className={`${pill} ${FOOT_PILL}`}>
+        Done
+      </button>
+      {infoChanged && (
+        <button type="button" onClick={() => saveAsNew(`My ${infoDrink.name}`, infoLines)} className={`${pill} ${FOOT_PILL}`}>
           Save as a new drink
         </button>
-      ) : (
-        <>
-          <button type="button" onClick={() => (isDesktop ? closeBuild() : sheet.closeSheet())} className={`${pill} ${FOOT_PILL}`}>
-            Done
-          </button>
-          {infoD in edits && (
-            <button type="button" onClick={() => saveAsNew(`My ${infoDrink.name}`, infoLines)} className={`${pill} ${FOOT_PILL}`}>
-              Save as a new drink
-            </button>
-          )}
-        </>
       )}
     </div>
   );
-  const shownTab = own ? tab : tab === "ingredients" ? "ingredients" : "structure";
+  const shownTab = own ? "guide" : "structure";
   const editPanel = (
-    <EditShell tabs={tabs} tab={shownTab} onTab={(id) => setTab(id as typeof tab)} fill={guideHere} footer={footer}>
+    <EditShell tabs={tabs} tab={shownTab} onTab={(id) => setTab(id as "structure")} fill={guideHere} footer={footer}>
       {shownTab === "guide" ? (
         <BuilderChat
           chat={ownChat}
           onMood={ownMood}
           onAnswer={ownAnswer}
+          onChange={ownChange}
           onRestart={ownRestart}
-          save={{ onSave: () => saveAsNew(ownName, ownLines), canSave: ownLiquids >= 2 }}
+          save={{ onSave: () => saveAsNew(ownName, ownLines), canSave: ownLines.length > 0 }}
           name={ownName}
         />
-      ) : shownTab === "structure" ? (
+      ) : (
         <>
           <TraitChips edits={editsFor} lines={activeLines} onAdjust={(key, direction) => setActiveLines((prev) => adjustLine(prev, key, direction))} />
           {rolesPanel}
         </>
-      ) : (
-        <IngredientDrawer lines={activeLines} onPick={(ingredient) => setActiveLines((prev) => swapIngredient(prev, ingredient))} />
       )}
     </EditShell>
   );
@@ -876,8 +908,8 @@ export function DrinkPanel() {
 
   // The cards in the row: two either side of the middle one, so the next
   // card is already in place while you swipe.
-  // With a short list (a filter with few drinks) fewer cards are shown, so the
-  // same drink never appears twice.
+  // A short list has already been made to go round (see asRing), so only a
+  // single drink has nothing beside it.
   const spread = Math.floor((N - 1) / 2);
   const offsets =
     N >= 5
@@ -953,7 +985,10 @@ export function DrinkPanel() {
       </div>
 
       {/* ── Controls ──────────────────────────────────────────────── */}
-      <header className="intro-info flex flex-col md:col-start-1 md:row-start-2" style={phone ? zHeader : { marginBottom: tune.labelToPanel - 16 }}>
+      <header
+        inert={drawerFull}
+        // Out of sight while the phone's guide covers it, so it doesn't peek past the rounded corners.
+        className={`intro-info flex flex-col transition-opacity duration-300 md:col-start-1 md:row-start-2 ${drawerFull ? "opacity-0" : ""}`} style={phone ? zHeader : { marginBottom: tune.labelToPanel - 16 }}>
         {/* On a phone you swipe; these stay for screen readers. Wide screens have round buttons beside the card. */}
         <div className="flex justify-end md:hidden">
           <button type="button" onClick={() => goBy(-1)} aria-label="Previous drink" className={navButton}>
@@ -968,17 +1003,13 @@ export function DrinkPanel() {
         <div className="relative flex items-end justify-between gap-2">
           {/* A new drink's name and taste line fade in from the right (a new element for each drink,
               so the animation plays again). */}
-          <div key={own ? "own" : infoDrink.id} className={`min-w-0 ${titleMoves && !own ? "title-in" : ""}`}>
+          <div key={own ? "own" : infoDrink.id} className={`min-w-0 ${own || infoD >= DRINKS.length ? "flex-1" : ""} ${titleMoves && !own ? "title-in" : ""}`}>
             {own ? (
               // Build my own: the name is yours to change (the guide gives it a made-up one when it is done).
-              <input
-                value={ownName}
-                onChange={(e) => setOwnName(e.target.value)}
-                placeholder="Your Drink"
-                aria-label="Drink name"
-                maxLength={28}
-                className="block w-full border-b border-transparent bg-transparent font-serif text-[40px] leading-[52px] outline-none transition-colors placeholder:text-[#F7F7F7] hover:border-white/20 focus:border-white/40 md:text-[length:var(--name-size,50px)] md:leading-[1.28]"
-              />
+              <NameField value={ownName} onChange={setOwnName} placeholder="Build a drink" />
+            ) : infoD >= DRINKS.length ? (
+              // A drink you saved keeps the pencil (JP, 2026-11-27).
+              <SavedName key={infoDrink.id} name={infoDrink.name} onRename={(name) => renameSaved(infoDrink.id, name)} />
             ) : (
               <h1 className="font-serif text-[40px] leading-[52px] md:text-[length:var(--name-size,50px)] md:leading-[1.28]" style={zTitle}>
                 {infoDrink.name}
@@ -987,7 +1018,7 @@ export function DrinkPanel() {
             {/* The taste summary, a dot, then the drink's alcohol (both follow your edits). */}
             <p className="mt-1 flex items-center gap-[5px] text-xs opacity-55 md:text-[length:var(--label-size,14px)]" style={zFamily}>
               {own && ownLines.length === 0 ? (
-                <span>Answer the prompts or build from an existing drink</span>
+                <span>A few questions first</span>
               ) : (
                 <>
                   <span>{tasteSummary(profile)}</span>
@@ -999,7 +1030,7 @@ export function DrinkPanel() {
           </div>
           {/* Phones keep the prep icons here; wide screens show the Sweet and Bitter ladders (Figma 256:832)
               and move the prep icons down to "Best prepared". */}
-          {phone ? (
+          {phone && !own ? (
             <div className="relative -mr-1" style={zPrep}>
               <PrepTags method={infoDrink.method} glass={infoDrink.glass} />
             </div>
@@ -1012,7 +1043,7 @@ export function DrinkPanel() {
           )}
           {/* Once the drawer is up, the Sweet and Bitter ladders take the prep icons' place, their names level with
               the label under the title. */}
-          {phone && (
+          {phone && !own && (
             <div
               aria-hidden={!sheet.open}
               className="pointer-events-none absolute bottom-0 right-0"
@@ -1061,7 +1092,7 @@ export function DrinkPanel() {
                 opacity: own ? 0 : 1,
                 transition: `opacity 400ms, --side-fade ${GRADIENT_MS}ms ease-out`,
               } as React.CSSProperties
-            : undefined
+            : { opacity: own ? 0 : 1 }
         }
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
@@ -1120,14 +1151,25 @@ export function DrinkPanel() {
       {own && (
         <div
           className="build-zoom absolute"
-          style={{ left: `calc(50% - ${cardWidth / 2}px)`, top: cardTop, width: cardWidth, height: cardHeight, transform: `scale(${zoom})` }}
+          style={{
+            left: `calc(50% - ${cardWidth / 2}px)`,
+            // A phone centers its cards in the row instead of using cardTop.
+            top: isDesktop ? cardTop : Math.max(0, (trackSize.height - cardHeight) / 2),
+            width: cardWidth,
+            height: cardHeight,
+            transform: `scale(${zoom})`,
+          }}
         >
           {ownLines.length === 0 ? (
-            <div className="absolute inset-0 grid place-items-center rounded-[38px] border border-white/10 bg-white/[0.03] p-6 text-center">
-              <p className="text-sm text-[#F7F7F7]/50">
-                Your glass is empty.
-                <span className="mt-1 block text-xs text-[#F7F7F7]/35">Pick a classic, or answer the guide: each one adds a layer.</span>
-              </p>
+            // Just the words, with no outline of a glass around them (JP, 2026-11-27).
+            <div className="absolute inset-0 grid place-items-center text-center md:p-6">
+              <div>
+                <GlassSilhouette />
+                <p className="mt-3 text-sm text-[#F7F7F7]/50 md:mt-5">
+                  Your glass is empty.
+                  <span className="mt-1 block text-xs text-[#F7F7F7]/35">Pick a classic, or answer the guide: each one adds a layer.</span>
+                </p>
+              </div>
             </div>
           ) : (
             <DrinkCard
@@ -1141,6 +1183,9 @@ export function DrinkPanel() {
               servings={ownServings}
               modified={false}
               onReset={noop}
+              pours
+              // On a phone the first pour waits for the guide to get most of the way down.
+              pourDelay={ownPhone && ownLines.length === 1 ? PHONE_REVEAL_MS : 0}
             />
           )}
         </div>
@@ -1188,7 +1233,8 @@ export function DrinkPanel() {
       {/* Serving size and the total under the drink (Figma 187:43). Wide screens: exactly as wide as the
           card and 16px under it (JP, 2026-11-18). It sits above the side lens (z-9), which would shave its ends. */}
       <div
-        className="intro-servings z-10 mt-[23px] shrink-0 px-[9px] md:mx-0 md:px-0"
+        // Building your own on a phone, the glass needs the room: no serving buttons there. OPEN: for JP to review.
+        className={`intro-servings z-10 mt-[23px] shrink-0 px-[9px] md:mx-0 md:px-0 ${ownPhone ? "hidden" : ""}`}
         style={
           isDesktop
             ? { position: "absolute", marginTop: 0, left: `calc(50% - ${cardWidth / 2}px)`, width: cardWidth, bottom: 0 }
@@ -1208,7 +1254,7 @@ export function DrinkPanel() {
       {/* On a phone the edit panel floats over the bottom of the screen; this keeps the drink above it. The height
           leaves the same 23px between the serving buttons and the panel as between the drink and the serving
           buttons (the screen's 16px padding and 16px gap are counted in: height = panel height - 24, found by measuring on a 402x749 screen). */}
-      <div aria-hidden className="shrink-0 md:hidden" style={{ height: PANEL_CLOSED_HEIGHT - 24 }} />
+      {!ownPhone && <div aria-hidden className="shrink-0 md:hidden" style={{ height: PANEL_CLOSED_HEIGHT - 24 }} />}
 
       {/* While the drawer is up, a tap on the header above it closes it. */}
       {phone && sheet.open && (
@@ -1222,7 +1268,16 @@ export function DrinkPanel() {
       )}
 
       {/* ── The edit panel: the buttons, and the ingredients when it is open ── */}
-      <div className="intro-info md:relative md:col-start-1 md:row-start-3 md:min-h-0">
+      {/* Building on a phone, the guide floats so it can move; this keeps its lowered half's room, so the glass
+          is already in place behind it. */}
+      {ownPhone && <div aria-hidden className="h-[calc(50dvh-16px)] shrink-0" />}
+      <div
+        className={`intro-info md:relative md:col-start-1 md:row-start-3 md:min-h-0 ${
+          // Lowered, its top edge sits at the middle of the screen.
+          ownPhone ? "panel-slide-up absolute inset-x-4 bottom-4 z-30 transition-[top] duration-[600ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none" : ""
+        }`}
+        style={ownPhone ? { top: drawerFull ? PHONE_DRAWER_FULL_TOP : "50dvh" } : undefined}
+      >
       {/* Browse mode (wide screens): the drink's story and the buttons that start Build mode. It stays underneath
           while the Edit Panel slides over it or away. */}
       {isDesktop && (mode === "browse" || settling || closing) && (
@@ -1234,7 +1289,6 @@ export function DrinkPanel() {
           <BrowsePanel
             drink={infoDrink}
             onEdit={() => openBuild("structure", "build")}
-            onSubstitute={() => openBuild("ingredients", "build")}
             onRemove={infoD >= DRINKS.length ? removeDrink : undefined}
           />
         </div>
@@ -1245,14 +1299,16 @@ export function DrinkPanel() {
             <>
               <div
                 ref={panelScrollRef}
-                className={`panel-scroll md:h-full md:rounded-t-[30px] md:bg-[#21201E] ${guideHere ? "md:overflow-hidden" : "md:overflow-y-auto"}`}
+                className={`panel-scroll md:h-full md:rounded-[30px] md:bg-[#21201E] ${guideHere ? "md:overflow-hidden" : "md:overflow-y-auto"} ${
+                  ownPhone ? "h-full overflow-hidden rounded-[30px] bg-[#21201E]" : ""
+                }`}
               >
-                {isDesktop ? (
+                {isDesktop || own ? (
                   editPanel
                 ) : (
                   <EditPanel
-                    onOpen={(t) => {
-                      setTab(t);
+                    onOpen={() => {
+                      setTab("structure");
                       sheet.openSheet();
                     }}
                     open={sheet.open}
@@ -1282,8 +1338,8 @@ export function DrinkPanel() {
           );
           // Wide screens: the whole panel slides up from the bottom (and back down on Done).
           return isDesktop ? (
-            // It runs down to the bottom of the page (past the 16px page padding), square at the bottom, so Done lines up with the serving buttons.
-            <div key={mode} className={`absolute inset-x-0 top-0 -bottom-4 z-10 ${closing ? "panel-slide-down" : "panel-slide-up"}`}>
+            // It stops at the page's 16px padding and is rounded on all four corners (JP, 2026-11-27).
+            <div key={mode} className={`absolute inset-x-0 top-0 bottom-0 z-10 ${closing ? "panel-slide-down" : "panel-slide-up"}`}>
               {sheetBody}
             </div>
           ) : (

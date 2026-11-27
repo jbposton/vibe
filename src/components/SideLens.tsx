@@ -97,21 +97,43 @@ function offsetIn(el: HTMLElement, root: HTMLElement) {
   return { x, y };
 }
 
+/**
+ * An element's exact box (fractional px). offsetLeft, offsetWidth, clientWidth and the like round to whole pixels,
+ * which put the copy up to a pixel off the real drink: at its bottom right corner it poked out past the real one.
+ */
+function exact(el: HTMLElement) {
+  const style = getComputedStyle(el);
+  const num = (v: string, fallback: number) => {
+    const n = parseFloat(v);
+    return Number.isFinite(n) ? n : fallback;
+  };
+  return {
+    // Like offsetLeft and offsetTop, the position includes the element's margin.
+    left: num(style.left, el.offsetLeft) + (parseFloat(style.marginLeft) || 0),
+    top: num(style.top, el.offsetTop) + (parseFloat(style.marginTop) || 0),
+    width: num(style.width, el.offsetWidth),
+    height: num(style.height, el.offsetHeight),
+  };
+}
+
 /** Paint a copy of a drink card as it looks right now, read from the real one. */
 function paintCard(ctx: CanvasRenderingContext2D, card: HTMLElement) {
   const section = card.querySelector("section");
   if (!section) return;
-  const W = section.clientWidth;
-  const H = section.clientHeight;
+  const { width: W, height: H } = exact(section);
   const cardAlpha = ctx.globalAlpha; // the whole card's own fade, which everything on it shares
   ctx.save();
   ctx.beginPath();
   ctx.roundRect(0, 0, W, H, CARD_RADIUS);
   ctx.clip();
 
+  // Exact (fractional, mid-animation) positions: offsetTop and offsetHeight round to whole pixels, and the copy's
+  // edges then sat up to a pixel off the real drink's, showing as small sharp ticks beside the card.
   section.querySelectorAll<HTMLElement>("div.layer-anim[aria-hidden]").forEach((block) => {
-    ctx.fillStyle = getComputedStyle(block).backgroundColor;
-    ctx.fillRect(0, block.offsetTop, W, block.offsetHeight + 0.5);
+    const style = getComputedStyle(block);
+    const height = parseFloat(style.height) || 0;
+    ctx.fillStyle = style.backgroundColor;
+    ctx.fillRect(0, H - (parseFloat(style.bottom) || 0) - height, W, height);
   });
 
   // The wave on the bottom layer, with whatever shape it has at this moment.
@@ -121,7 +143,7 @@ function paintCard(ctx: CanvasRenderingContext2D, card: HTMLElement) {
   if (wave && path && wave.style.display !== "none" && path.getAttribute("d")) {
     const h = Number(wave.getAttribute("height")) || 0;
     const shift = Number(/translateY\(([-\d.]+)px\)/.exec(wave.style.transform)?.[1] ?? 0);
-    const top = H - (parseFloat(wave.style.bottom) || 0) - h + shift;
+    const top = H - (parseFloat(getComputedStyle(wave).bottom) || 0) - h + shift;
     ctx.save();
     ctx.translate(0, top);
     ctx.scale(W / 100, 1);
@@ -156,9 +178,10 @@ function paintCard(ctx: CanvasRenderingContext2D, card: HTMLElement) {
 function applyTransform(ctx: CanvasRenderingContext2D, el: HTMLElement, style: CSSStyleDeclaration) {
   const [ox, oy] = style.transformOrigin.split(" ").map(parseFloat);
   const m = new DOMMatrix(style.transform === "none" ? undefined : style.transform);
-  ctx.translate(el.offsetLeft + ox, el.offsetTop + oy);
+  const { left, top } = exact(el);
+  ctx.translate(left + ox, top + oy);
   ctx.transform(m.a, m.b, m.c, m.d, m.e, m.f);
-  ctx.translate(-el.offsetLeft - ox, -el.offsetTop - oy);
+  ctx.translate(-left - ox, -top - oy);
 }
 
 export function SideLens({ cardWidth, zoom: aim = 1 }: { cardWidth: number; /** The zoom the row is heading to. */ zoom?: number }) {
@@ -255,7 +278,10 @@ export function SideLens({ cardWidth, zoom: aim = 1 }: { cardWidth: number; /** 
         ...cards.map((c) =>
           c.opacity < 0.01 || c.style.visibility === "hidden"
             ? "-"
-            : `${c.style.transform}|${c.opacity}|${c.dim}|${c.card.querySelector("svg path")?.getAttribute("d")?.slice(0, 160)}|${c.card.textContent}|${[...c.card.querySelectorAll<HTMLElement>("div.layer-anim[aria-hidden]")].map((b) => `${b.offsetHeight}${b.style.background}`).join()}`,
+            : `${c.style.transform}|${c.opacity}|${c.dim}|${c.card.querySelector("svg path")?.getAttribute("d")?.slice(0, 160)}|${c.card.textContent}|${[...c.card.querySelectorAll<HTMLElement>("div.layer-anim[aria-hidden]")].map((b) => {
+                const bs = getComputedStyle(b);
+                return `${bs.bottom}/${bs.height}${bs.backgroundColor}`;
+              }).join()}`,
         ),
       ].join("~");
       if (state === drawn) return;
@@ -279,14 +305,15 @@ export function SideLens({ cardWidth, zoom: aim = 1 }: { cardWidth: number; /** 
         if (!section) continue;
         ctx.save();
         applyTransform(ctx, c.card, c.style);
-        ctx.translate(c.card.offsetLeft, c.card.offsetTop);
+        const box = exact(c.card);
+        ctx.translate(box.left, box.top);
         ctx.globalAlpha = c.opacity * Number(rowStyle.opacity) * trackOpacity;
         paintCard(ctx, c.card);
         if (c.dim > 0) {
           ctx.globalAlpha *= c.dim;
           ctx.fillStyle = "#000";
           ctx.beginPath();
-          ctx.roundRect(0, 0, c.card.offsetWidth, c.card.offsetHeight, CARD_RADIUS);
+          ctx.roundRect(0, 0, box.width, box.height, CARD_RADIUS);
           ctx.fill();
         }
         ctx.restore();
