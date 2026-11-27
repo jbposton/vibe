@@ -1134,7 +1134,9 @@ export function DrinkPanel() {
         aria-roledescription="carousel"
         aria-label="Drinks"
         inert={own}
-        className="relative -mx-4 min-h-0 flex-1 touch-none overflow-hidden select-none md:mx-0"
+        // Phones: clipped at the sides only, so a card tilting as the row moves isn't cut off at the top or bottom
+        // (a phone's card fills the row's full height, so its corners rise past it; JP, 2026-11-27).
+        className="relative -mx-4 min-h-0 flex-1 touch-none overflow-x-clip overflow-y-visible select-none md:mx-0 md:overflow-hidden"
         // Wide screens: the side drinks fade out within tune.sideFade px of the card; the middle card stays at full strength.
         style={
           isDesktop

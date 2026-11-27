@@ -550,8 +550,8 @@ body {
 
 /* Switching drinks: the new name and taste line fade in from the right. A long, strong ease-out: it moves
    most of the way early, then settles very gently (JP, 2026-11-25). The length is matched to the drink card:
-   1630ms matched the title to the drink card exactly; JP then asked for slightly faster, so it looks still
-   a little before the card does. */
+   1630ms matched the title to the drink card exactly; JP then asked for slightly faster (1350ms), and on
+   2026-11-27 snappier: 380ms with a light ease-out (quad), so it barely slows at the end (JP). */
 @keyframes title-in {
   from {
     opacity: 0;
@@ -564,6 +564,6 @@ body {
 }
 @media (prefers-reduced-motion: no-preference) {
   .title-in {
-    animation: title-in 1350ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: title-in 380ms cubic-bezier(0.5, 1, 0.89, 1) both;
   }
 }

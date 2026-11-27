@@ -260,14 +260,17 @@ export function BuilderChat({ chat, onAnswer, onMood, onChange, onRestart, save,
     const fits = latest.offsetTop + latest.offsetHeight + 12 - el.clientHeight;
     // But never past its own top: in a short panel (a phone's) with many choices, the question stays in view
     // and the rest of the choices are a scroll away.
-    // Phones: always to the top of the new question or section (JP, 2026-11-27).
+    // Phones: always to the top of the new question or section (JP, 2026-11-27), except the closing Cheers, which
+    // scrolls to its bottom so all of it shows (JP, 2026-11-27).
     const top = !wide
-      ? Math.max(0, latest.offsetTop - TOP_FADE.rest - 4) // just clear of the soft top edge
+      ? finished
+        ? Math.max(0, latest.offsetTop + latest.offsetHeight + 12 - el.clientHeight)
+        : Math.max(0, latest.offsetTop - TOP_FADE.rest - 4) // just clear of the soft top edge
       : Math.max(0, Math.min(latest.offsetTop - 12, Math.max(fits, latest.offsetTop - from)));
     // Room under the last question, so the panel can scroll that far.
     spacer.style.height = `${Math.max(0, top - (el.scrollHeight - el.clientHeight))}px`;
     el.scrollTo({ top, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
-  }, [moodId, wide]);
+  }, [moodId, wide, finished]);
   useEffect(placeLatest, [placeLatest, chat.answers.length]);
   // The panel can change height (on a phone it comes down to show the drink). Once it has settled, put the
   // newest question back in its place.
